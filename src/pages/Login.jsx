@@ -118,7 +118,7 @@ export default function Login() {
                   </div>
 
                   <Link 
-                    to={role === 'admin' ? '/admin/dashboard' : (role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard')} 
+                    to={role === 'admin' ? '/admin' : (role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard')} 
                     className="block text-center w-full bg-primary hover:bg-primary-hover text-white font-bold text-lg py-4 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5"
                   >
                     Login

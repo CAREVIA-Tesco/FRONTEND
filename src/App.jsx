@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import DoctorDashboard from './pages/DoctorDashboard.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminApp from './admin/AdminApp.tsx';
 import PatientDashboard from './pages/PatientDashboard.jsx';
 import ProfessionalOnboarding from './pages/ProfessionalOnboarding.jsx';
 import Physiotherapy from './pages/Physiotherapy.jsx';
@@ -43,7 +43,7 @@ export default function App() {
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/verification" element={<Verification />} />
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/professional/onboarding" element={<ProfessionalOnboarding />} />
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
       </Routes>
