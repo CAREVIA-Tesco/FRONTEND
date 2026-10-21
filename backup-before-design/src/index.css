@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1A3789;
+  --color-primary-hover: #152B6A;
+  --color-secondary: #DA7C75;
+  --color-secondary-hover: #C56A63;
+  --color-tint: #F0F4FF;
+  --font-sans: 'Inter', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+
+  /* Admin panel tokens (same values as Carevia Super Admin/dashboard/tailwind.config.js) */
+  --color-brand-50: #f0f9ff;
+  --color-brand-100: #e0f2fe;
+  --color-brand-200: #bae6fd;
+  --color-brand-500: #0ea5e9;
+  --color-brand-600: #0284c7;
+  --color-brand-700: #0369a1;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-charcoal: #1e293b;
+  --color-muted: #64748b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes border-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animated-cta-wrapper {
+  position: relative;
+  display: inline-flex;
+  border-radius: 9999px;
+  overflow: hidden;
+  padding: 2px;
+  z-index: 1;
+}
+
+.animated-cta-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.8) 25%, transparent 50%);
+  transform-origin: 0 0;
+  transform: translate(-50%, -50%);
+  animation: border-spin 2.5s linear infinite;
+  z-index: -1;
+}
+
+.animated-cta-content {
+  background-color: var(--color-secondary);
+  border-radius: 9999px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.animated-cta-wrapper:hover .animated-cta-content {
+  background-color: var(--color-secondary-hover);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(20px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+}
+
+/* Scroll-in animation used by the redesigned public pages (components/Reveal.jsx) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Public website theme (Portea-style teal). Applied with className="theme-portea" on the public pages only,
+   so the login page, dashboards and admin panel keep the original Carevia colours. */
+.theme-portea {
+  --color-primary: #1E3340;          /* deep slate – headings, dark bands, footer */
+  --color-primary-hover: #142530;
+  --color-secondary: #1FA5A1;        /* teal – buttons and accents (brand teal #3FC1BE, deepened for readable white text) */
+  --color-secondary-hover: #188A87;
+  --color-tint: #E9F7F6;             /* light teal section backgrounds */
+  --color-teal: #3FC1BE;
+}
+.theme-portea ::selection { background: #3FC1BE; color: #fff; }

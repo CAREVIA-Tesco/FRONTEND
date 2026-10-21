@@ -1,23 +1,22 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Plus, Stethoscope, HeartHandshake, FlaskConical, Users, Pill, Leaf } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import api from "../../services/api"
+import { useApi } from "../lib/useApi"
 
-const services = [
-  { name: "Doctor Consultation", desc: "Online doctor consultation with certified healthcare professionals.", price: "₹499", bookings: "1,284", status: "Active", icon: Stethoscope },
-  { name: "Home Nursing", desc: "Professional nursing care delivered right to your home.", price: "₹1,200", bookings: "450", status: "Active", icon: Users },
-  { name: "Physiotherapy", desc: "Expert physiotherapy sessions for recovery and mobility.", price: "₹800", bookings: "320", status: "Active", icon: HeartHandshake },
-  { name: "Lab Tests", desc: "Home sample collection and quick accurate reports.", price: "Variable", bookings: "2,150", status: "Active", icon: FlaskConical },
-  { name: "Homeopathy", desc: "Consultations with expert homeopathic practitioners.", price: "₹399", bookings: "180", status: "Active", icon: Pill },
-  { name: "Ayurveda", desc: "Traditional ayurvedic consultations and wellness plans.", price: "₹499", bookings: "210", status: "Active", icon: Leaf }
-]
+const ICONS: Record<string, any> = { Stethoscope, HeartHandshake, FlaskConical, Users, Pill, Leaf }
 
 export function Services() {
+  const navigate = useNavigate()
+  const { data, error } = useApi(() => api.getServices())
+  const services = ((data as any)?.services || []).map((sv: any) => ({ ...sv, icon: ICONS[sv.icon] || Stethoscope }))
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Services</h1>
-          <p className="text-muted mt-1">Manage healthcare services offered through Carevia.</p>
+          <p className="text-muted mt-1">Manage healthcare services offered through Carevaa.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button>
@@ -28,10 +27,10 @@ export function Services() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Services", value: "12" },
-          { label: "Active", value: "10" },
-          { label: "Inactive", value: "2" },
-          { label: "Total Bookings", value: "8,452" }
+          { label: "Total Services", value: String(services.length) },
+          { label: "Active", value: String(services.filter((sv: any) => sv.status === "Active").length) },
+          { label: "Inactive", value: String(services.filter((sv: any) => sv.status !== "Active").length) },
+          { label: "Total Bookings", value: services.reduce((t: number, sv: any) => t + (sv.bookings || 0), 0).toLocaleString("en-IN") }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-5 shadow-sm">
             <p className="text-sm font-medium text-muted">{stat.label}</p>
@@ -41,7 +40,8 @@ export function Services() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
+        {error && <p className="col-span-full text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
+        {services.map((service: any) => (
           <div key={service.name} className="bg-surface border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <div className="h-12 w-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600">
@@ -65,7 +65,7 @@ export function Services() {
             </div>
 
             <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1 text-brand-600 border-brand-200 hover:bg-brand-50">View</Button>
+              <Button variant="outline" onClick={() => navigate("/admin/appointments")} className="flex-1 text-brand-600 border-brand-200 hover:bg-brand-50">View</Button>
               <Button variant="outline" className="flex-1">Edit</Button>
             </div>
           </div>

@@ -3,39 +3,53 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Search, Filter, Download, Plus, MoreHorizontal, Users, UserCheck, AlertTriangle, ShieldCheck, Ban, Check, X } from "lucide-react"
-import { getDoctors, saveDoctors } from "../../utils/storage"
 import { useState, useEffect } from "react"
+import api from "../../services/api"
+import { downloadCsv } from "../lib/useApi"
 
 export function Providers() {
-  const [providersList, setProvidersList] = useState([]);
+  const [allProviders, setAllProviders] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [specFilter, setSpecFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   
   useEffect(() => {
     loadDoctors();
   }, []);
   
   const loadDoctors = () => {
-    const docs = getDoctors();
-    setProvidersList(docs);
+    api.getProviders({ status: "ALL" })
+      .then((data: any) => setAllProviders(data.providers || []))
+      .catch((err: Error) => setError(err.message));
   };
   
-  const handleApprove = (id) => {
-    const docs = getDoctors();
-    const updated = docs.map(d => d.id === id ? { ...d, status: 'ACTIVE' } : d);
-    saveDoctors(updated);
-    loadDoctors();
+  const updateStatus = async (id: string, status: string) => {
+    setError("");
+    try {
+      await api.setProviderStatus(id, status);
+      loadDoctors();
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
+  const handleApprove = (id: string) => updateStatus(id, 'ACTIVE');
+  const handleReject = (id: string) => updateStatus(id, 'REJECTED');
+
+  const providersList = allProviders.filter((p: any) => {
+    if (search && !`${p.name} ${p.id} ${p.phone || ""} ${p.spec}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (specFilter && p.spec !== specFilter) return false;
+    if (typeFilter && (typeFilter === "Doctor") !== !!p.isDoctor) return false;
+    if (statusFilter && p.status !== statusFilter) return false;
+    return true;
+  });
+  const exportCsv = () => downloadCsv("carevaa-providers.csv", [["Provider ID", "Name", "Profession", "Specialization", "Experience", "Location", "Rating", "Status"], ...providersList.map((p: any) => [p.id, p.name, p.profession, p.spec, p.exp, p.loc, p.rating, p.status])]);
   
-  const handleReject = (id) => {
-    const docs = getDoctors();
-    const updated = docs.map(d => d.id === id ? { ...d, status: 'REJECTED' } : d);
-    saveDoctors(updated);
-    loadDoctors();
-  };
-  
-  const totalProviders = providersList.length;
-  const activeProviders = providersList.filter(p => p.status === 'ACTIVE' || !p.status).length;
-  const pendingProviders = providersList.filter(p => p.status === 'PENDING').length;
-  const rejectedProviders = providersList.filter(p => p.status === 'REJECTED').length;
+  const totalProviders = allProviders.length;
+  const activeProviders = allProviders.filter(p => p.status === 'ACTIVE' || !p.status).length;
+  const pendingProviders = allProviders.filter(p => p.status === 'PENDING').length;
+  const rejectedProviders = allProviders.filter(p => p.status === 'REJECTED' || p.status === 'SUSPENDED').length;
 
   return (
     <div className="space-y-6">
@@ -48,10 +62,10 @@ export function Providers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Doctors & Providers</h1>
-          <p className="text-muted mt-1">Manage healthcare professionals and providers registered with Carevia.</p>
+          <p className="text-muted mt-1">Manage healthcare professionals and providers registered with Carevaa.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
           <Button>
@@ -63,9 +77,9 @@ export function Providers() {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
           { label: "Total Providers", value: totalProviders.toString(), desc: "Registered professionals", icon: Users, color: "text-brand-600", bg: "bg-brand-50" },
-          { label: "Active Providers", value: activeProviders.toString(), desc: "+8.6% this month", icon: UserCheck, color: "text-success", bg: "bg-green-50" },
+          { label: "Active Providers", value: activeProviders.toString(), desc: "Approved & bookable", icon: UserCheck, color: "text-success", bg: "bg-green-50" },
           { label: "Pending Verification", value: pendingProviders.toString(), desc: "Requires admin review", icon: AlertTriangle, color: "text-warning", bg: "bg-amber-50" },
-          { label: "Verified Providers", value: activeProviders.toString(), desc: "84.4% of providers", icon: ShieldCheck, color: "text-success", bg: "bg-green-50" },
+          { label: "Verified Providers", value: activeProviders.toString(), desc: `${totalProviders ? Math.round((activeProviders / totalProviders) * 1000) / 10 : 0}% of providers`, icon: ShieldCheck, color: "text-success", bg: "bg-green-50" },
           { label: "Rejected", value: rejectedProviders.toString(), desc: "Currently inactive", icon: Ban, color: "text-error", bg: "bg-red-50" }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
@@ -84,33 +98,43 @@ export function Providers() {
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="relative w-full lg:w-[420px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-          <input 
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)} 
             type="text" 
             placeholder="Search doctor, provider name, ID or phone..." 
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
           />
         </div>
         <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
-          <select className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
-            <option>Specialization</option>
+          <select value={specFilter} onChange={(e) => setSpecFilter(e.target.value)} className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
+            <option value="">Specialization</option>
+            {[...new Set(allProviders.map((p: any) => p.spec))].map((sp: any) => <option key={sp} value={sp}>{sp}</option>)}
           </select>
-          <select className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
-            <option>Provider Type</option>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
+            <option value="">Provider Type</option>
+            <option value="Doctor">Doctor</option>
+            <option value="Care Professional">Care Professional</option>
           </select>
-          <select className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
-            <option>Verification Status</option>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 whitespace-nowrap">
+            <option value="">Verification Status</option>
+            <option value="ACTIVE">Verified</option>
+            <option value="PENDING">Pending</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="SUSPENDED">Suspended</option>
           </select>
-          <Button variant="outline" className="whitespace-nowrap">
-            <Filter className="mr-2 h-4 w-4" /> More Filters
+          <Button variant="outline" className="whitespace-nowrap" onClick={() => { setSearch(""); setSpecFilter(""); setTypeFilter(""); setStatusFilter(""); }}>
+            <Filter className="mr-2 h-4 w-4" /> Clear Filters
           </Button>
         </div>
       </div>
 
+      {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
       <div className="bg-surface rounded-2xl border border-slate-200 shadow-sm">
          <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-white rounded-t-2xl">
             <div>
                <h3 className="font-bold text-charcoal text-lg">All Providers</h3>
-               <p className="text-sm text-muted">1,284 providers</p>
+               <p className="text-sm text-muted">{providersList.length} providers</p>
             </div>
             <div className="flex gap-2">
                <Button variant="outline" size="sm">Columns</Button>
@@ -155,7 +179,7 @@ export function Providers() {
                   <TableCell>
                      {provider.status === "PENDING" ? (
                      <Badge variant="warning" className="bg-amber-100 text-amber-700">Pending</Badge>
-                     ) : provider.status === "REJECTED" ? (
+                     ) : provider.status === "REJECTED" || provider.status === "SUSPENDED" ? (
                      <Badge variant="default" className="bg-red-100 text-red-700">Rejected</Badge>
                      ) : (
                      <Badge variant="success" className="bg-green-100 text-green-700">Verified</Badge>
@@ -191,7 +215,7 @@ export function Providers() {
             </TableBody>
          </Table>
          <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-white rounded-b-2xl">
-            <span className="text-sm text-muted">Showing 1–10 of 1,284 providers</span>
+            <span className="text-sm text-muted">Showing {providersList.length} of {totalProviders} providers</span>
             <div className="flex gap-1">
                <Button variant="outline" size="sm" className="px-2 text-muted">Previous</Button>
                <Button variant="outline" size="sm" className="px-3 bg-brand-50 text-brand-600 border-brand-200">1</Button>

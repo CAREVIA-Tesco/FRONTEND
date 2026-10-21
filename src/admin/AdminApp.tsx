@@ -19,6 +19,9 @@ import { Transactions } from "./pages/Transactions"
 import { Refunds } from "./pages/Refunds"
 import { ProviderPayouts } from "./pages/ProviderPayouts"
 import { SuperAdminProfile } from "./pages/SuperAdminProfile"
+import { Enquiries } from "./pages/Enquiries"
+import { JobApplications } from "./pages/JobApplications"
+import { WebsiteContent } from "./pages/WebsiteContent"
 
 function App() {
   return (
@@ -44,6 +47,9 @@ function App() {
           <Route path="refunds" element={<Refunds />} />
           <Route path="payouts" element={<ProviderPayouts />} />
           <Route path="settings" element={<SuperAdminProfile />} />
+          <Route path="enquiries" element={<Enquiries />} />
+          <Route path="applications" element={<JobApplications />} />
+          <Route path="content" element={<WebsiteContent />} />
           <Route path="*" element={<div className="p-8 text-center text-muted">Page under construction</div>} />
         </Route>
       </Routes>

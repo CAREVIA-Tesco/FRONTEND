@@ -1,56 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import api from '../services/api';
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
 import { Home, Calendar, ArrowRight } from 'lucide-react';
+import { postSlug } from '../utils/slug';
 
 export default function Blog() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  const posts = [
-    {
-      date: "02-07-2024",
-      title: "Boost Immunity with Baby Care",
-      desc: "Discover how workflow automation and health routines can streamline recovery, reduce stress, and save your family valuable time.",
-      img: "https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&h=600&fit=crop"
-    },
-    {
-      date: "25-06-2024",
-      title: "Securing Health Data in Cloud",
-      desc: "Learn the best practices for protecting sensitive patient data in digital environments, including encryption and access controls.",
-      img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=600&fit=crop"
-    },
-    {
-      date: "10-06-2024",
-      title: "Choosing the Right Physio",
-      desc: "Explore a strategic approach to selecting medical experts, tools, and platforms that align with your family's recovery goals.",
-      img: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=600&fit=crop"
-    },
-    {
-      date: "25-06-2024",
-      title: "Choosing Caretakers Wisely",
-      desc: "Choosing the right care plan is critical to your recovery's long-term success. In this guide, we break down how to evaluate options.",
-      img: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=800&h=600&fit=crop"
-    },
-    {
-      date: "25-06-2024",
-      title: "Understanding Patient Culture",
-      desc: "Discover how embracing a compassionate culture can break down silos between families and doctors, fostering seamless collaboration.",
-      img: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&h=600&fit=crop"
-    },
-    {
-      date: "10-06-2024",
-      title: "Optimizing Health Infrastructure",
-      desc: "Explore smart, future-focused strategies to modernize outdated routines, implement real-time monitoring tools, and manage well-being.",
-      img: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&h=600&fit=crop"
-    }
-  ];
+  // Blog posts are stored in the database (GET /api/content/blog)
+  const [posts, setPosts] = useState([]);
+  useEffect(() => {
+    api.getContent('blog').then((d) => setPosts(d.items || [])).catch(() => setPosts([]));
+  }, []);
+  const [category, setCategory] = useState('All');
+  const categories = [...new Set(posts.map((p) => p.category).filter(Boolean))];
+  const visiblePosts = category === 'All' ? posts : posts.filter((p) => p.category === category);
 
   return (
-    <div className="font-sans text-primary bg-white min-h-screen">
-      <Navbar />
+    <div className="theme-portea font-sans text-primary bg-white min-h-screen">
+      <SiteHeader />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-24 bg-gradient-to-b from-green-50 via-white to-white relative overflow-hidden">
+      <section className="pt-32 pb-24 bg-gradient-to-b from-tint via-white to-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           
           <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-500 mb-6">
@@ -93,13 +66,21 @@ export default function Blog() {
           </p>
         </div>
 
+        {categories.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-12" role="tablist" aria-label="Filter articles">
+            {['All', ...categories].map((c) => (
+              <button key={c} type="button" onClick={() => setCategory(c)} className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${category === c ? 'bg-primary text-white' : 'bg-tint text-primary hover:bg-primary/10'}`}>{c}</button>
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
-          {posts.map((post, idx) => (
-            <div key={idx} className="group cursor-pointer flex flex-col h-full">
+          {posts.length === 0 && <p className="col-span-full text-center text-gray-500">No articles yet.</p>}
+          {visiblePosts.map((post, idx) => (
+            <Link key={idx} to={`/blog/${postSlug(post)}`} className="group cursor-pointer flex flex-col h-full">
               <div className="flex items-center gap-2 text-gray-500 text-sm font-medium mb-3">
                 <Calendar className="w-4 h-4" /> {post.date}
               </div>
-              <h3 className="text-xl font-bold text-primary mb-3 group-hover:text-secondary transition line-clamp-2">
+              <h3 className="text-xl font-bold text-primary mb-3 group-hover:text-accent transition line-clamp-2">
                 {post.title}
               </h3>
               <p className="text-gray-500 text-sm mb-6 line-clamp-3">
@@ -108,21 +89,17 @@ export default function Blog() {
               <div className="relative rounded-[2rem] overflow-hidden mt-auto aspect-[4/3]">
                 <img src={post.img} alt={post.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <button className="bg-white text-primary px-6 py-2.5 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
+                  <span className="bg-white text-primary px-6 py-2.5 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-xl">
                     Read More
-                  </button>
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
       
-      <footer className="bg-[#F7FAFC] border-t border-gray-100 py-10 mt-10">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-500 font-medium">© 2024 Carevia. All rights reserved.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

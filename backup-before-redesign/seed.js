@@ -1,0 +1,322 @@
+import 'dotenv/config';
+import mongoose from 'mongoose';
+import { fileURLToPath } from 'url';
+import User from '../models/User.js';
+import Provider from '../models/Provider.js';
+import Appointment from '../models/Appointment.js';
+import Payment from '../models/Payment.js';
+import JobApplication from '../models/JobApplication.js';
+import { Specialization, Service } from '../models/Catalog.js';
+import Review from '../models/Review.js';
+import SiteContent from '../models/SiteContent.js';
+import EmergencyRequest from '../models/EmergencyRequest.js';
+import { refreshProviderRating } from '../controllers/reviewController.js';
+
+const WEEK = {
+  Mon: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM', '05:00 PM'],
+  Tue: ['10:00 AM', '02:00 PM'],
+  Wed: ['09:00 AM', '11:00 AM', '04:00 PM'],
+  Thu: ['10:00 AM', '02:00 PM', '05:00 PM'],
+  Fri: ['09:00 AM', '10:00 AM', '02:00 PM'],
+  Sat: ['10:00 AM', '11:00 AM'],
+  Sun: [],
+};
+
+// Same professionals that were hard-coded in the frontend
+export const PROVIDERS = [
+  { name: 'Dr. Priya Sharma', profession: 'Homeopathy Doctor', specialization: 'General Homeopathy', spec: 'Homeopathy Doctor', isDoctor: true, experience: 8, city: 'Chennai', state: 'Tamil Nadu', clinicFee: 700, onlineFee: 500, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/44.jpg', email: 'doctor@carevia.com', phone: '9876543210', clinic: { name: 'Carevia Health Clinic', address: '12 Anna Salai, T. Nagar', phone: '+91 98765 43210' } },
+  { name: 'Dr. Ramesh Kumar', profession: 'MBBS Doctor', specialization: 'General Physician', spec: 'General Physician', isDoctor: true, experience: 12, city: 'Chennai', state: 'Tamil Nadu', clinicFee: 600, onlineFee: 400, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/32.jpg', email: 'ramesh@carevia.com' },
+  { name: 'Dr. Ananya Iyer', profession: 'MBBS Doctor', specialization: 'Pediatrics', spec: 'Pediatrician', isDoctor: true, experience: 10, city: 'Bangalore', state: 'Karnataka', clinicFee: 900, onlineFee: 700, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { name: 'Dr. Sarah Johnson', profession: 'MBBS Doctor', specialization: 'Cardiology', spec: 'Cardiologist', isDoctor: true, experience: 15, city: 'Virtual', clinicFee: 1400, onlineFee: 1200, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { name: 'Dr. Sanjay Gupta', profession: 'Physiotherapist', specialization: 'Orthopedic Physiotherapy', spec: 'Physiotherapist', isDoctor: false, experience: 6, city: 'Mumbai', state: 'Maharashtra', fee: 800, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/45.jpg' },
+  { name: 'Dr. Neha Verma', profession: 'Ayurveda Doctor', specialization: 'General Ayurveda', spec: 'Ayurveda Doctor', isDoctor: true, experience: 14, city: 'Pune', state: 'Maharashtra', clinicFee: 500, onlineFee: 300, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/22.jpg' },
+  { name: 'Nurse Anita', profession: 'Nurse', specialization: 'General Nursing', spec: 'Nurse', isDoctor: false, experience: 5, city: 'Delhi', state: 'Delhi', fee: 400, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/12.jpg' },
+  { name: 'Rahul Singh', profession: 'Caretaker', specialization: 'Elderly Care', spec: 'Care Taker', isDoctor: false, experience: 3, city: 'Chennai', state: 'Tamil Nadu', fee: 300, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/11.jpg' },
+  { name: 'Dr. Meena Iyer', profession: 'BHS', specialization: 'Community Health', spec: 'BHS', isDoctor: false, experience: 9, city: 'Bangalore', state: 'Karnataka', fee: 500, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { name: 'Dr. Kavita Reddy', profession: 'MBBS Doctor', specialization: 'Dermatology', spec: 'Dermatologist', isDoctor: true, experience: 6, city: 'Hyderabad', state: 'Telangana', clinicFee: 700, onlineFee: 500, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/32.jpg' },
+  { name: 'Dr. Vikram Singh', profession: 'MBBS Doctor', specialization: 'Orthopedics', spec: 'Orthopedic', isDoctor: true, experience: 11, city: 'Delhi NCR', state: 'Delhi', clinicFee: 1000, onlineFee: 800, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/68.jpg' },
+  { name: 'Dr. Neha Patel', profession: 'MBBS Doctor', specialization: 'Gynecology', spec: 'Gynecologist', isDoctor: true, experience: 9, city: 'Pune', state: 'Maharashtra', clinicFee: 800, onlineFee: 600, gender: 'Female', img: 'https://randomuser.me/api/portraits/women/24.jpg' },
+  { name: 'Dr. Arjun Menon', profession: 'MBBS Doctor', specialization: 'Neurology', spec: 'Neurologist', isDoctor: true, experience: 14, city: 'Kochi', state: 'Kerala', clinicFee: 1500, onlineFee: 1200, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/22.jpg' },
+  { name: 'Carevia Diagnostics', profession: 'Lab Centre', specialization: 'General Diagnostic Tests', spec: 'Lab Centre', isDoctor: false, experience: 7, city: 'Chennai', state: 'Tamil Nadu', fee: 499, img: 'https://ui-avatars.com/api/?name=Carevia+Diagnostics&background=1E3A8A&color=fff&size=128' },
+  { name: 'Dr. Rohit Desai', profession: 'MBBS Doctor', specialization: 'Cardiology', spec: 'Cardiologist', isDoctor: true, experience: 4, city: 'Ahmedabad', state: 'Gujarat', clinicFee: 900, onlineFee: 700, gender: 'Male', img: 'https://randomuser.me/api/portraits/men/52.jpg', status: 'PENDING' },
+];
+
+const SPECIALIZATIONS = [
+  { name: 'General Medicine', icon: 'Stethoscope', matches: ['General Physician', 'Family Medicine'] },
+  { name: 'Cardiology', icon: 'Heart', matches: ['Cardiologist'] },
+  { name: 'Dermatology', icon: 'Droplet', matches: ['Dermatologist'] },
+  { name: 'Pediatrics', icon: 'Baby', matches: ['Pediatrician'] },
+  { name: 'Orthopedics', icon: 'Bone', matches: ['Orthopedic', 'Orthopedic Physiotherapy'] },
+  { name: 'Neurology', icon: 'Brain', matches: ['Neurologist'] },
+  { name: 'Ophthalmology', icon: 'Eye', matches: ['Ophthalmologist'] },
+  { name: 'Psychiatry', icon: 'Activity', matches: ['Psychiatrist'] },
+];
+
+const SERVICES = [
+  { name: 'Doctor Consultation', desc: 'Online doctor consultation with certified healthcare professionals.', price: '₹499', icon: 'Stethoscope', matches: ['General Physician', 'Pediatrician', 'Cardiologist', 'Dermatologist', 'Orthopedic', 'Gynecologist', 'Neurologist'] },
+  { name: 'Home Nursing', desc: 'Professional nursing care delivered right to your home.', price: '₹1,200', icon: 'Users', matches: ['Nurse', 'Care Taker'] },
+  { name: 'Physiotherapy', desc: 'Expert physiotherapy sessions for recovery and mobility.', price: '₹800', icon: 'HeartHandshake', matches: ['Physiotherapist'] },
+  { name: 'Lab Tests', desc: 'Home sample collection and quick accurate reports.', price: 'Variable', icon: 'FlaskConical', matches: ['Lab Centre'] },
+  { name: 'Homeopathy', desc: 'Consultations with expert homeopathic practitioners.', price: '₹399', icon: 'Pill', matches: ['Homeopathy Doctor'] },
+  { name: 'Ayurveda', desc: 'Traditional ayurvedic consultations and wellness plans.', price: '₹499', icon: 'Leaf', matches: ['Ayurveda Doctor'] },
+];
+
+// Website content (previously hard-coded in the React pages) – editable via PUT /api/content/:key
+const CONTENT = {
+  jobs: [
+    { category: 'Physiotherapy', accent: 'blue', icon: 'Activity', title: 'Physiotherapy Specialist', loc: 'Bangalore', time: 'Full-Time', desc: 'Spearhead rehabilitation programs for post-surgery and elderly patients. Design custom exercise regimens and track recovery milestones.' },
+    { category: 'Baby Care', accent: 'rose', icon: 'Heart', title: 'Baby Care Specialist', loc: 'Chennai', time: 'Full-Time', desc: 'Lead the delivery of high-quality home care, assisting patients with daily activities, monitoring vitals, and ensuring absolute comfort.' },
+    { category: 'Care Taker', accent: 'amber', icon: 'User', title: 'Senior Care Taker', loc: 'Hyderabad', time: 'Full-Time', desc: 'Provide compassionate daily assistance, mobility support, and companionship to elderly patients in a home setting.' },
+    { category: 'Doctor Visit', accent: 'indigo', icon: 'Stethoscope', title: 'Doctor Visit Specialist', loc: 'Pune', time: 'Part-Time', desc: 'Conduct professional home consultations, diagnose illnesses, prescribe treatments, and review ongoing patient care plans efficiently.' },
+    { category: 'Nurse Care', accent: 'rose', icon: 'Heart', title: 'Nurse Care Professional', loc: 'Mumbai', time: 'Full-Time', desc: 'Deliver specialized clinical care at home, administering medications, managing IVs, and providing continuous patient monitoring.' },
+    { category: 'Home Doctor', accent: 'indigo', icon: 'Stethoscope', title: 'Home Doctor', loc: 'Delhi NCR', time: 'On-Call', desc: "Provide on-call comprehensive medical consultations and diagnostics at the patient's doorstep for immediate healthcare needs." },
+    { category: 'Ayurveda', accent: 'emerald', icon: 'Leaf', title: 'Ayurvedic Doctor', loc: 'Bangalore', time: 'Full-Time', desc: 'Deliver authentic Ayurvedic consultations, prescribe natural remedies, and oversee specialized Panchakarma therapies at home.' },
+    { category: 'BHS', accent: 'teal', icon: 'HeartPulse', title: 'BHS Health Professional', loc: 'Chennai', time: 'Part-Time', desc: 'Conduct routine home health screenings, collect samples, monitor patient vitals, and maintain accurate digital health records.' },
+  ],
+  testimonials: [
+    { name: 'SAMMIE', role: 'Patient', quote: 'The physiotherapist was punctual and skilled.', img: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600&h=800&fit=crop' },
+    { name: 'KAITY', role: 'Patient', quote: 'Excellent home nursing service.', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=800&fit=crop' },
+    { name: 'ANIA', role: 'FASHION DIRECTOR', quote: 'Booking a doctor home visit was seamless. Got the right treatment for my mother without any hassle.', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=800&fit=crop' },
+    { name: 'OAKES', role: 'Patient', quote: 'Highly recommended for elderly care.', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=800&fit=crop' },
+    { name: 'LAUREN', role: 'Patient', quote: 'Very professional and caring.', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=600&h=800&fit=crop' },
+  ],
+  // pricing rules for the service-page packages (single-session price = lowest live provider fee)
+  pricing: [{ packSessions: 10, packDiscountPct: 10, monthlyMultiplier: 16, emiMinimum: 4000, monthly24hrDays: 25 }],
+  blog: [
+      {
+        date: "02-07-2024",
+        title: "Boost Immunity with Baby Care",
+        desc: "Discover how workflow automation and health routines can streamline recovery, reduce stress, and save your family valuable time.",
+        img: "https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&h=600&fit=crop"
+      },
+      {
+        date: "25-06-2024",
+        title: "Securing Health Data in Cloud",
+        desc: "Learn the best practices for protecting sensitive patient data in digital environments, including encryption and access controls.",
+        img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=600&fit=crop"
+      },
+      {
+        date: "10-06-2024",
+        title: "Choosing the Right Physio",
+        desc: "Explore a strategic approach to selecting medical experts, tools, and platforms that align with your family's recovery goals.",
+        img: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=600&fit=crop"
+      },
+      {
+        date: "25-06-2024",
+        title: "Choosing Caretakers Wisely",
+        desc: "Choosing the right care plan is critical to your recovery's long-term success. In this guide, we break down how to evaluate options.",
+        img: "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=800&h=600&fit=crop"
+      },
+      {
+        date: "25-06-2024",
+        title: "Understanding Patient Culture",
+        desc: "Discover how embracing a compassionate culture can break down silos between families and doctors, fostering seamless collaboration.",
+        img: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&h=600&fit=crop"
+      },
+      {
+        date: "10-06-2024",
+        title: "Optimizing Health Infrastructure",
+        desc: "Explore smart, future-focused strategies to modernize outdated routines, implement real-time monitoring tools, and manage well-being.",
+        img: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&h=600&fit=crop"
+      }
+  ],
+  cities: [
+    { name: 'Chennai', desc: 'Tamil Nadu', icon: 'Sun', accent: 'amber' },
+    { name: 'Bangalore', desc: 'Karnataka', icon: 'Laptop', accent: 'green' },
+    { name: 'Hyderabad', desc: 'Telangana', icon: 'Building2', accent: 'blue' },
+    { name: 'Kochi', desc: 'Kerala', icon: 'Film', accent: 'purple' },
+    { name: 'Madurai', desc: 'Tamil Nadu', icon: 'Landmark', accent: 'red' },
+    { name: 'Mysore', desc: 'Karnataka', icon: 'GraduationCap', accent: 'indigo' },
+    { name: 'Trivandrum', desc: 'Kerala', icon: 'BookOpen', accent: 'orange' },
+    { name: 'Coimbatore', desc: 'Tamil Nadu', icon: 'Factory', accent: 'primary' },
+  ],
+};
+
+const REVIEW_COMMENTS = [
+  [5, 'Very patient and understanding. The online consultation was smooth and helpful. Highly recommended.'],
+  [5, 'Highly recommend the doctor. Great experience overall.'],
+  [4, 'Explained everything clearly and the follow-up was quick.'],
+  [5, 'Punctual and caring. My family felt very comfortable.'],
+  [4, 'Good consultation, prescription worked well.'],
+  [5, 'Excellent care at home, would book again.'],
+];
+
+const daysFromNow = (n, hour = 10) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+};
+const slot = (d) => {
+  const h = d.getHours();
+  return `${String(h % 12 || 12).padStart(2, '0')}:00 ${h >= 12 ? 'PM' : 'AM'}`;
+};
+
+async function seedDemoData(log) {
+  const doctorUser = await User.create({ name: 'Dr. Priya Sharma', email: 'doctor@carevia.com', phone: '9876543210', password: 'Doctor@123', role: 'doctor' });
+  const rameshUser = await User.create({ name: 'Dr. Ramesh Kumar', email: 'ramesh@carevia.com', password: 'Doctor@123', role: 'doctor' });
+
+  const providers = [];
+  for (const p of PROVIDERS) {
+    const user = p.email === 'doctor@carevia.com' ? doctorUser : p.email === 'ramesh@carevia.com' ? rameshUser : null;
+    const provider = await Provider.create({
+      ...p,
+      user: user?._id,
+      languages: ['English', 'Hindi', 'Tamil'],
+      schedule: WEEK,
+      status: p.status || 'ACTIVE',
+      verifiedAt: p.status === 'PENDING' ? undefined : new Date(),
+    });
+    if (user) await User.updateOne({ _id: user._id }, { provider: provider._id });
+    providers.push(provider);
+  }
+  log(`  ✓ ${providers.length} providers (+2 doctor logins)`);
+
+  const patientDefs = [
+    { name: 'Sanjay M.', email: 'patient@carevia.com', phone: '9988776655', age: 34, gender: 'Male', city: 'Chennai' },
+    { name: 'Arun Kumar', email: 'arun@example.com', phone: '9876501234', age: 41, gender: 'Male', city: 'Chennai' },
+    { name: 'Sneha Patel', email: 'sneha@example.com', phone: '9123456780', age: 29, gender: 'Female', city: 'Pune' },
+    { name: 'Vikram Singh', email: 'vikram@example.com', phone: '9012345678', age: 52, gender: 'Male', city: 'Delhi' },
+  ];
+  const patients = [];
+  for (const p of patientDefs) patients.push(await User.create({ ...p, password: 'Patient@123', role: 'patient' }));
+  log(`  ✓ ${patients.length} patients`);
+
+  const [priya, ramesh, ananya] = providers;
+  const demo = [
+    // [patient, provider, daysFromNow, hour, type, status]
+    [0, priya, 1, 16, 'online', 'Waiting'],
+    [1, priya, 2, 11, 'clinic', 'Confirmed'],
+    [2, ramesh, 3, 10, 'online', 'Waiting'],
+    [3, ananya, 5, 14, 'clinic', 'Waiting'],
+    [0, ramesh, -6, 10, 'online', 'Completed'],
+    [1, priya, -15, 14, 'online', 'Completed'],
+    [2, priya, -40, 10, 'clinic', 'Completed'],
+    [3, ramesh, -70, 11, 'online', 'Completed'],
+    [0, ananya, -100, 9, 'online', 'Completed'],
+    [1, ramesh, -130, 16, 'clinic', 'Completed'],
+    [2, ananya, -160, 10, 'online', 'Completed'],
+    [3, priya, -9, 14, 'clinic', 'Cancelled'],
+  ];
+  const TITLES = { online: 'Online Consultation', clinic: 'Clinic Consultation', home: 'Home Consultation' };
+  const LOC = { online: 'Virtual', clinic: 'Main Clinic', home: 'Patient Home' };
+
+  for (const [pi, prov, days, hour, type, status] of demo) {
+    const patient = patients[pi];
+    const when = daysFromNow(days, hour);
+    const fee = type === 'clinic' ? prov.clinicFee : prov.onlineFee;
+    const paid = status === 'Completed' || (type === 'online' && status !== 'Cancelled');
+    const appt = await Appointment.create({
+      patientUser: patient._id,
+      patientName: patient.name,
+      patientPhone: `+91 ${patient.phone.slice(0, 5)} ${patient.phone.slice(5)}`,
+      patientEmail: patient.email,
+      provider: prov._id,
+      providerName: prov.name,
+      providerSpec: prov.spec,
+      scheduledAt: when,
+      timeSlot: slot(when),
+      consultationType: type,
+      title: TITLES[type],
+      location: LOC[type],
+      fee,
+      status,
+      paymentStatus: paid ? 'Paid' : 'Pending',
+      paymentMethod: type === 'online' ? 'gpay' : 'cash',
+      visitNotes: status === 'Completed' ? { symptoms: 'Mild fever and fatigue for 3 days.', prescription: 'Paracetamol 650mg SOS, rest and fluids. Review after 1 week.', bloodPressure: ['118/78', '122/80', '126/84', '120/80'][pi], weight: [72, 68, 61, 80][pi], completedAt: when } : undefined,
+      createdAt: daysFromNow(Math.min(days, 0) - 2),
+    });
+    await Payment.create({
+      appointment: appt._id,
+      appointmentCode: appt.code,
+      patientUser: patient._id,
+      patientName: patient.name,
+      provider: prov._id,
+      providerName: prov.name,
+      amount: fee,
+      method: appt.paymentMethod,
+      status: status === 'Cancelled' ? 'Failed' : paid ? 'Success' : 'Pending',
+      paidAt: paid ? when : undefined,
+    });
+  }
+  log(`  ✓ ${demo.length} appointments with payments`);
+
+  // reviews for completed visits (also recalculates provider ratings)
+  const completedAppts = await Appointment.find({ status: 'Completed' }).sort({ scheduledAt: -1 });
+  let r = 0;
+  for (const appt of completedAppts) {
+    const [rating, comment] = REVIEW_COMMENTS[r % REVIEW_COMMENTS.length];
+    r += 1;
+    await Review.create({ appointment: appt._id, provider: appt.provider, patientUser: appt.patientUser, patientName: appt.patientName, rating, comment, createdAt: appt.scheduledAt });
+    appt.reviewed = true;
+    await appt.save();
+  }
+  for (const id of new Set(completedAppts.map((a) => a.provider.toString()))) await refreshProviderRating(id);
+  log(`  ✓ ${completedAppts.length} reviews`);
+
+  // medical info for the demo patient
+  await User.updateOne({ _id: patients[0]._id }, { bloodGroup: 'O+', allergies: ['Penicillin', 'Dust'], conditions: [], emergencyContact: { name: 'Rahul Kumar', relation: 'Brother', phone: '+91 98765 12345' } });
+
+  // emergency requests
+  await EmergencyRequest.create({ patientUser: patients[1]._id, patientName: patients[1].name, phone: patients[1].phone, location: 'Chennai', type: 'Emergency Medical Assistance', priority: 'HIGH', status: 'Assigned', provider: ramesh._id, providerName: ramesh.name });
+  await EmergencyRequest.create({ patientUser: patients[3]._id, patientName: patients[3].name, phone: patients[3].phone, location: 'Delhi', type: 'Ambulance Required', priority: 'CRITICAL', status: 'Waiting' });
+  log('  ✓ 2 emergency requests');
+
+  await JobApplication.create({ name: 'Lakshmi R', phone: '9840012345', email: 'lakshmi@example.com', role: 'Nurse', city: 'Chennai', experience: '5', about: 'ICU nurse with 5 years of experience.', source: 'jobs' });
+}
+
+export async function seedDatabase({ reset = false, silent = false } = {}) {
+  const log = silent ? () => {} : console.log;
+
+  if (reset) {
+    await Promise.all([User, Provider, Appointment, Payment, JobApplication, Specialization, Service, Review, SiteContent, EmergencyRequest].map((m) => m.deleteMany({})));
+    log('Database cleared.');
+  }
+
+  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@carevia.com').toLowerCase();
+  if (!(await User.findOne({ role: 'admin' }))) {
+    await User.create({ name: 'Super Admin', email: adminEmail, password: process.env.ADMIN_PASSWORD || 'Admin@123', role: 'admin' });
+    console.log(`Admin account created: ${adminEmail}`);
+  }
+
+  if ((await Specialization.countDocuments()) === 0) {
+    await Specialization.insertMany(SPECIALIZATIONS);
+    log(`  ✓ ${SPECIALIZATIONS.length} specializations`);
+  }
+  if ((await Service.countDocuments()) === 0) {
+    await Service.insertMany(SERVICES);
+    log(`  ✓ ${SERVICES.length} services`);
+  }
+  for (const [key, items] of Object.entries(CONTENT)) {
+    if (!(await SiteContent.findOne({ key }))) {
+      await SiteContent.create({ key, items });
+      log(`  ✓ content: ${key}`);
+    }
+  }
+}
+
+// Optional sample doctors/patients/appointments for local testing only: "npm run seed:demo"
+export async function seedDemo() {
+  if (await User.findOne({ email: 'doctor@carevia.com' })) {
+    console.log('Demo data is already loaded.');
+    return;
+  }
+  await seedDemoData(console.log);
+  console.log('Demo data loaded. Remove it any time with "npm run remove-demo".');
+}
+
+// "npm run seed" (admin + catalog + site content), "npm run seed:reset" (wipe everything first), "npm run seed:demo" (add sample data)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const { connectDB } = await import('../config/db.js');
+  try {
+    await connectDB();
+    await seedDatabase({ reset: process.argv.includes('--reset') });
+    if (process.argv.includes('--demo')) await seedDemo();
+    console.log('Seeding complete.');
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
+  }
+}

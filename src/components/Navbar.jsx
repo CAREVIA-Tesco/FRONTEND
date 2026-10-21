@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { getSessionUser } from '../services/api';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import BookingModal from './BookingModal';
 
 export default function Navbar() {
+  const sessionUser = getSessionUser();
+  const accountLink = sessionUser
+    ? (sessionUser.role === 'admin' ? '/admin' : sessionUser.role === 'doctor' ? (sessionUser.providerId ? '/doctor/dashboard' : '/professional/onboarding') : '/patient/dashboard')
+    : '/login';
+  const accountLabel = sessionUser ? 'My Dashboard' : 'Login';
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
@@ -23,7 +29,7 @@ export default function Navbar() {
       <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-3' : 'bg-transparent py-5'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 cursor-pointer">
-            <img src="/logo.png" alt="Carevia Logo" className="h-16 sm:h-20 w-auto object-contain" />
+            <img src="/logo.png" alt="Carevaa Logo" className="h-16 sm:h-20 w-auto object-contain" />
           </Link>
           
           <div className="hidden lg:flex space-x-8 items-center">
@@ -60,7 +66,7 @@ export default function Navbar() {
 
           <div className="hidden lg:flex items-center space-x-4">
             
-            <Link to="/login" className="font-bold text-primary hover:text-[#E87070] transition">Login</Link>
+            <Link to={accountLink} className="font-bold text-primary hover:text-secondary transition">{accountLabel}</Link>
             
           </div>
 
@@ -97,11 +103,11 @@ export default function Navbar() {
                 )}
               </div>
 
-              <Link to="/careers" className="font-medium text-[#E87070] font-bold">For Professionals</Link>
+              <Link to="/careers" className="font-medium text-secondary font-bold">For Professionals</Link>
               <Link to="/about" className="font-medium text-primary hover:text-primary transition">About</Link>
               <Link to="/blog" className="font-medium text-primary hover:text-primary transition">Blog</Link>
               <div className="pt-4 border-t flex flex-col space-y-3">
-                <Link to="/login" className="font-medium text-left text-primary hover:text-primary transition">Login</Link>
+                <Link to={accountLink} className="font-medium text-left text-primary hover:text-primary transition">{accountLabel}</Link>
                 <button 
                   onClick={() => setIsBookingModalOpen(true)}
                   className="bg-secondary text-white px-6 py-2.5 rounded-full font-medium w-full text-center"

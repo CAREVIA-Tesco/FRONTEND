@@ -3,38 +3,31 @@ import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Card, CardContent } from "../components/ui/Card"
 import { Search, Filter, Video, Users, CheckCircle2, XCircle } from "lucide-react"
-
-const consultations = [
-  {
-    id: "CON-10282",
-    patient: "Arun Kumar",
-    provider: "Dr. Priya Kumar",
-    startTime: "10:30 AM",
-    duration: "32 min",
-    type: "Video",
-    status: "Completed",
-  },
-  {
-    id: "CON-10283",
-    patient: "Sneha Patel",
-    provider: "Dr. Rahul Sharma",
-    startTime: "11:15 AM",
-    duration: "18:42",
-    type: "Video",
-    status: "Live",
-  },
-  {
-    id: "CON-10284",
-    patient: "Vikram Singh",
-    provider: "Dr. Kabir Das",
-    startTime: "11:45 AM",
-    duration: "-",
-    type: "Audio",
-    status: "Waiting",
-  }
-]
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import api from "../../services/api"
+import { useApi } from "../lib/useApi"
 
 export function Consultations() {
+  const navigate = useNavigate()
+  const { data, error } = useApi(() => api.getAppointments())
+  const [search, setSearch] = useState("")
+  const online = ((data as any)?.appointments || []).filter((a: any) => a.consultationType === "online")
+  const today = new Date().toDateString()
+  const isLive = (a: any) => (a.status === "Waiting" || a.status === "Confirmed") && new Date(a.scheduledAt).toDateString() === today
+  const live = online.filter(isLive).slice(0, 3)
+  const initials = (n: string) => (n || "").replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+  const consultations = online
+    .filter((a: any) => !search || `${a.code} ${a.patient} ${a.provider}`.toLowerCase().includes(search.toLowerCase()))
+    .map((a: any) => ({
+      id: a.code,
+      patient: a.patient,
+      provider: a.provider,
+      startTime: `${a.shortDate}, ${a.timeSlot}`,
+      duration: a.status === "Completed" ? "Completed" : "-",
+      type: "Video",
+      status: isLive(a) ? "Live" : a.status === "Confirmed" ? "Waiting" : a.status,
+    }))
   return (
     <div className="space-y-6">
       <div>
@@ -44,10 +37,10 @@ export function Consultations() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Consultations", value: "2,196", icon: Users, color: "text-brand-600", bg: "bg-brand-50" },
-          { label: "Active Now", value: "18", icon: Video, color: "text-success", bg: "bg-green-50" },
-          { label: "Completed", value: "1,948", icon: CheckCircle2, color: "text-charcoal", bg: "bg-slate-100" },
-          { label: "Cancelled", value: "230", icon: XCircle, color: "text-error", bg: "bg-red-50" }
+          { label: "Total Consultations", value: String(online.length), icon: Users, color: "text-brand-600", bg: "bg-brand-50" },
+          { label: "Active Now", value: String(online.filter(isLive).length), icon: Video, color: "text-success", bg: "bg-green-50" },
+          { label: "Completed", value: String(online.filter((a: any) => a.status === "Completed").length), icon: CheckCircle2, color: "text-charcoal", bg: "bg-slate-100" },
+          { label: "Cancelled", value: String(online.filter((a: any) => a.status === "Cancelled").length), icon: XCircle, color: "text-error", bg: "bg-red-50" }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
@@ -70,25 +63,26 @@ export function Consultations() {
           </span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="border-success/30 bg-green-50/10">
+          {live.length === 0 && <p className="text-sm text-muted col-span-full">No consultations scheduled for today.</p>}
+          {live.map((c: any) => (
+            <Card key={c.id} className="border-success/30 bg-green-50/10">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-medium text-xs">AK</div>
-                    <span className="font-medium text-sm">Arun K.</span>
+                    <div className="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-medium text-xs">{initials(c.patient)}</div>
+                    <span className="font-medium text-sm">{c.patient}</span>
                   </div>
                   <Badge variant="success" className="animate-pulse">LIVE</Badge>
                 </div>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-charcoal font-medium text-xs">PK</div>
-                  <span className="font-medium text-sm">Dr. Priya K.</span>
+                  <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-charcoal font-medium text-xs">{initials(c.provider)}</div>
+                  <span className="font-medium text-sm">{c.provider}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm text-muted mb-4">
-                  <div>Started: <span className="text-charcoal font-medium">10:30 AM</span></div>
-                  <div>Duration: <span className="text-charcoal font-medium">18:42</span></div>
+                  <div>Starts: <span className="text-charcoal font-medium">{c.timeSlot}</span></div>
+                  <div>Status: <span className="text-charcoal font-medium">{c.status}</span></div>
                 </div>
-                <Button variant="outline" className="w-full text-brand-600 border-brand-200 hover:bg-brand-50">
+                <Button variant="outline" onClick={() => navigate("/admin/appointments")} className="w-full text-brand-600 border-brand-200 hover:bg-brand-50">
                   <Video className="h-4 w-4 mr-2" /> View Consultation
                 </Button>
               </CardContent>
@@ -100,7 +94,9 @@ export function Consultations() {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-2xl border border-slate-200 shadow-sm mt-8">
         <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-          <input 
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)} 
             type="text" 
             placeholder="Search consultation ID, patient..." 
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -113,6 +109,7 @@ export function Consultations() {
         </div>
       </div>
 
+      {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -127,7 +124,10 @@ export function Consultations() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {consultations.map(con => (
+          {consultations.length === 0 && (
+            <TableRow><TableCell colSpan={8} className="text-center text-muted py-8">No online consultations yet.</TableCell></TableRow>
+          )}
+          {consultations.map((con: any) => (
             <TableRow key={con.id}>
               <TableCell className="text-brand-600 font-medium">{con.id}</TableCell>
               <TableCell className="font-medium">{con.patient}</TableCell>
@@ -146,7 +146,7 @@ export function Consultations() {
                 {con.status === "Cancelled" && <Badge variant="error">Cancelled</Badge>}
               </TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-600">View</Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-600" onClick={() => navigate("/admin/appointments")}>View</Button>
               </TableCell>
             </TableRow>
           ))}

@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600;1,9..144,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1A3789;
+  --color-primary-hover: #152B6A;
+  --color-secondary: #DA7C75;
+  --color-secondary-hover: #C56A63;
+  --color-tint: #F0F4FF;
+  --color-accent: #DA7C75;
+  --color-mint: #F0F4FF;
+  --color-cream: #F7FAFC;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+
+  /* Admin panel tokens (same values as Carevia Super Admin/dashboard/tailwind.config.js) */
+  --color-brand-50: #f0f9ff;
+  --color-brand-100: #e0f2fe;
+  --color-brand-200: #bae6fd;
+  --color-brand-500: #0ea5e9;
+  --color-brand-600: #0284c7;
+  --color-brand-700: #0369a1;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-charcoal: #1e293b;
+  --color-muted: #64748b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes border-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animated-cta-wrapper {
+  position: relative;
+  display: inline-flex;
+  border-radius: 9999px;
+  overflow: hidden;
+  padding: 2px;
+  z-index: 1;
+}
+
+.animated-cta-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.8) 25%, transparent 50%);
+  transform-origin: 0 0;
+  transform: translate(-50%, -50%);
+  animation: border-spin 2.5s linear infinite;
+  z-index: -1;
+}
+
+.animated-cta-content {
+  background-color: var(--color-secondary);
+  border-radius: 9999px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background-color 0.3s ease;
+}
+
+.animated-cta-wrapper:hover .animated-cta-content {
+  background-color: var(--color-secondary-hover);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(20px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+}
+
+/* Scroll-in animation used by the redesigned public pages (components/Reveal.jsx) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Public website theme (matches the Portea reference design). Applied with className="theme-portea" on the public
+   pages only, so the login page, dashboards and admin panel keep the original Carevia colours and fonts. */
+.theme-portea {
+  --color-primary: #0F3A3C;          /* deep teal-ink – headings, dark sections, footer */
+  --color-primary-hover: #0A2A2C;
+  --color-secondary: #F05A22;        /* orange – filled "Book Now" call-to-action buttons */
+  --color-secondary-hover: #D84A15;
+  --color-accent: #128F8C;           /* teal – small labels, icons, links, outline buttons, numbers */
+  --color-tint: #F8F4EC;             /* warm cream – header, hero and band backgrounds */
+  --color-mint: #E6F2EF;             /* soft mint – image tiles and icon boxes */
+  --color-cream: #FBF8F3;
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-poppins: 'Fraunces', Georgia, serif;   /* section headings use the serif display face */
+  font-family: 'Poppins', system-ui, sans-serif;
+}
+.theme-portea ::selection { background: #128F8C; color: #fff; }
+.theme-portea .dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.theme-portea .dot-grid-dark {
+  background-image: radial-gradient(rgba(15, 58, 60, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.eyebrow { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }

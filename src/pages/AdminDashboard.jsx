@@ -42,7 +42,7 @@ export default function AdminDashboard() {
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-10">
         <div className="p-6 border-b border-gray-100 flex items-center justify-center">
           <Link to="/">
-            <img src="/logo.png" alt="Carevia" className="h-8" />
+            <img src="/logo.png" alt="Carevaa" className="h-8" />
             <span className="text-xs font-bold text-gray-400 mt-1 block text-center uppercase tracking-widest">Admin</span>
           </Link>
         </div>

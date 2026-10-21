@@ -2,8 +2,16 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Search, Filter, Undo2, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { useState } from "react"
+import api from "../../services/api"
+import { useApi } from "../lib/useApi"
 
 export function Refunds() {
+  const { data, error } = useApi(() => api.getPayments({ type: "Refund" }))
+  const [search, setSearch] = useState("")
+  const notice = ""
+  const all = (data as any)?.payments || []
+  const refunds = all.filter((r: any) => !search || `${r.txnId} ${r.patient} ${r.appointmentCode}`.toLowerCase().includes(search.toLowerCase()))
   return (
     <div className="space-y-6">
       <div>
@@ -13,11 +21,11 @@ export function Refunds() {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
-          { label: "Refund Requests", value: "248", icon: Undo2, color: "text-brand-600", bg: "bg-brand-50" },
-          { label: "Pending", value: "42", icon: Clock, color: "text-warning", bg: "bg-amber-50" },
-          { label: "Approved", value: "18", icon: CheckCircle2, color: "text-info", bg: "bg-blue-50" },
-          { label: "Completed", value: "164", icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
-          { label: "Rejected", value: "24", icon: XCircle, color: "text-error", bg: "bg-red-50" }
+          { label: "Refund Requests", value: String(all.length), icon: Undo2, color: "text-brand-600", bg: "bg-brand-50" },
+          { label: "Pending", value: String(all.filter((r: any) => r.status === "Pending").length), icon: Clock, color: "text-warning", bg: "bg-amber-50" },
+          { label: "Approved", value: String(all.filter((r: any) => r.status !== "Failed").length), icon: CheckCircle2, color: "text-info", bg: "bg-blue-50" },
+          { label: "Completed", value: String(all.filter((r: any) => r.status === "Success").length), icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
+          { label: "Rejected", value: String(all.filter((r: any) => r.status === "Failed").length), icon: XCircle, color: "text-error", bg: "bg-red-50" }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
@@ -34,7 +42,9 @@ export function Refunds() {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-          <input 
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)} 
             type="text" 
             placeholder="Search refund ID, transaction ID..." 
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -47,6 +57,8 @@ export function Refunds() {
         </div>
       </div>
 
+      {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
+      {notice && <p className="text-sm font-medium text-green-700 bg-green-50 border border-green-100 rounded-lg px-4 py-3">{notice}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -61,30 +73,23 @@ export function Refunds() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell className="text-brand-600 font-medium">REF-4029</TableCell>
-            <TableCell className="text-muted">TXN-98273</TableCell>
-            <TableCell className="font-medium">Arun Kumar</TableCell>
-            <TableCell className="font-semibold text-charcoal">₹499</TableCell>
-            <TableCell>Doctor Cancelled</TableCell>
-            <TableCell>21 Sep 2026</TableCell>
-            <TableCell><Badge variant="warning">Pending</Badge></TableCell>
+          {refunds.length === 0 && (
+            <TableRow><TableCell colSpan={8} className="text-center text-muted py-8">No refunds yet. Refunds are created when a paid appointment is cancelled or refunded from Payments.</TableCell></TableRow>
+          )}
+          {refunds.map((r: any) => (
+          <TableRow key={r.id}>
+            <TableCell className="text-brand-600 font-medium">{r.txnId.replace("TXN", "REF-")}</TableCell>
+            <TableCell className="text-muted">{r.appointmentCode || "-"}</TableCell>
+            <TableCell className="font-medium">{r.patient}</TableCell>
+            <TableCell className="font-semibold text-charcoal">{r.amountLabel}</TableCell>
+            <TableCell>{r.note || "Refund"}</TableCell>
+            <TableCell>{r.date}</TableCell>
+            <TableCell><Badge variant="success">Completed</Badge></TableCell>
             <TableCell className="text-right">
-              <Button variant="ghost" size="sm" className="h-8 text-brand-600">Review</Button>
+              <span className="text-xs text-muted">{r.method}</span>
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell className="text-brand-600 font-medium">REF-4028</TableCell>
-            <TableCell className="text-muted">TXN-98270</TableCell>
-            <TableCell className="font-medium">Vikram Singh</TableCell>
-            <TableCell className="font-semibold text-charcoal">₹800</TableCell>
-            <TableCell>Patient No Show</TableCell>
-            <TableCell>20 Sep 2026</TableCell>
-            <TableCell><Badge variant="error">Rejected</Badge></TableCell>
-            <TableCell className="text-right">
-              <Button variant="ghost" size="sm" className="h-8 text-brand-600">View</Button>
-            </TableCell>
-          </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

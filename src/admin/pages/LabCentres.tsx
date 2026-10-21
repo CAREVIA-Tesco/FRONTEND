@@ -2,8 +2,13 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Plus, FlaskConical, CheckCircle2, AlertTriangle, Users } from "lucide-react"
+import { Link } from "react-router-dom"
+import api from "../../services/api"
+import { useApi, providerCode } from "../lib/useApi"
 
 export function LabCentres() {
+  const { data, error } = useApi(() => api.getProviders({ status: "ALL", profession: "Lab Centre" }))
+  const labs = (data as any)?.providers || []
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -20,10 +25,10 @@ export function LabCentres() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Lab Centres", value: "84", icon: FlaskConical, color: "text-brand-600", bg: "bg-brand-50" },
-          { label: "Verified", value: "72", icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
-          { label: "Pending Verification", value: "12", icon: AlertTriangle, color: "text-warning", bg: "bg-amber-50" },
-          { label: "Active", value: "78", icon: Users, color: "text-info", bg: "bg-blue-50" }
+          { label: "Total Lab Centres", value: String(labs.length), icon: FlaskConical, color: "text-brand-600", bg: "bg-brand-50" },
+          { label: "Verified", value: String(labs.filter((l: any) => l.status === "ACTIVE").length), icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
+          { label: "Pending Verification", value: String(labs.filter((l: any) => l.status === "PENDING").length), icon: AlertTriangle, color: "text-warning", bg: "bg-amber-50" },
+          { label: "Active", value: String(labs.filter((l: any) => l.status === "ACTIVE").length), icon: Users, color: "text-info", bg: "bg-blue-50" }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
@@ -37,6 +42,7 @@ export function LabCentres() {
         ))}
       </div>
 
+      {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -52,19 +58,24 @@ export function LabCentres() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell className="font-medium">Apollo Diagnostics</TableCell>
-            <TableCell className="text-brand-600 font-medium">LAB-1028</TableCell>
-            <TableCell>Chennai</TableCell>
-            <TableCell>184 Tests</TableCell>
-            <TableCell>1,284</TableCell>
-            <TableCell>4.7</TableCell>
-            <TableCell><Badge variant="success">Verified</Badge></TableCell>
-            <TableCell><Badge variant="success">Active</Badge></TableCell>
+          {labs.length === 0 && (
+            <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No lab centres registered yet.</TableCell></TableRow>
+          )}
+          {labs.map((l: any) => (
+          <TableRow key={l.id}>
+            <TableCell className="font-medium">{l.name}</TableCell>
+            <TableCell className="text-brand-600 font-medium">{providerCode("LAB", l.id)}</TableCell>
+            <TableCell>{l.loc || "-"}</TableCell>
+            <TableCell>{l.specialization || "General Diagnostic Tests"}</TableCell>
+            <TableCell>{l.bookings || 0}</TableCell>
+            <TableCell>{l.rating}</TableCell>
+            <TableCell>{l.status === "PENDING" ? <Badge variant="warning">Pending</Badge> : l.status === "ACTIVE" ? <Badge variant="success">Verified</Badge> : <Badge variant="error">Rejected</Badge>}</TableCell>
+            <TableCell>{l.status === "ACTIVE" ? <Badge variant="success">Active</Badge> : <Badge variant="default">Inactive</Badge>}</TableCell>
             <TableCell className="text-right">
-              <Button variant="ghost" size="sm" className="h-8 text-brand-600">View</Button>
+              <Link to={`/admin/providers/${l.id}`}><Button variant="ghost" size="sm" className="h-8 text-brand-600">View</Button></Link>
             </TableCell>
           </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

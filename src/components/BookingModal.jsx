@@ -1,25 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api, { getSessionUser } from '../services/api';
 import { X, Search, MapPin, Star, Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, CheckCircle, ChevronLeft, ChevronRight, Check, Briefcase } from 'lucide-react';
-
-const DOCTORS = [
-  { id: 1, name: "Dr. Priya Sharma", spec: "Homeopathy Doctor", isDoctor: true, rating: "4.9", exp: "8 Years", loc: "Chennai", clinicFee: 700, onlineFee: 500, img: "https://randomuser.me/api/portraits/women/44.jpg" },
-  { id: 2, name: "Dr. Ramesh Kumar", spec: "General Physician", isDoctor: true, rating: "4.8", exp: "12 Years", loc: "Chennai", clinicFee: 600, onlineFee: 400, img: "https://randomuser.me/api/portraits/men/32.jpg" },
-  { id: 3, name: "Dr. Ananya Iyer", spec: "Pediatrician", isDoctor: true, rating: "5.0", exp: "10 Years", loc: "Bangalore", clinicFee: 900, onlineFee: 700, img: "https://randomuser.me/api/portraits/women/68.jpg" },
-  { id: 4, name: "Dr. Sanjay Gupta", spec: "Physiotherapist", isDoctor: false, rating: "4.7", exp: "6 Years", loc: "Mumbai", fee: 800, img: "https://randomuser.me/api/portraits/men/45.jpg" },
-  { id: 5, name: "Dr. Neha Verma", spec: "Ayurveda Doctor", isDoctor: true, rating: "4.9", exp: "14 Years", loc: "Pune", clinicFee: 500, onlineFee: 300, img: "https://randomuser.me/api/portraits/women/22.jpg" },
-  { id: 6, name: "Nurse Anita", spec: "Nurse", isDoctor: false, rating: "4.8", exp: "5 Years", loc: "Delhi", fee: 400, img: "https://randomuser.me/api/portraits/women/12.jpg" },
-  { id: 7, name: "Rahul Singh", spec: "Care Taker", isDoctor: false, rating: "4.6", exp: "3 Years", loc: "Chennai", fee: 300, img: "https://randomuser.me/api/portraits/men/11.jpg" },
-  { id: 8, name: "Dr. Meena Iyer", spec: "BHS", isDoctor: false, rating: "4.9", exp: "9 Years", loc: "Bangalore", fee: 500, img: "https://randomuser.me/api/portraits/women/33.jpg" }
-];
 
 const getFee = (doc, type, isDoctorCategory) => {
   if (!doc) return 0;
   return isDoctorCategory ? (type === 'clinic' ? (doc.clinicFee || doc.fee) : (doc.onlineFee || doc.fee)) : (doc.fee || doc.clinicFee);
 };
 
-const TIME_SLOTS = ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "04:00 PM", "05:00 PM"];
 
-export default function BookingModal({ isOpen, onClose, serviceType }) {
+export default function BookingModal({ isOpen, onClose, serviceType, providerId }) {
   const [step, setStep] = useState(1);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,6 +22,35 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
   const [consultationType, setConsultationType] = useState("online");
   const [selectedUpi, setSelectedUpi] = useState("gpay");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const navigate = useNavigate();
+  const [providers, setProviders] = useState([]);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookedAppointment, setBookedAppointment] = useState(null);
+  const [upiId, setUpiId] = useState('');
+
+  // Load verified professionals from the backend whenever the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoadingProviders(true);
+    api.getProviders()
+      .then((data) => setProviders(data.providers || []))
+      .catch((err) => setBookingError(err.message))
+      .finally(() => setLoadingProviders(false));
+  }, [isOpen]);
+
+  // Opened from a professional's profile: pre-select that professional
+  useEffect(() => {
+    if (!isOpen || !providerId || !providers.length) return;
+    const doc = providers.find((p) => p.id === providerId);
+    if (doc) { setSelectedDoctor(doc); setSearchQuery(doc.name); setFilterSpec(''); }
+  }, [isOpen, providerId, providers]);
+
+  // Time slots come from the professional's weekly availability (set during onboarding)
+  const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const toMinutes = (t) => { const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(t || ''); return m ? ((parseInt(m[1], 10) % 12) + (m[3].toUpperCase() === 'PM' ? 12 : 0)) * 60 + parseInt(m[2], 10) : 0; };
+  const availableSlots = [...((selectedDate && selectedDoctor?.schedule?.[DAY_KEYS[selectedDate.getDay()]]) || [])].sort((a, b) => toMinutes(a) - toMinutes(b));
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +65,10 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
       setSelectedDoctor(null);
       setSelectedDate(null);
       setSelectedTime("");
-      setPatientInfo({ name: "", phone: "", email: "", reason: "" });
+      const sessionUser = getSessionUser();
+      setPatientInfo({ name: sessionUser?.name || "", phone: sessionUser?.phone || "", email: sessionUser?.email || "", reason: "" });
+      setBookingError('');
+      setBookedAppointment(null);
     } else {
       document.body.style.overflow = 'auto';
     }
@@ -55,27 +77,35 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
 
   if (!isOpen) return null;
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    setBookingError('');
     if (step === 5) {
-      const newAppt = {
-        id: Date.now(),
-        date: selectedDate ? selectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase().replace(/ /g, ' ') : 'UNKNOWN',
-        time: selectedDuration ? `${selectedTime} (${selectedDuration})` : selectedTime,
-        title: consultationType ? consultationType.charAt(0).toUpperCase() + consultationType.slice(1) + ' Consultation' : 'Consultation',
-        status: 'Waiting',
-        statusColor: 'yellow',
-        patient: patientInfo?.name || 'Sanjay M.',
-        phone: patientInfo?.phone || '+91 99887 76655',
-        location: consultationType === 'online' ? 'Virtual' : (consultationType === 'home' ? 'Patient Home' : 'Main Clinic')
-      };
-      
+      if (consultationType === 'online' && selectedUpi === 'upi' && !/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) {
+        setBookingError('Please enter a valid UPI ID (e.g. username@upi).');
+        return;
+      }
+      setIsBooking(true);
       try {
-        const existing = JSON.parse(localStorage.getItem('carevia_appointments') || '[]');
-        localStorage.setItem('carevia_appointments', JSON.stringify([newAppt, ...existing]));
+        // Keep the calendar date (avoid timezone shifts) by sending local noon
+        const d = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 12);
+        const { appointment } = await api.bookAppointment({
+          providerId: selectedDoctor.id,
+          date: d.toISOString(),
+          time: selectedTime,
+          duration: selectedDuration || undefined,
+          consultationType,
+          serviceType,
+          paymentMethod: selectedUpi,
+          patientInfo,
+        });
+        setBookedAppointment(appointment);
         window.dispatchEvent(new Event('carevia_appointment_booked'));
       } catch (e) {
-        console.error('Failed to save to localStorage', e);
+        setBookingError(e.message);
+        setIsBooking(false);
+        return;
       }
+      setIsBooking(false);
     }
     setStep((s) => Math.min(s + 1, 6));
   };
@@ -157,9 +187,9 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
 <div className="bg-white p-4 rounded-[16px] shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative md:col-span-2">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search doctor or specialist" className="w-full pl-11 pr-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-secondary/50 text-sm font-medium" />
+                  <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search doctor or specialist" className="w-full pl-11 pr-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 text-sm font-medium" />
                 </div>
-                <select value={filterSpec} onChange={e => setFilterSpec(e.target.value)} className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-secondary/50 text-sm font-medium text-gray-600 appearance-none">
+                <select value={filterSpec} onChange={e => setFilterSpec(e.target.value)} className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 text-sm font-medium text-gray-600 appearance-none">
                   <option value="">Select Specialization</option>
                   <option>Doctor Appointment – General Physician</option>
                   <optgroup label="Specialist Doctor Appointment">
@@ -197,7 +227,9 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
 )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {DOCTORS.filter(doc => {
+                {loadingProviders && <p className="text-sm text-gray-500 col-span-full">Loading professionals...</p>}
+                {!loadingProviders && providers.length === 0 && <p className="text-sm text-gray-500 col-span-full">No professionals available right now.</p>}
+                {providers.filter(doc => {
                   // 1. Search Query
                   if (searchQuery && !doc.name.toLowerCase().includes(searchQuery.toLowerCase()) && !doc.spec.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                   
@@ -230,13 +262,13 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                   <div 
                     key={doc.id} 
                     
-                    className={`bg-white p-5 rounded-[20px] border-2 cursor-pointer transition-all duration-200 flex flex-col ${selectedDoctor?.id === doc.id ? 'border-secondary shadow-lg scale-[1.02]' : 'border-gray-100 shadow-sm hover:border-secondary/30 hover:shadow-md'}`}
+                    className={`bg-white p-5 rounded-[20px] border-2 cursor-pointer transition-all duration-200 flex flex-col ${selectedDoctor?.id === doc.id ? 'border-accent shadow-lg scale-[1.02]' : 'border-gray-100 shadow-sm hover:border-accent/30 hover:shadow-md'}`}
                   >
                     <div className="flex gap-4 items-start mb-4">
                       <img src={doc.img} alt={doc.name} className="w-16 h-16 rounded-full object-cover shadow-sm" />
                       <div>
                         <h4 className="font-bold text-primary leading-tight">{doc.name}</h4>
-                        <p className="text-xs font-medium text-secondary mt-1">{doc.spec}</p>
+                        <p className="text-xs font-medium text-accent mt-1">{doc.spec}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Star className="w-3.5 h-3.5 text-yellow-400 fill-current" />
                           <span className="text-xs font-bold text-gray-700">{doc.rating}</span>
@@ -254,14 +286,14 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                         <>
                           <button 
                             onClick={(e) => { e.stopPropagation(); setSelectedDoctor(doc); setConsultationType('clinic'); }}
-                            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id && consultationType === 'clinic' ? 'border-secondary bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-secondary/30'}`}
+                            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id && consultationType === 'clinic' ? 'border-accent bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-accent/30'}`}
                           >
                             <span className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Hospital Visit</span>
                             <span>₹{doc.clinicFee}</span>
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); setSelectedDoctor(doc); setConsultationType('online'); }}
-                            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id && consultationType === 'online' ? 'border-secondary bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-secondary/30'}`}
+                            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id && consultationType === 'online' ? 'border-accent bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-accent/30'}`}
                           >
                             <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Online Consult</span>
                             <span>₹{doc.onlineFee}</span>
@@ -270,7 +302,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                       ) : (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setSelectedDoctor(doc); setConsultationType('home'); }}
-                          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id ? 'border-secondary bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-secondary/30'}`}
+                          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-2 flex justify-between px-4 items-center ${selectedDoctor?.id === doc.id ? 'border-accent bg-secondary text-white shadow-md scale-[1.02]' : 'border-gray-100 bg-white text-gray-600 hover:border-accent/30'}`}
                         >
                           <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Book Session</span>
                           <span>₹{doc.fee || doc.clinicFee}</span>
@@ -295,7 +327,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                   <img src={selectedDoctor.img} alt={selectedDoctor.name} className="w-12 h-12 rounded-full object-cover" />
                   <div>
                     <h4 className="font-bold text-primary">{selectedDoctor.name}</h4>
-                    <p className="text-xs font-medium text-secondary">{selectedDoctor.spec}</p>
+                    <p className="text-xs font-medium text-accent">{selectedDoctor.spec}</p>
                   </div>
                 </div>
               )}
@@ -343,11 +375,12 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      {TIME_SLOTS.map(time => (
+                      {availableSlots.length === 0 && <p className="col-span-2 text-sm font-medium text-gray-400 text-center py-6">No slots available on this day. Please pick another date.</p>}
+                      {availableSlots.map(time => (
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
-                          className={`py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${selectedTime === time ? 'border-secondary bg-secondary/10 text-secondary' : 'border-gray-100 text-gray-600 hover:border-gray-200 hover:bg-gray-50'}`}
+                          className={`py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${selectedTime === time ? 'border-accent bg-accent/10 text-accent' : 'border-gray-100 text-gray-600 hover:border-gray-200 hover:bg-gray-50'}`}
                         >
                           {time}
                         </button>
@@ -364,7 +397,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                           <button
                             key={duration}
                             onClick={() => setSelectedDuration(duration)}
-                            className={`py-4 rounded-xl border-2 font-bold text-sm transition-all ${selectedDuration === duration ? 'border-secondary bg-secondary/5 text-secondary shadow-sm' : 'border-gray-100 hover:border-gray-200 text-gray-600'}`}
+                            className={`py-4 rounded-xl border-2 font-bold text-sm transition-all ${selectedDuration === duration ? 'border-accent bg-accent/5 text-accent shadow-sm' : 'border-gray-100 hover:border-gray-200 text-gray-600'}`}
                           >
                             {duration} Shift
                           </button>
@@ -400,21 +433,21 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
 
                   <div className="space-y-6">
                     <div className="flex gap-4 items-start">
-                      <CalendarIcon className="w-5 h-5 text-secondary shrink-0" />
+                      <CalendarIcon className="w-5 h-5 text-accent shrink-0" />
                       <div>
                         <p className="text-xs opacity-70 mb-1">Date</p>
                         <p className="font-medium text-sm">{formatDisplayDate(selectedDate)}</p>
                       </div>
                     </div>
                     <div className="flex gap-4 items-start">
-                      <Clock className="w-5 h-5 text-secondary shrink-0" />
+                      <Clock className="w-5 h-5 text-accent shrink-0" />
                       <div>
                         <p className="text-xs opacity-70 mb-1">Time</p>
-                        <p className="font-medium text-sm">{selectedTime} {selectedDuration && <span className="text-secondary ml-1 font-bold">({selectedDuration})</span>}</p>
+                        <p className="font-medium text-sm">{selectedTime} {selectedDuration && <span className="text-accent ml-1 font-bold">({selectedDuration})</span>}</p>
                       </div>
                     </div>
                     <div className="flex gap-4 items-start">
-                      <FileText className="w-5 h-5 text-secondary shrink-0" />
+                      <FileText className="w-5 h-5 text-accent shrink-0" />
                       <div>
                         <p className="text-xs opacity-70 mb-1">Consultation Type</p>
                         <p className="font-medium text-sm">{consultationType === "clinic" ? "Hospital Visit" : (consultationType === "online" ? "Online Consultation" : "Home Service")}</p>
@@ -433,7 +466,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                   <h4 className="font-bold text-primary mb-2">Upload Medical Reports</h4>
                   <p className="text-sm text-gray-500 mb-6">Please upload any relevant previous prescriptions or lab reports for the doctor to review.</p>
                   
-                  <div className="border-2 border-dashed border-gray-300 rounded-[24px] bg-gray-50 p-10 flex flex-col items-center justify-center text-center hover:bg-gray-100 hover:border-secondary transition cursor-pointer h-64">
+                  <div className="border-2 border-dashed border-gray-300 rounded-[24px] bg-gray-50 p-10 flex flex-col items-center justify-center text-center hover:bg-gray-100 hover:border-accent transition cursor-pointer h-64">
                     <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-4">
                       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     </div>
@@ -458,7 +491,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                   <img src={selectedDoctor?.img} alt="" className="w-20 h-20 rounded-full object-cover shadow-md" />
                   <div>
                     <h4 className="text-xl font-bold text-primary">{selectedDoctor?.name}</h4>
-                    <p className="text-sm font-medium text-secondary">{selectedDoctor?.spec}</p>
+                    <p className="text-sm font-medium text-accent">{selectedDoctor?.spec}</p>
                   </div>
                 </div>
 
@@ -481,7 +514,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                   </div>
                 </div>
 
-                <div className="bg-[#F0F4FF] p-5 rounded-2xl flex justify-between items-center">
+                <div className="bg-tint p-5 rounded-2xl flex justify-between items-center">
                   <span className="font-bold text-primary">Consultation Fee</span>
                   <span className="text-2xl font-bold text-primary">₹{getFee(selectedDoctor, consultationType, isDoctorCategory)}</span>
                 </div>
@@ -523,7 +556,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                       {/* GPay */}
                       <div 
                         onClick={() => setSelectedUpi('gpay')}
-                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'gpay' ? 'border-[#4F46E5] bg-[#4F46E5]/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
+                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'gpay' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
                       >
                         <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center p-2">
                           <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="GPay" className="w-full h-full object-contain" />
@@ -534,7 +567,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                       {/* PhonePe */}
                       <div 
                         onClick={() => setSelectedUpi('phonepe')}
-                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'phonepe' ? 'border-[#4F46E5] bg-[#4F46E5]/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
+                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'phonepe' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
                       >
                         <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center p-2">
                           <img src="https://download.logo.wine/logo/PhonePe/PhonePe-Logo.wine.png" alt="PhonePe" className="w-full h-full object-cover scale-[1.5]" />
@@ -545,7 +578,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                       {/* Other UPI */}
                       <div 
                         onClick={() => setSelectedUpi('upi')}
-                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'upi' ? 'border-[#4F46E5] bg-[#4F46E5]/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
+                        className={`cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all ${selectedUpi === 'upi' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200 bg-gray-50'}`}
                       >
                         <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center p-2">
                           <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="w-full h-full object-contain" />
@@ -557,7 +590,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
                     {selectedUpi === 'upi' && (
                       <div className="animate-[fade-in_0.3s_ease-out]">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Enter UPI ID</label>
-                        <input type="text" placeholder="username@upi" className="w-full bg-white border-2 border-gray-100 rounded-xl p-4 focus:border-[#4F46E5] focus:ring-0 outline-none text-sm font-medium transition" />
+                        <input type="text" value={upiId} onChange={(e) => setUpiId(e.target.value)} placeholder="username@upi" className="w-full bg-white border-2 border-gray-100 rounded-xl p-4 focus:border-primary focus:ring-0 outline-none text-sm font-medium transition" />
                       </div>
                     )}
                     
@@ -587,7 +620,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
               <div className="bg-white p-6 rounded-[20px] shadow-sm border border-gray-100 w-full mb-8 text-left">
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-50">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Appointment ID</span>
-                  <span className="font-bold text-primary">APT-10245</span>
+                  <span className="font-bold text-primary">{bookedAppointment?.code || 'APT-10245'}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="bg-primary/5 p-3 rounded-xl"><CalendarIcon className="w-6 h-6 text-primary" /></div>
@@ -599,7 +632,7 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 w-full">
-                <button onClick={onClose} className="flex-1 bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-hover transition shadow-md">
+                <button onClick={() => { onClose(); const u = getSessionUser(); if (u?.role === 'patient') navigate('/patient/dashboard'); }} className="flex-1 bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-hover transition shadow-md">
                   View Appointment
                 </button>
                 <button onClick={onClose} className="flex-1 bg-white border-2 border-primary text-primary py-4 rounded-xl font-bold hover:bg-gray-50 transition">
@@ -611,6 +644,11 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
         </div>
 
         {/* Footer Actions */}
+        {step < 6 && bookingError && (
+          <div className="px-6 pt-4 bg-white shrink-0">
+            <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{bookingError}</p>
+          </div>
+        )}
         {step < 6 && (
           <div className="px-6 py-5 border-t border-gray-100 bg-white flex items-center justify-between shrink-0">
             {step > 1 ? (
@@ -664,9 +702,10 @@ export default function BookingModal({ isOpen, onClose, serviceType }) {
             {step === 5 && (
               <button 
                 onClick={handleNext}
-                className="px-8 py-3.5 rounded-xl font-bold text-white transition-all shadow-md bg-[#4F46E5] hover:bg-[#4338CA]"
+                disabled={isBooking}
+                className="px-8 py-3.5 rounded-xl font-bold text-white transition-all shadow-md bg-primary hover:bg-primary-hover disabled:opacity-70"
               >
-                {consultationType === 'online' ? `Pay ₹${selectedDoctor?.fee || 500} & Book` : 'Complete Booking'}
+                {isBooking ? 'Processing...' : consultationType === 'online' ? `Pay ₹${getFee(selectedDoctor, consultationType, isDoctorCategory)} & Book` : 'Complete Booking'}
               </button>
             )}
           </div>

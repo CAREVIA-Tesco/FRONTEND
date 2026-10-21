@@ -7,28 +7,33 @@ interface KPICardProps {
   change: string
   isPositive: boolean
   icon: React.ElementType
+  tone?: "plum" | "rose" | "violet" | "teal" | "amber"
 }
 
-export function KPICard({ title, value, change, isPositive, icon: Icon }: KPICardProps) {
+const TONES = {
+  plum: "bg-mint text-strong",
+  rose: "bg-secondary/10 text-secondary",
+  violet: "bg-accent/10 text-accent",
+  teal: "bg-[#E4F4EE] text-[#1E7F62]",
+  amber: "bg-[#FBF1DE] text-[#A86A12]",
+}
+
+export function KPICard({ title, value, change, isPositive, icon: Icon, tone = "plum" }: KPICardProps) {
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-muted">{title}</p>
-            <h3 className="text-2xl font-bold text-charcoal mt-2">{value}</h3>
+    <Card data-kpi={title} className="group transition-shadow hover:shadow-[0_14px_34px_-18px_color-mix(in_srgb,var(--color-primary)_35%,transparent)]">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-muted">{title}</p>
+            <h3 className="text-[28px] leading-none font-semibold text-charcoal mt-3 tracking-tight">{value}</h3>
           </div>
-          <div className="h-12 w-12 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
-            <Icon className="h-6 w-6" />
+          <div className={`h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ${TONES[tone]}`}>
+            <Icon className="h-5 w-5" />
           </div>
         </div>
-        <div className="mt-4 flex items-center text-sm">
-          {isPositive ? (
-            <TrendingUp className="mr-1 h-4 w-4 text-success" />
-          ) : (
-            <TrendingDown className="mr-1 h-4 w-4 text-error" />
-          )}
-          <span className={isPositive ? "text-success font-medium" : "text-error font-medium"}>
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center text-xs">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${isPositive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+            {isPositive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
             {change}
           </span>
           <span className="text-muted ml-2">vs last month</span>

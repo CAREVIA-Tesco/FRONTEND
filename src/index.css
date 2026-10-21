@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600;1,9..144,700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -6,8 +6,40 @@
   --color-primary-hover: #152B6A;
   --color-secondary: #DA7C75;
   --color-secondary-hover: #C56A63;
+  --color-tint: #F0F4FF;
+  --color-accent: #DA7C75;
+  --color-mint: #F0F4FF;
+  --color-cream: #F7FAFC;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --color-deep: #1A3789;
+  --color-deep-2: #1A3789;
+  --color-deep-3: #152B6A;
+  --color-on-deep: #F0F4FF;
+  --color-strong: #5A2F8F;
+  --color-line: #E6DDEA;
+  --color-line-soft: #EFE6F0;
+  --color-placeholder: #A79BB0;
+  --color-secondary-soft: #F7A8BE;
+  --color-secondary-bright: #F06B90;
+  --color-ink-soft: #6B5D7A;
   --font-sans: 'Inter', sans-serif;
   --font-poppins: 'Poppins', sans-serif;
+
+  /* Admin panel tokens (same values as Carevaa Super Admin/dashboard/tailwind.config.js) */
+  --color-brand-50: #f0f9ff;
+  --color-brand-100: #e0f2fe;
+  --color-brand-200: #bae6fd;
+  --color-brand-500: #0ea5e9;
+  --color-brand-600: #0284c7;
+  --color-brand-700: #0369a1;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-charcoal: #1e293b;
+  --color-muted: #64748b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 }
 
 html {
@@ -72,4 +104,156 @@ html {
 }
 .animate-float-delayed {
   animation: float-delayed 8s ease-in-out infinite;
+}
+
+/* Scroll-in animation used by the redesigned public pages (components/Reveal.jsx) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ---------------------------------------------------------------------------------------------
+   Brand palette – ONE source for the whole app (public website, login, patient/doctor dashboards
+   and admin console). Chosen in Admin → Website Content → Theme colours, applied by ThemeLoader as
+   <html data-palette="…">. Every colour token below is derived from these values.
+   --------------------------------------------------------------------------------------------- */
+:root {
+  /* Plum & Rose (default) */
+  --cv-primary: #2E1A47; --cv-primary-hover: #21122F;
+  --cv-secondary: #D9466F; --cv-secondary-hover: #BF3A5F;
+  --cv-accent: #7048C2;
+  --cv-tint: #FAF6F8; --cv-mint: #F0EAFB; --cv-cream: #FCFAFB;
+  --cv-deep: #25133D; --cv-deep-2: #341C55; --cv-deep-3: #43266B; --cv-on-deep: #D5C3FF;
+}
+html[data-palette="teal"] {
+  --cv-primary: #0F3A3C; --cv-primary-hover: #0A2A2C; --cv-secondary: #F05A22; --cv-secondary-hover: #D84A15;
+  --cv-accent: #128F8C; --cv-tint: #F8F4EC; --cv-mint: #E6F2EF; --cv-cream: #FBF8F3;
+  --cv-deep: #0B2E31; --cv-deep-2: #0E3B3E; --cv-deep-3: #0F4447; --cv-on-deep: #7DE0DC;
+}
+html[data-palette="navy"] {
+  --cv-primary: #13235B; --cv-primary-hover: #0D1A45; --cv-secondary: #E5604F; --cv-secondary-hover: #CC4D3D;
+  --cv-accent: #2747A8; --cv-tint: #F6F4F1; --cv-mint: #EAF0FB; --cv-cream: #FAF9F7;
+  --cv-deep: #0F1B49; --cv-deep-2: #16286A; --cv-deep-3: #1E3A8A; --cv-on-deep: #A9C1FF;
+}
+html[data-palette="blue"] {
+  --cv-primary: #0B2A4A; --cv-primary-hover: #071E36; --cv-secondary: #0E9F6E; --cv-secondary-hover: #0B8A5F;
+  --cv-accent: #1673C9; --cv-tint: #F2F7FC; --cv-mint: #E4EFFA; --cv-cream: #F7FAFD;
+  --cv-deep: #0A2542; --cv-deep-2: #0D3358; --cv-deep-3: #11426F; --cv-on-deep: #8CC6FF;
+}
+:root {
+  --color-primary: var(--cv-primary);
+  --color-primary-hover: var(--cv-primary-hover);
+  --color-secondary: var(--cv-secondary);
+  --color-secondary-hover: var(--cv-secondary-hover);
+  --color-accent: var(--cv-accent);
+  --color-tint: var(--cv-tint);
+  --color-mint: var(--cv-mint);
+  --color-cream: var(--cv-cream);
+  --color-deep: var(--cv-deep);
+  --color-deep-2: var(--cv-deep-2);
+  --color-deep-3: var(--cv-deep-3);
+  --color-on-deep: var(--cv-on-deep);
+  --color-strong: color-mix(in srgb, var(--cv-accent) 60%, var(--cv-deep));
+  --color-line: color-mix(in srgb, var(--cv-primary) 13%, white);
+  --color-line-soft: color-mix(in srgb, var(--cv-primary) 8%, white);
+  --color-placeholder: color-mix(in srgb, var(--cv-primary) 40%, white);
+  --color-secondary-soft: color-mix(in srgb, var(--cv-secondary) 45%, white);
+  --color-secondary-bright: color-mix(in srgb, var(--cv-secondary) 80%, white);
+  --color-ink-soft: color-mix(in srgb, var(--cv-primary) 68%, white);
+}
+
+/* Public website typography */
+.theme-portea {
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-poppins: 'Fraunces', Georgia, serif;   /* section headings use the serif display face */
+  font-family: 'Poppins', system-ui, sans-serif;
+}
+.theme-portea ::selection, .theme-admin ::selection, .theme-dash ::selection { background: var(--color-accent); color: #fff; }
+.theme-portea .dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.theme-portea .dot-grid-dark {
+  background-image: radial-gradient(rgba(15, 58, 60, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.eyebrow { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+
+/* Admin console: brand tokens derived from the palette. Applied with className="theme-admin". */
+.theme-admin {
+  --color-brand-50: color-mix(in srgb, var(--cv-accent) 7%, white);
+  --color-brand-100: color-mix(in srgb, var(--cv-accent) 13%, white);
+  --color-brand-200: color-mix(in srgb, var(--cv-accent) 26%, white);
+  --color-brand-500: var(--cv-accent);
+  --color-brand-600: var(--color-strong);
+  --color-brand-700: var(--cv-deep-3);
+  --color-background: color-mix(in srgb, var(--cv-primary) 3%, white);
+  --color-charcoal: var(--cv-primary);
+  --color-muted: color-mix(in srgb, var(--cv-primary) 62%, white);
+  --color-info: var(--cv-accent);
+  --color-slate-50: color-mix(in srgb, var(--cv-primary) 3%, white);
+  --color-slate-100: color-mix(in srgb, var(--cv-primary) 6%, white);
+  --color-slate-200: color-mix(in srgb, var(--cv-primary) 11%, white);
+  --color-slate-300: color-mix(in srgb, var(--cv-primary) 19%, white);
+  --font-sans: 'Poppins', sans-serif;
+  font-family: 'Poppins', sans-serif;
+}
+.theme-admin ::selection { background: var(--color-secondary-soft); }
+.theme-admin input[type="checkbox"], .theme-admin input[type="radio"] { accent-color: var(--color-strong); }
+.theme-admin .font-bold { font-weight: 600; }
+.theme-admin h1.text-3xl { letter-spacing: -0.02em; }
+
+/* Patient & doctor dashboards: greys and blues derived from the palette. Used with .theme-portea by DashboardShell. */
+.theme-dash {
+  --color-gray-50: color-mix(in srgb, var(--cv-primary) 3%, white);
+  --color-gray-100: color-mix(in srgb, var(--cv-primary) 6%, white);
+  --color-gray-200: color-mix(in srgb, var(--cv-primary) 11%, white);
+  --color-gray-300: color-mix(in srgb, var(--cv-primary) 19%, white);
+  --color-gray-400: color-mix(in srgb, var(--cv-primary) 40%, white);
+  --color-gray-500: color-mix(in srgb, var(--cv-primary) 58%, white);
+  --color-gray-600: color-mix(in srgb, var(--cv-primary) 72%, white);
+  --color-gray-700: color-mix(in srgb, var(--cv-primary) 84%, white);
+  --color-gray-800: color-mix(in srgb, var(--cv-primary) 92%, white);
+  --color-gray-900: var(--cv-primary);
+  --color-blue-50: color-mix(in srgb, var(--cv-accent) 7%, white);
+  --color-blue-100: color-mix(in srgb, var(--cv-accent) 14%, white);
+  --color-blue-200: color-mix(in srgb, var(--cv-accent) 26%, white);
+  --color-blue-400: color-mix(in srgb, var(--cv-accent) 70%, white);
+  --color-blue-500: color-mix(in srgb, var(--cv-accent) 85%, white);
+  --color-blue-600: var(--cv-accent);
+  --color-blue-700: color-mix(in srgb, var(--cv-accent) 80%, var(--cv-deep));
+  --color-indigo-50: color-mix(in srgb, var(--cv-accent) 7%, white);
+  --color-indigo-500: var(--cv-accent);
+}
+.theme-dash .font-bold { font-weight: 600; }
+.theme-dash ::selection { background: var(--color-secondary-soft); }
+
+/* Motion used by Book Now and the thank-you page (respects reduced motion) */
+@keyframes cv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes cv-slide-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@keyframes cv-pop { 0% { opacity: 0; transform: scale(.6); } 70% { opacity: 1; transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes cv-draw { from { stroke-dashoffset: 48; } to { stroke-dashoffset: 0; } }
+@keyframes cv-ring { 0% { transform: scale(.8); opacity: .55; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes cv-confetti { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+@keyframes cv-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes cv-shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+.cv-rise { animation: cv-rise .55s cubic-bezier(.2,.7,.2,1) both; }
+.cv-slide-in { animation: cv-slide-in .4s cubic-bezier(.2,.7,.2,1) both; }
+.cv-pop { animation: cv-pop .6s cubic-bezier(.2,.8,.2,1.2) both; }
+.cv-draw { stroke-dasharray: 48; animation: cv-draw .6s .35s ease-out both; }
+.cv-ring { animation: cv-ring 1.8s ease-out infinite; }
+.cv-confetti { animation: cv-confetti 1.4s cubic-bezier(.2,.7,.3,1) both; }
+.cv-grow { transform-origin: top; animation: cv-grow .6s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .cv-rise, .cv-slide-in, .cv-pop, .cv-draw, .cv-ring, .cv-confetti, .cv-grow { animation: none !important; }
 }

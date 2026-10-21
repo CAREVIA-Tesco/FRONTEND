@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
+import BookingModal from '../components/BookingModal';
+import EnquiryModal from '../components/EnquiryModal';
+import { useContact } from '../services/useSiteContent';
+import api from '../services/api';
+import { usePublicStats, usePricingRules, inr } from '../services/usePublicStats';
 import { 
   CheckCircle, Star, Users, MapPin, Search, Phone, 
   ChevronRight, Shield, Clock, Heart, Award, 
@@ -8,6 +14,8 @@ import {
 } from 'lucide-react';
 
 export default function HireProfessional() {
+  const platform = usePublicStats();
+  const pricingRules = usePricingRules();
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const [activeFaq, setActiveFaq] = useState(null);
   
@@ -27,14 +35,60 @@ export default function HireProfessional() {
   const [filterLang, setFilterLang] = useState("Any Language");
   const [availableToday, setAvailableToday] = useState(false);
 
-  const initialPros = [
-    { id: 1, name: "Kavitha M.", role: "Home Nurse", gender: "Female", city: "Bangalore", languages: ["English", "Tamil"], price: "₹1,800/day", rating: 4.9, reviews: 240, tags: ["Post-op", "Elderly Care"], img: "35", available: true },
-    { id: 2, name: "Rahul S.", role: "Physiotherapist", gender: "Male", city: "Chennai", languages: ["English", "Hindi"], price: "₹500/session", rating: 4.8, reviews: 156, tags: ["Sports Injury", "Joint Pain"], img: "11", available: false },
-    { id: 3, name: "Anita K.", role: "Care Taker", gender: "Female", city: "Bangalore", languages: ["English", "Kannada"], price: "₹800/day", rating: 4.7, reviews: 320, tags: ["Dementia", "Companionship"], img: "44", available: true },
-    { id: 4, name: "Dr. Vikram P.", role: "Doctor", gender: "Male", city: "Hyderabad", languages: ["English", "Telugu"], price: "₹600/visit", rating: 5.0, reviews: 89, tags: ["General Physician", "Geriatric"], img: "12", available: true },
-    { id: 5, name: "Sneha R.", role: "Home Nurse", gender: "Female", city: "Chennai", languages: ["Tamil", "English"], price: "₹1,600/day", rating: 4.9, reviews: 110, tags: ["Newborn Care", "Post-op"], img: "47", available: false },
-    { id: 6, name: "Manoj T.", role: "Care Taker", gender: "Male", city: "Bangalore", languages: ["Hindi", "English"], price: "₹850/day", rating: 4.6, reviews: 145, tags: ["Mobility Assist", "Elderly Care"], img: "15", available: true }
-  ];
+  // Professionals come from the backend (verified providers)
+  const [providers, setProviders] = useState([]);
+  const [loadingPros, setLoadingPros] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+  const [bookingService, setBookingService] = useState(null);
+  const [enquiry, setEnquiry] = useState(null);
+  const contact = useContact();
+  const ROLE_SERVICE = { Physiotherapist: 'Physiotherapy', 'Home Nurse': 'Nurse Care', 'Care Taker': 'Care Taker', Doctor: 'Home Doctor' };
+  const postRequirement = () => setEnquiry({
+    type: 'requirement',
+    service: ROLE_SERVICE[formData.service] || '',
+    message: `Need a ${formData.service} for ${formData.patient.toLowerCase()}${formData.location ? ` in ${formData.location}` : ''}, duration: ${formData.duration}.`,
+  });
+  const chatOnWhatsApp = () => (contact.whatsappHref ? window.open(contact.whatsappHref, '_blank', 'noopener') : setEnquiry({ type: 'callback' }));
+  useEffect(() => {
+    api.getProviders()
+      .then((d) => setProviders(d.providers || []))
+      .catch(() => setProviders([]))
+      .finally(() => setLoadingPros(false));
+  }, []);
+
+  const roleOf = (p) => (p.isDoctor ? 'Doctor' : p.profession === 'Nurse' ? 'Home Nurse' : p.profession === 'Caretaker' ? 'Care Taker' : p.profession === 'Physiotherapist' ? 'Physiotherapist' : null);
+  const SERVICE_FOR_ROLE = { 'Doctor': 'home-doctor', 'Home Nurse': 'nurse-care', 'Care Taker': 'care-taker', 'Physiotherapist': 'physiotherapy' };
+  const todayKey = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
+  const priceOf = (p) => (p.isDoctor ? p.clinicFee || p.onlineFee || p.fee : p.fee || p.clinicFee);
+  const initialPros = providers
+    .filter((p) => roleOf(p))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      role: roleOf(p),
+      gender: p.gender,
+      city: p.loc,
+      languages: p.languages || [],
+      fee: priceOf(p),
+      price: `₹${Number(priceOf(p) || 0).toLocaleString('en-IN')}/${p.isDoctor ? 'visit' : 'session'}`,
+      rating: p.rating,
+      reviews: p.reviews || 0,
+      tags: [p.specialization, p.spec !== p.specialization ? p.spec : null].filter(Boolean),
+      img: p.img,
+      exp: p.exp,
+      available: (p.schedule?.[todayKey] || []).length > 0,
+    }))
+    .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+  const roleStats = (role) => {
+    const list = initialPros.filter((p) => p.role === role);
+    const fees = list.map((p) => p.fee).filter(Boolean);
+    return { count: list.length, minFee: fees.length ? Math.min(...fees) : null };
+  };
+  const physioMin = roleStats('Physiotherapist').minFee;
+  const nurseMin = roleStats('Home Nurse').minFee;
+  const caretakerMin = roleStats('Care Taker').minFee;
+  const doctorMin = roleStats('Doctor').minFee;
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
 
   const filteredPros = initialPros.filter(pro => {
     if (filterRole !== "Any Role" && pro.role !== filterRole) return false;
@@ -50,6 +104,11 @@ export default function HireProfessional() {
       alert("Please enter your city or pincode.");
       return;
     }
+    // narrow the professionals list to the searched city / service when we have matches
+    const city = uniq(initialPros.map((p) => p.city)).find((c) => c.toLowerCase() === formData.location.trim().toLowerCase());
+    setFilterCity(city || 'Any City');
+    const role = { Physiotherapist: 'Physiotherapist', 'Home Nurse': 'Home Nurse', Nurse: 'Home Nurse', 'Care Taker': 'Care Taker', Caretaker: 'Care Taker', Doctor: 'Doctor' }[formData.service];
+    if (role) setFilterRole(role);
     setIsSearching(true);
     setTimeout(() => {
       setIsSearching(false);
@@ -62,47 +121,47 @@ export default function HireProfessional() {
   };
 
   return (
-    <div className="font-sans text-[#0A2540] bg-[#FAFBFC] min-h-screen relative selection:bg-secondary/30 selection:text-primary">
-      <Navbar />
+    <div className="theme-portea font-sans text-primary bg-cream min-h-screen relative overflow-x-clip selection:bg-accent/30 selection:text-primary">
+      <SiteHeader />
 
       {/* 2. Hero Section */}
-      <section className="pt-32 pb-48 lg:pt-40 lg:pb-56 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white to-[#FEF7F0] relative overflow-hidden">
+      <section className="pt-32 pb-48 lg:pt-40 lg:pb-56 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white to-tint relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 relative z-10">
           
           {/* Left Hero */}
           <div className="lg:w-[55%] flex flex-col items-start">
-            <div className="bg-[#E87070]/10 text-[#E87070] px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 mb-6 border border-[#E87070]/20">
+            <div className="bg-accent/10 text-accent px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 mb-6 border border-accent/20">
               <HomeIcon className="w-4 h-4" /> Hire in Under 4 Hours
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-[60px] font-bold font-poppins text-[#1E3A8A] leading-[1.1] mb-6">
+            <h1 className="text-4xl md:text-5xl lg:text-[60px] font-bold font-poppins text-primary leading-[1.1] mb-6">
               Hire Trusted Healthcare Professionals, Direct to Your Home.
             </h1>
             
-            <p className="text-[#5A6478] text-lg mb-8 max-w-xl leading-relaxed">
+            <p className="text-ink-soft text-lg mb-8 max-w-xl leading-relaxed">
               Post your requirement and get matched with verified physiotherapists, nurses, care takers, and doctors — all background-checked and rated by real families.
             </p>
             
-            <div className="flex flex-wrap gap-4 text-sm font-semibold text-[#1E3A8A] mb-10 bg-white/50 px-6 py-3 rounded-full border border-white/50 backdrop-blur-sm">
-              <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-[#10B981]"/> 1,500+ Verified Pros</span>
+            <div className="flex flex-wrap gap-4 text-sm font-semibold text-primary mb-10 bg-white/50 px-6 py-3 rounded-full border border-white/50 backdrop-blur-sm">
+              <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-accent"/> {initialPros.length} Verified Pros</span>
               <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500"/> 4.9 Rated</span>
+              <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500"/> {platform?.rating ? `${platform.rating} Rated` : 'New'}</span>
               <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-1"><Users className="w-4 h-4 text-[#1E3A8A]"/> 15,000+ Families</span>
+              <span className="flex items-center gap-1"><Users className="w-4 h-4 text-primary"/> {platform ? `${platform.patientsServed.toLocaleString('en-IN')} Families` : '...'}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <button className="bg-[#E87070] hover:bg-[#d66161] text-white px-8 py-4 rounded-xl font-bold transition shadow-lg flex items-center justify-center gap-2 text-lg">
+              <button type="button" onClick={postRequirement} className="bg-secondary hover:bg-secondary-hover text-white px-8 py-4 rounded-xl font-bold transition shadow-lg flex items-center justify-center gap-2 text-lg">
                 📋 Post Your Requirement
               </button>
-              <button className="bg-white border-2 border-[#1E3A8A] text-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white px-8 py-4 rounded-xl font-bold transition flex items-center justify-center gap-2 text-lg">
+              <button type="button" onClick={() => setEnquiry({ type: 'callback' })} className="bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white px-8 py-4 rounded-xl font-bold transition flex items-center justify-center gap-2 text-lg">
                 <Phone className="w-5 h-5"/> Talk to a Care Advisor
               </button>
             </div>
             
-            <div className="flex gap-4 mt-6 text-sm text-[#5A6478] font-medium">
-              <span className="flex items-center gap-1"><Clock className="w-4 h-4 text-[#1E3A8A]"/> Pro at your home in 4 hrs</span>
-              <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-[#10B981]"/> Fully insured</span>
+            <div className="flex gap-4 mt-6 text-sm text-ink-soft font-medium">
+              <span className="flex items-center gap-1"><Clock className="w-4 h-4 text-primary"/> Pro at your home in 4 hrs</span>
+              <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-accent"/> Fully insured</span>
             </div>
           </div>
 
@@ -116,16 +175,16 @@ export default function HireProfessional() {
             <div className="absolute -top-6 -right-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce-slow border border-gray-100">
               <div className="bg-yellow-100 p-2 rounded-full"><Star className="w-6 h-6 text-yellow-500 fill-current" /></div>
               <div>
-                <div className="font-bold text-[#1E3A8A]">4.9 / 5 Rating</div>
-                <div className="text-xs text-gray-500">15,000+ families trust us</div>
+                <div className="font-bold text-primary">{platform?.rating ? `${platform.rating} / 5 Rating` : 'New on Carevaa'}</div>
+                <div className="text-xs text-gray-500">{platform ? `${platform.patientsServed.toLocaleString('en-IN')} ${platform.patientsServed === 1 ? 'family trusts' : 'families trust'} us` : '...'}</div>
               </div>
             </div>
             
             <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-pulse-slow border border-gray-100">
-              <div className="bg-[#10B981]/10 p-2 rounded-full"><CheckCircle className="w-6 h-6 text-[#10B981]" /></div>
+              <div className="bg-accent/10 p-2 rounded-full"><CheckCircle className="w-6 h-6 text-accent" /></div>
               <div>
-                <div className="font-bold text-[#1E3A8A]">Verified Professional</div>
-                <div className="text-xs text-[#10B981] font-medium">Within 4 hours</div>
+                <div className="font-bold text-primary">Verified Professional</div>
+                <div className="text-xs text-accent font-medium">Within 4 hours</div>
               </div>
             </div>
           </div>
@@ -134,8 +193,8 @@ export default function HireProfessional() {
 
       {/* 3. Quick Hire Form (STAR of the page) */}
       <section className="relative z-20 -mt-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto bg-white rounded-[24px] shadow-[0_20px_50px_rgba(30,58,138,0.1)] p-8 md:p-10 border border-gray-50">
-          <h2 className="text-2xl font-bold font-poppins text-[#1E3A8A] text-center mb-8">
+        <div className="max-w-5xl mx-auto bg-white rounded-[24px] shadow-[0_20px_50px_color-mix(in_srgb,var(--color-primary)_10%,transparent)] p-8 md:p-10 border border-gray-50">
+          <h2 className="text-2xl font-bold font-poppins text-primary text-center mb-8">
             Tell us what you need — we'll match a professional in minutes
           </h2>
           
@@ -145,7 +204,7 @@ export default function HireProfessional() {
               <select 
                 value={formData.service}
                 onChange={(e) => setFormData({...formData, service: e.target.value})}
-                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#E87070] focus:border-[#E87070] outline-none text-[#0A2540] font-medium"
+                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-accent focus:border-accent outline-none text-primary font-medium"
               >
                 <option>Physiotherapist</option>
                 <option>Home Nurse</option>
@@ -159,7 +218,7 @@ export default function HireProfessional() {
               <select 
                 value={formData.patient}
                 onChange={(e) => setFormData({...formData, patient: e.target.value})}
-                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#E87070] focus:border-[#E87070] outline-none text-[#0A2540] font-medium"
+                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-accent focus:border-accent outline-none text-primary font-medium"
               >
                 <option>Elderly Care</option>
                 <option>Post-Surgery</option>
@@ -178,7 +237,7 @@ export default function HireProfessional() {
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   placeholder="Your City / Pincode" 
-                  className="w-full pl-10 p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#E87070] focus:border-[#E87070] outline-none text-[#0A2540] font-medium" 
+                  className="w-full pl-10 p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-accent focus:border-accent outline-none text-primary font-medium" 
                 />
               </div>
             </div>
@@ -188,7 +247,7 @@ export default function HireProfessional() {
               <select 
                 value={formData.duration}
                 onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#E87070] focus:border-[#E87070] outline-none text-[#0A2540] font-medium"
+                className="p-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-accent focus:border-accent outline-none text-primary font-medium"
               >
                 <option>Few hours</option>
                 <option>Days</option>
@@ -200,7 +259,7 @@ export default function HireProfessional() {
             <button 
               onClick={handleSearch}
               disabled={isSearching}
-              className="bg-[#E87070] hover:bg-[#d66161] disabled:opacity-70 text-white p-3.5 rounded-xl font-bold transition shadow-md w-full flex items-center justify-center gap-2 h-[52px]"
+              className="bg-secondary hover:bg-secondary-hover disabled:opacity-70 text-white p-3.5 rounded-xl font-bold transition shadow-md w-full flex items-center justify-center gap-2 h-[52px]"
             >
               {isSearching ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -218,22 +277,22 @@ export default function HireProfessional() {
       </section>
 
       {/* 4. Live Stats Strip */}
-      <section className="bg-[#1E3A8A] py-16 mt-20 relative">
+      <section className="bg-primary py-16 mt-20 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">1,500+</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{initialPros.length}</div>
             <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Verified Pros</div>
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">15,000+</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? platform.patientsServed.toLocaleString('en-IN') : '...'}</div>
             <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Families Served</div>
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">4 hrs</div>
-            <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Avg Deployment</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? platform.cities : '...'}</div>
+            <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Cities Served</div>
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">4.9/5</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? (platform.rating ? `${platform.rating}/5` : 'New') : '...'}</div>
             <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Satisfaction</div>
           </div>
         </div>
@@ -243,26 +302,26 @@ export default function HireProfessional() {
       <section className="py-24 bg-white px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] mb-4">Hire the Right Professional for Your Family</h2>
-            <p className="text-[#5A6478] text-lg max-w-2xl mx-auto">Every professional is licensed, background-verified, and rated by families like yours.</p>
+            <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary mb-4">Hire the Right Professional for Your Family</h2>
+            <p className="text-ink-soft text-lg max-w-2xl mx-auto">Every professional is licensed, background-verified, and rated by families like yours.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { t: "Physiotherapist", d: "For pain, injury & post-op recovery", p: "₹500/session", c: "400+", ic: <Activity className="w-8 h-8 text-blue-600"/>, bg: "bg-blue-50" },
-              { t: "Home Nurse", d: "For medical care — injections, wound care, ICU", p: "₹1,800/day", c: "600+", ic: <Heart className="w-8 h-8 text-red-500"/>, bg: "bg-red-50" },
-              { t: "Care Taker", d: "For elderly support, daily care & companionship", p: "₹800/day", c: "350+", ic: <Users className="w-8 h-8 text-yellow-600"/>, bg: "bg-yellow-50" },
-              { t: "Doctor Visit", d: "For consultations, prescriptions & checkups", p: "₹600/visit", c: "150+", ic: <Briefcase className="w-8 h-8 text-green-600"/>, bg: "bg-green-50" }
-            ].map((s, i) => (
+              { t: "Physiotherapist", role: "Physiotherapist", unit: "session", d: "For pain, injury & post-op recovery", ic: <Activity className="w-8 h-8 text-blue-600"/>, bg: "bg-blue-50" },
+              { t: "Home Nurse", role: "Home Nurse", unit: "session", d: "For medical care — injections, wound care, ICU", ic: <Heart className="w-8 h-8 text-red-500"/>, bg: "bg-red-50" },
+              { t: "Care Taker", role: "Care Taker", unit: "session", d: "For elderly support, daily care & companionship", ic: <Users className="w-8 h-8 text-yellow-600"/>, bg: "bg-yellow-50" },
+              { t: "Doctor Visit", role: "Doctor", unit: "visit", d: "For consultations, prescriptions & checkups", ic: <Briefcase className="w-8 h-8 text-green-600"/>, bg: "bg-green-50" }
+            ].map((s) => ({ ...s, ...roleStats(s.role) })).map((s, i) => (
               <div key={i} className="border border-gray-100 rounded-3xl p-8 hover:shadow-xl transition-shadow duration-300 bg-white group flex flex-col h-full">
                 <div className={`${s.bg} w-16 h-16 rounded-2xl flex items-center justify-center mb-6`}>{s.ic}</div>
-                <h3 className="text-xl font-bold text-[#1E3A8A] mb-3">{s.t}</h3>
+                <h3 className="text-xl font-bold text-primary mb-3">{s.t}</h3>
                 <p className="text-gray-600 mb-6 flex-grow">{s.d}</p>
                 <div className="space-y-2 mb-8">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-800"><Check className="w-4 h-4 text-green-500"/> Starting {s.p}</div>
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Users className="w-4 h-4 text-gray-400"/> {s.c} available in city</div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-800"><Check className="w-4 h-4 text-green-500"/> {s.minFee ? `Starting ₹${s.minFee.toLocaleString('en-IN')}/${s.unit}` : 'Coming soon'}</div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Users className="w-4 h-4 text-gray-400"/> {s.count} verified {s.count === 1 ? 'professional' : 'professionals'} available</div>
                 </div>
-                <button className="text-[#E87070] font-bold flex items-center gap-2 group-hover:gap-3 transition-all mt-auto">
+                <button onClick={() => { setFilterRole(s.role); document.getElementById('browse-professionals')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-accent font-bold flex items-center gap-2 group-hover:gap-3 transition-all mt-auto">
                   Hire a {s.t.split(' ')[0]} <ChevronRight className="w-4 h-4"/>
                 </button>
               </div>
@@ -272,63 +331,66 @@ export default function HireProfessional() {
       </section>
 
       {/* 6. Browse Available Professionals */}
-      <section id="browse-professionals" className="py-24 bg-[#F0F4FF] px-4 sm:px-6 lg:px-8">
+      <section id="browse-professionals" className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] mb-4">👥 Browse Available Professionals Near You</h2>
-            <p className="text-[#5A6478] text-lg max-w-2xl mx-auto">Real profiles, real ratings — pick exactly who visits your home.</p>
+            <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary mb-4">👥 Browse Available Professionals Near You</h2>
+            <p className="text-ink-soft text-lg max-w-2xl mx-auto">Real profiles, real ratings — pick exactly who visits your home.</p>
           </div>
 
           {/* Filter Bar */}
           <div className="bg-white p-4 rounded-2xl shadow-sm flex flex-wrap gap-4 items-center justify-between mb-10 border border-blue-100">
             <div className="flex flex-wrap gap-3">
-              <select className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Any Role</option></select>
-              <select className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Bangalore</option></select>
-              <select className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Any Gender</option></select>
-              <select className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Language</option></select>
+              <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Any Role</option>{uniq(initialPros.map((p) => p.role)).map((r) => <option key={r}>{r}</option>)}</select>
+              <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Any City</option>{uniq(initialPros.map((p) => p.city)).map((c) => <option key={c}>{c}</option>)}</select>
+              <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option>Any Gender</option>{uniq(initialPros.map((p) => p.gender)).map((g) => <option key={g}>{g}</option>)}</select>
+              <select value={filterLang} onChange={(e) => setFilterLang(e.target.value)} className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-4 py-2 font-medium outline-none"><option value="Any Language">Language</option>{uniq(initialPros.flatMap((p) => p.languages)).map((l) => <option key={l}>{l}</option>)}</select>
             </div>
             <label className="flex items-center gap-2 text-sm font-bold text-gray-700 bg-green-50 px-4 py-2 rounded-lg cursor-pointer">
-              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div> Available Today
+              <input type="checkbox" className="sr-only" checked={availableToday} onChange={(e) => setAvailableToday(e.target.checked)} />
+              <div className={`w-3 h-3 rounded-full ${availableToday ? 'bg-green-600 ring-2 ring-green-300' : 'bg-green-500 animate-pulse'}`}></div> Available Today
             </label>
           </div>
 
           {/* Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3,4,5,6].map((i) => (
-              <div key={i} className="bg-white rounded-[20px] p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-transparent hover:border-blue-100">
+            {loadingPros && <p className="col-span-full text-center text-gray-500">Loading professionals...</p>}
+            {!loadingPros && filteredPros.length === 0 && <p className="col-span-full text-center text-gray-500">No professionals match these filters.</p>}
+            {(showAll ? filteredPros : filteredPros.slice(0, 6)).map((pro) => (
+              <div key={pro.id} className="bg-white rounded-[20px] p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-transparent hover:border-blue-100">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="relative">
-                    <img src={`https://i.pravatar.cc/150?img=${i+10}`} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" alt="Profile" />
-                    <div className="absolute -bottom-1 -right-1 bg-[#10B981] p-1 rounded-full border-2 border-white text-white"><Check className="w-2 h-2" /></div>
+                    <img src={pro.img} className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" alt={pro.name} />
+                    <div className="absolute -bottom-1 -right-1 bg-accent p-1 rounded-full border-2 border-white text-white"><Check className="w-2 h-2" /></div>
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-[#1E3A8A]">Nurse Kavitha M.</h3>
-                    <p className="text-sm text-gray-500 font-medium">Home Nurse — GNM, 6 years</p>
+                    <h3 className="font-bold text-lg text-primary">{pro.name}</h3>
+                    <p className="text-sm text-gray-500 font-medium">{pro.role} — {pro.exp}</p>
                   </div>
                 </div>
                 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-md">Post-op</span>
-                  <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-md">Elderly Care</span>
+                  {pro.tags.map((tag) => <span key={tag} className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-md">{tag}</span>)}
+                  {pro.available && <span className="bg-green-50 text-green-700 text-xs font-bold px-2.5 py-1 rounded-md">Available Today</span>}
                 </div>
                 
                 <div className="space-y-2 mb-6">
-                  <div className="flex items-center gap-2 text-sm font-medium"><Star className="w-4 h-4 text-yellow-500 fill-current"/> <span className="font-bold">4.9</span> <span className="text-gray-400">(240 reviews)</span></div>
-                  <div className="text-sm text-gray-600 font-medium">🗣️ English, Tamil</div>
-                  <div className="text-sm text-gray-600 font-medium">💰 ₹1,800/day</div>
+                  <div className="flex items-center gap-2 text-sm font-medium"><Star className="w-4 h-4 text-yellow-500 fill-current"/> <span className="font-bold">{pro.rating}</span> <span className="text-gray-400">({pro.reviews} reviews)</span></div>
+                  <div className="text-sm text-gray-600 font-medium">🗣️ {pro.languages.join(', ') || '-'}</div>
+                  <div className="text-sm text-gray-600 font-medium">📍 {pro.city || '-'} · 💰 {pro.price}</div>
                 </div>
                 
                 <div className="flex gap-3">
-                  <button className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">View Profile</button>
-                  <button className="flex-1 bg-[#E87070] text-white font-bold py-2.5 rounded-xl hover:bg-[#d66161] transition shadow-md text-sm">Hire Now</button>
+                  <Link to="/doctors" className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm text-center">View Profile</Link>
+                  <button onClick={() => setBookingService(SERVICE_FOR_ROLE[pro.role])} className="flex-1 bg-secondary text-white font-bold py-2.5 rounded-xl hover:bg-secondary-hover transition shadow-md text-sm">Hire Now</button>
                 </div>
               </div>
             ))}
           </div>
           
           <div className="text-center mt-12">
-            <button className="text-[#E87070] font-bold text-lg hover:underline inline-flex items-center gap-2">
-              See All 1,500+ Professionals <ChevronRight className="w-5 h-5"/>
+            <button onClick={() => setShowAll(!showAll)} className="text-accent font-bold text-lg hover:underline inline-flex items-center gap-2">
+              {showAll ? 'Show Fewer' : `See All ${filteredPros.length} Professionals`} <ChevronRight className="w-5 h-5"/>
             </button>
           </div>
         </div>
@@ -337,11 +399,11 @@ export default function HireProfessional() {
       {/* 7. How Hiring Works */}
       <section className="py-24 bg-white px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] text-center mb-16">Hire in 4 Simple Steps</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-16">Hire in 4 Simple Steps</h2>
           
           <div className="relative">
             {/* Dashed connector line */}
-            <div className="hidden md:block absolute top-10 left-10 right-10 h-0.5 border-t-2 border-dashed border-[#E87070]/30 z-0"></div>
+            <div className="hidden md:block absolute top-10 left-10 right-10 h-0.5 border-t-2 border-dashed border-accent/30 z-0"></div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-10 relative z-10">
               {[
@@ -351,11 +413,11 @@ export default function HireProfessional() {
                 { s: "4", i: "🏠", t: "Care Arrives", d: "Verified pro at your home in 4 hours" }
               ].map((step, i) => (
                 <div key={i} className="flex flex-col items-center text-center relative bg-white p-4 rounded-xl">
-                  <div className="w-20 h-20 rounded-full bg-[#FEF7F0] border-4 border-white shadow-md flex items-center justify-center text-3xl mb-6 z-10 relative">
+                  <div className="w-20 h-20 rounded-full bg-tint border-4 border-white shadow-md flex items-center justify-center text-3xl mb-6 z-10 relative">
                     {step.i}
-                    <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[#1E3A8A] text-white text-sm font-bold flex items-center justify-center">{step.s}</div>
+                    <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">{step.s}</div>
                   </div>
-                  <h3 className="text-xl font-bold text-[#1E3A8A] mb-2">{step.t}</h3>
+                  <h3 className="text-xl font-bold text-primary mb-2">{step.t}</h3>
                   <p className="text-gray-600 font-medium">{step.d}</p>
                 </div>
               ))}
@@ -364,10 +426,10 @@ export default function HireProfessional() {
         </div>
       </section>
 
-      {/* 8. Why Families Trust Carevia */}
-      <section className="py-24 bg-[#FEF7F0] px-4 sm:px-6 lg:px-8">
+      {/* 8. Why Families Trust Carevaa */}
+      <section className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] text-center mb-16">Why Families Trust Carevia</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-16">Why Families Trust Carevaa</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
@@ -380,7 +442,7 @@ export default function HireProfessional() {
             ].map((b, i) => (
               <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-orange-50 hover:shadow-lg transition">
                 <div className="text-4xl mb-4">{b.i}</div>
-                <h3 className="text-xl font-bold text-[#1E3A8A] mb-2">{b.t}</h3>
+                <h3 className="text-xl font-bold text-primary mb-2">{b.t}</h3>
                 <p className="text-gray-600 font-medium">{b.d}</p>
               </div>
             ))}
@@ -389,43 +451,43 @@ export default function HireProfessional() {
       </section>
 
       {/* 10. Pricing Overview */}
-      <section className="py-24 bg-[#F0F4FF] px-4 sm:px-6 lg:px-8">
+      <section className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] text-center mb-12">Transparent Hiring Costs</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-12">Transparent Hiring Costs</h2>
           
           <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-blue-50">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#1E3A8A] text-white">
+                  <tr className="bg-primary text-white">
                     <th className="p-6 font-bold text-lg">Professional</th>
                     <th className="p-6 font-bold text-lg">Hourly</th>
                     <th className="p-6 font-bold text-lg">Daily</th>
                     <th className="p-6 font-bold text-lg">Monthly</th>
                   </tr>
                 </thead>
-                <tbody className="text-[#0A2540] font-medium">
+                <tbody className="text-primary font-medium">
                   <tr className="border-b border-gray-100 hover:bg-blue-50 transition">
                     <td className="p-6 font-bold flex items-center gap-3"><Activity className="text-blue-500 w-5 h-5"/> Physiotherapist</td>
-                    <td className="p-6">₹500/hr</td>
+                    <td className="p-6">{physioMin ? `${inr(physioMin)}/hr` : '—'}</td>
                     <td className="p-6 text-gray-400">—</td>
-                    <td className="p-6 text-[#10B981] font-bold">₹4,500 <span className="text-sm font-normal text-gray-500">(10 sessions)</span></td>
+                    <td className="p-6 text-accent font-bold">{physioMin && pricingRules ? <>{inr(Math.round(physioMin * (1 - pricingRules.packDiscountPct / 100)) * pricingRules.packSessions)} <span className="text-sm font-normal text-gray-500">({pricingRules.packSessions} sessions)</span></> : '—'}</td>
                   </tr>
                   <tr className="border-b border-gray-100 hover:bg-blue-50 transition">
                     <td className="p-6 font-bold flex items-center gap-3"><Heart className="text-red-500 w-5 h-5"/> Home Nurse (GNM)</td>
                     <td className="p-6 text-gray-400">—</td>
-                    <td className="p-6">₹1,800/day</td>
-                    <td className="p-6 text-[#10B981] font-bold">₹45,000 <span className="text-sm font-normal text-gray-500">(24-hr)</span></td>
+                    <td className="p-6">{nurseMin ? `${inr(nurseMin)}/day` : '—'}</td>
+                    <td className="p-6 text-accent font-bold">{nurseMin && pricingRules?.monthly24hrDays ? <>{inr(nurseMin * pricingRules.monthly24hrDays)} <span className="text-sm font-normal text-gray-500">(24-hr)</span></> : '—'}</td>
                   </tr>
                   <tr className="border-b border-gray-100 hover:bg-blue-50 transition">
                     <td className="p-6 font-bold flex items-center gap-3"><Users className="text-yellow-500 w-5 h-5"/> Care Taker</td>
                     <td className="p-6 text-gray-400">—</td>
-                    <td className="p-6">₹800/day</td>
-                    <td className="p-6 text-[#10B981] font-bold">₹22,000 <span className="text-sm font-normal text-gray-500">(24-hr)</span></td>
+                    <td className="p-6">{caretakerMin ? `${inr(caretakerMin)}/day` : '—'}</td>
+                    <td className="p-6 text-accent font-bold">{caretakerMin && pricingRules?.monthly24hrDays ? <>{inr(caretakerMin * pricingRules.monthly24hrDays)} <span className="text-sm font-normal text-gray-500">(24-hr)</span></> : '—'}</td>
                   </tr>
                   <tr className="hover:bg-blue-50 transition">
                     <td className="p-6 font-bold flex items-center gap-3"><Briefcase className="text-green-500 w-5 h-5"/> Doctor Visit</td>
-                    <td className="p-6">₹600/visit</td>
+                    <td className="p-6">{doctorMin ? `${inr(doctorMin)}/visit` : '—'}</td>
                     <td className="p-6 text-gray-400">—</td>
                     <td className="p-6 text-gray-400">—</td>
                   </tr>
@@ -444,7 +506,7 @@ export default function HireProfessional() {
       {/* 11. FAQ */}
       <section className="py-24 bg-white px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-[#1E3A8A] text-center mb-12">Frequently Asked Questions</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-12">Frequently Asked Questions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
             {[
               "How fast can I hire a professional?",
@@ -459,9 +521,9 @@ export default function HireProfessional() {
               <div key={i} className="border-b border-gray-100 pb-4">
                 <button 
                   onClick={() => toggleFaq(i)}
-                  className="w-full text-left py-4 font-bold text-[#0A2540] flex items-center justify-between hover:text-[#E87070] transition"
+                  className="w-full text-left py-4 font-bold text-primary flex items-center justify-between hover:text-accent transition"
                 >
-                  {q} <ChevronDown className={`w-5 h-5 transition-transform ${activeFaq === i ? 'rotate-180 text-[#E87070]' : 'text-gray-400'}`} />
+                  {q} <ChevronDown className={`w-5 h-5 transition-transform ${activeFaq === i ? 'rotate-180 text-accent' : 'text-gray-400'}`} />
                 </button>
                 {activeFaq === i && (
                   <p className="text-gray-600 font-medium pb-4 text-sm">Yes, absolutely. We ensure the highest quality of service and have clear policies to address this scenario quickly and safely.</p>
@@ -474,7 +536,7 @@ export default function HireProfessional() {
 
       {/* 12. Big CTA Banner */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto bg-gradient-to-r from-[#E87070] to-[#1E3A8A] rounded-[2.5rem] p-12 md:p-20 text-center text-white shadow-2xl relative overflow-hidden">
+        <div className="max-w-5xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-[2.5rem] p-12 md:p-20 text-center text-white shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
           
           <h2 className="text-4xl md:text-5xl font-bold font-poppins mb-6 relative z-10">Ready to Hire Compassionate Care?</h2>
@@ -482,10 +544,10 @@ export default function HireProfessional() {
             Post your requirement and get verified matches in 30 minutes
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 relative z-10 w-full sm:w-auto">
-            <button className="bg-white text-[#E87070] px-8 py-4 rounded-xl font-bold text-lg hover:shadow-xl transform hover:-translate-y-1 transition flex items-center justify-center gap-2">
+            <button type="button" onClick={postRequirement} className="bg-white text-accent px-8 py-4 rounded-xl font-bold text-lg hover:shadow-xl transform hover:-translate-y-1 transition flex items-center justify-center gap-2">
               📋 Post Requirement
             </button>
-            <button className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-2">
+            <button type="button" onClick={chatOnWhatsApp} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-2">
               💬 WhatsApp Us
             </button>
           </div>
@@ -494,11 +556,15 @@ export default function HireProfessional() {
 
       {/* Mobile Sticky CTA */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-        <button className="w-full bg-[#E87070] text-white py-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-2">
+        <button type="button" onClick={postRequirement} className="w-full bg-secondary text-white py-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-2">
           📋 Post Requirement
         </button>
       </div>
 
+      <SiteFooter />
+
+      <EnquiryModal open={!!enquiry} onClose={() => setEnquiry(null)} type={enquiry?.type} service={enquiry?.service} message={enquiry?.message} />
+      <BookingModal isOpen={!!bookingService} onClose={() => setBookingService(null)} serviceType={bookingService} />
     </div>
   );
 }

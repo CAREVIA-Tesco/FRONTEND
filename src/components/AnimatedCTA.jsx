@@ -7,7 +7,7 @@ export default function AnimatedCTA({ children, onClick }) {
       className="relative inline-flex h-12 overflow-hidden rounded-full p-[2px] focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 transform hover:-translate-y-0.5 transition-transform shadow-lg"
     >
       <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#000000_0%,#ffffff_50%,#000000_100%)] opacity-80" />
-      <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-[#1A3789] px-6 py-2 text-base font-medium text-white backdrop-blur-3xl overflow-hidden relative">
+      <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-secondary px-6 py-2 text-base font-bold text-white backdrop-blur-3xl overflow-hidden relative">
         <span className="relative z-10">{children}</span>
         
         {/* Floating particles effect */}

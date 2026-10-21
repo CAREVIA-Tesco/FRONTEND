@@ -1,17 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card"
+import { useBrandColors } from "../../../services/useBrandColors"
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 
-const data = [
-  { name: "Completed", value: 62, color: "#10b981" },
-  { name: "Upcoming", value: 18, color: "#3b82f6" },
-  { name: "Cancelled", value: 9, color: "#ef4444" },
-  { name: "Rescheduled", value: 7, color: "#f59e0b" },
-  { name: "No Show", value: 4, color: "#64748b" },
-]
+const FIXED: Record<string, string> = { Completed: "#2F9E7A", Rescheduled: "#E0A33B" }
 
-export function AppointmentDonut() {
+export function AppointmentDonut({ data: raw = [] }: { data?: { name: string; value: number; color: string }[] }) {
+  const brand = useBrandColors()
+  const PALETTE: Record<string, string> = { ...FIXED, Upcoming: brand.accent, Cancelled: brand.secondary }
+  const data = raw.map((d) => ({ ...d, color: PALETTE[d.name] || d.color }))
+  const hasData = data.some((d) => d.value > 0)
+  const chartData = hasData ? data : [{ name: "No data", value: 1, color: "#E5E5EA" }]
   return (
-    <Card className="col-span-3">
+    <Card className="md:col-span-3">
       <CardHeader>
         <CardTitle>Appointment Overview</CardTitle>
       </CardHeader>
@@ -21,7 +21,7 @@ export function AppointmentDonut() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={70}
@@ -29,13 +29,13 @@ export function AppointmentDonut() {
                   paddingAngle={2}
                   dataKey="value"
                 >
-                  {data.map((entry, index) => (
+                  {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
                   formatter={(value) => [`${value}%`, "Share"]}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #E8DFEC" }}
                 />
               </PieChart>
             </ResponsiveContainer>

@@ -7,7 +7,7 @@ export default function BookingFlow() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="text-center mb-16">
-          <span className="text-[#0D9488] font-bold tracking-wider text-sm uppercase mb-3 block">Patient Booking Flow</span>
+          <span className="text-accent font-bold tracking-wider text-sm uppercase mb-3 block">Patient Booking Flow</span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 font-poppins">How Patients Book Appointments</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">Find a healthcare professional and book your appointment in just a few simple steps.</p>
         </div>
@@ -103,7 +103,7 @@ export default function BookingFlow() {
                   <div className="border border-gray-200 rounded py-1.5 text-center text-[10px] text-gray-500">02:00 PM</div>
                   <div className="border border-gray-200 rounded py-1.5 text-center text-[10px] text-gray-500">04:00 PM</div>
                 </div>
-                <button className="w-full bg-[#1E3A8A] text-white py-2.5 rounded-lg font-bold text-[11px] mt-6 shadow-md">Book Slot</button>
+                <button className="w-full bg-primary text-white py-2.5 rounded-lg font-bold text-[11px] mt-6 shadow-md">Book Slot</button>
               </div>
             </div>
           </div>

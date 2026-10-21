@@ -2,8 +2,17 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Search, Filter, Download, ArrowRightLeft, CheckCircle2, Clock, XCircle, Undo2 } from "lucide-react"
+import { useState } from "react"
+import api from "../../services/api"
+import { useApi, downloadCsv } from "../lib/useApi"
 
 export function Transactions() {
+  const { data, error } = useApi(() => api.getPayments())
+  const [search, setSearch] = useState("")
+  const notice = ""
+  const all = (data as any)?.payments || []
+  const txns = all.filter((t: any) => !search || `${t.txnId} ${t.patient} ${t.provider} ${t.type}`.toLowerCase().includes(search.toLowerCase()))
+  const exportCsv = () => downloadCsv("carevaa-transactions.csv", [["Transaction ID", "Type", "Patient", "Provider", "Amount", "Method", "Date", "Status"], ...txns.map((t: any) => [t.txnId, t.type, t.patient, t.provider, t.amount, t.method, t.date, t.status])])
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -15,17 +24,17 @@ export function Transactions() {
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" /> Download CSV
           </Button>
-          <Button variant="outline">Export</Button>
+          <Button variant="outline" onClick={exportCsv}>Export</Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
-          { label: "Total Transactions", value: "12,482", icon: ArrowRightLeft, color: "text-brand-600", bg: "bg-brand-50" },
-          { label: "Successful", value: "11,204", icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
-          { label: "Pending", value: "842", icon: Clock, color: "text-warning", bg: "bg-amber-50" },
-          { label: "Failed", value: "312", icon: XCircle, color: "text-error", bg: "bg-red-50" },
-          { label: "Refunded", value: "124", icon: Undo2, color: "text-charcoal", bg: "bg-slate-100" }
+          { label: "Total Transactions", value: String(all.length), icon: ArrowRightLeft, color: "text-brand-600", bg: "bg-brand-50" },
+          { label: "Successful", value: String(all.filter((t: any) => t.status === "Success").length), icon: CheckCircle2, color: "text-success", bg: "bg-green-50" },
+          { label: "Pending", value: String(all.filter((t: any) => t.status === "Pending").length), icon: Clock, color: "text-warning", bg: "bg-amber-50" },
+          { label: "Failed", value: String(all.filter((t: any) => t.status === "Failed").length), icon: XCircle, color: "text-error", bg: "bg-red-50" },
+          { label: "Refunded", value: String(all.filter((t: any) => t.type === "Refund").length), icon: Undo2, color: "text-charcoal", bg: "bg-slate-100" }
         ].map(stat => (
           <div key={stat.label} className="bg-surface border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
@@ -42,7 +51,9 @@ export function Transactions() {
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted" />
-          <input 
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)} 
             type="text" 
             placeholder="Search transaction ID..." 
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -55,6 +66,8 @@ export function Transactions() {
         </div>
       </div>
 
+      {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
+      {notice && <p className="text-sm font-medium text-green-700 bg-green-50 border border-green-100 rounded-lg px-4 py-3">{notice}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -69,30 +82,23 @@ export function Transactions() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell className="text-brand-600 font-medium">TXN-98273</TableCell>
-            <TableCell className="font-medium">Arun Kumar</TableCell>
-            <TableCell>Dr. Priya Kumar</TableCell>
-            <TableCell className="font-semibold text-charcoal">₹499</TableCell>
-            <TableCell>UPI</TableCell>
-            <TableCell>21 Sep 2026</TableCell>
-            <TableCell><Badge variant="success">Successful</Badge></TableCell>
+          {txns.length === 0 && (
+            <TableRow><TableCell colSpan={8} className="text-center text-muted py-8">No transactions yet.</TableCell></TableRow>
+          )}
+          {txns.map((t: any) => (
+          <TableRow key={t.id}>
+            <TableCell className="text-brand-600 font-medium">{t.txnId}</TableCell>
+            <TableCell className="font-medium">{t.patient || "-"}</TableCell>
+            <TableCell>{t.provider}</TableCell>
+            <TableCell className="font-semibold text-charcoal">{t.type === "Payment" ? t.amountLabel : `-${t.amountLabel}`}</TableCell>
+            <TableCell>{t.method}</TableCell>
+            <TableCell>{t.date}</TableCell>
+            <TableCell>{t.type === "Payment" ? (t.status === "Success" ? <Badge variant="success">Successful</Badge> : t.status === "Pending" ? <Badge variant="warning">Pending</Badge> : t.status === "Refunded" ? <Badge variant="default">Refunded</Badge> : <Badge variant="error">Failed</Badge>) : <Badge variant="info">{t.type}</Badge>}</TableCell>
             <TableCell className="text-right">
-              <Button variant="ghost" size="sm" className="h-8 text-brand-600">View</Button>
+              <span className="text-xs text-muted">{t.appointmentCode || t.note || ""}</span>
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell className="text-brand-600 font-medium">TXN-98274</TableCell>
-            <TableCell className="font-medium">Sneha Patel</TableCell>
-            <TableCell>Dr. Rahul Sharma</TableCell>
-            <TableCell className="font-semibold text-charcoal">₹800</TableCell>
-            <TableCell>Card</TableCell>
-            <TableCell>21 Sep 2026</TableCell>
-            <TableCell><Badge variant="warning">Pending</Badge></TableCell>
-            <TableCell className="text-right">
-              <Button variant="ghost" size="sm" className="h-8 text-brand-600">View</Button>
-            </TableCell>
-          </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
