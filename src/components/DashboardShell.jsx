@@ -39,7 +39,7 @@ export default function DashboardShell({ roleLabel, nav, active, onSelect, onLog
               <button
                 key={item.key}
                 type="button"
-                onClick={() => onSelect(item.key)}
+                onClick={() => { onSelect(item.key); setOpen(false); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium transition-colors ${isActive ? 'bg-white/[0.12] text-white' : 'text-white/65 hover:bg-white/[0.06] hover:text-white'}`}
               >

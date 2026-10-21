@@ -59,14 +59,14 @@ export default function BHS() {
     <div className="theme-portea font-sans text-primary bg-cream min-h-screen relative overflow-x-clip selection:bg-primary selection:text-white">
       <SiteHeader />
       {/* 2. Hero Section */}
-      <section className="pt-32 pb-20 lg:pt-44 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 bg-gradient-to-br from-white to-tint overflow-hidden">
+      <section className="pt-28 pb-14 sm:pt-32 sm:pb-20 lg:pt-44 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 bg-gradient-to-br from-white to-tint overflow-hidden">
         <div className="lg:w-[55%] flex flex-col items-start z-10">
           <div className="bg-accent/5 text-accent px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 mb-6 border border-accent/20">
             🏠 Certified BHSs at Your Doorstep
           </div>
           <div className="text-sm text-gray-500 mb-4 font-medium flex items-center gap-2">
             <Link to="/" className="hover:text-primary">Home</Link> <ChevronRight className="w-3 h-3" /> 
-            <span className="hover:text-primary cursor-pointer">Services</span> <ChevronRight className="w-3 h-3" />
+            <Link to="/services" className="hover:text-primary">Services</Link> <ChevronRight className="w-3 h-3" />
             <span className="text-primary">BHS</span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-bold leading-[1.1] mb-6 font-poppins text-primary">
@@ -76,10 +76,10 @@ export default function BHS() {
             Recover from pain, injury, or surgery with certified health professionals who visit you at home. Personalized care, zero travel, faster healing.
           </p>
           
-          <div className="flex flex-wrap gap-4 mb-10 items-center text-sm font-medium text-primary">
-            <span className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm"><span className="text-green-500">✅</span> {liveStats ? plural(liveStats.providers, 'Certified BHS Professional', 'Certified BHS Professionals') : '...'}</span>
+          <div className="flex flex-wrap gap-2.5 sm:gap-4 mb-8 sm:mb-10 items-center text-sm font-medium text-primary">
+            {liveStats?.providers > 0 && <span className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm"><span className="text-green-500">✅</span> {plural(liveStats.providers, 'Certified BHS Professional', 'Certified BHS Professionals')}</span>}
             <span className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm"><span className="text-yellow-400">⭐</span> {liveStats?.rating ? `${liveStats.rating} Rated` : 'New'}</span>
-            <span className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm">🏥 {liveStats ? `${liveStats.visits.toLocaleString('en-IN')} ${liveStats.visits === 1 ? 'Visit' : 'Visits'} Completed` : '...'}</span>
+            {liveStats?.visits > 0 && <span className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm">🏥 {`${liveStats.visits.toLocaleString('en-IN')} ${liveStats.visits === 1 ? 'Visit' : 'Visits'} Completed`}</span>}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full sm:w-auto">
@@ -99,7 +99,7 @@ export default function BHS() {
             <img 
               src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=1200&auto=format&fit=crop" 
               alt="health professional treating patient at home" 
-              className="w-full h-[550px] object-cover"
+              className="w-full h-[320px] sm:h-[450px] lg:h-[550px] object-cover"
             />
           </div>
 
@@ -139,9 +139,9 @@ export default function BHS() {
       </section>
 
       {/* 4. About BHS */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white">
-        <div className="flex flex-col md:flex-row items-center gap-16">
-          <div className="md:w-[60%]">
+      <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white">
+        <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+          <div className="w-full md:w-[60%]">
             <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary mb-6 leading-tight">
               BHS That Comes to You
             </h2>
@@ -161,22 +161,22 @@ export default function BHS() {
             </ul>
           </div>
           
-          <div className="md:w-[40%] relative">
+          <div className="w-full md:w-[40%] relative">
             <div className="absolute inset-0 bg-tint rounded-[40px] transform rotate-3 scale-105 -z-10"></div>
             <img 
-              src="/BHS-section.png" 
+              src="/caretaker-section.jpg" 
               alt="BHS session" 
-              className="rounded-[32px] shadow-2xl object-cover w-full h-[450px]"
+              className="rounded-[32px] shadow-2xl object-cover w-full h-[280px] sm:h-[400px] md:h-[450px]"
             />
           </div>
         </div>
       </section>
 
       {/* 5. Conditions We Treat */}
-      <section className="py-24 bg-tint">
+      <section className="py-14 sm:py-24 bg-tint">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary mb-4">Conditions Our health professionals Treat</h2>
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary mb-4">Conditions Our Health professionals Treat</h2>
             <p className="text-lg text-ink-soft">Certified expertise across musculoskeletal, neurological, and post-surgical care</p>
           </div>
           
@@ -201,9 +201,9 @@ export default function BHS() {
 
 
       {/* 8. Pricing Section */}
-      <section className="py-24 bg-tint relative border-t border-[#e2e8f0]">
+      <section className="py-14 sm:py-24 bg-tint relative border-t border-[#e2e8f0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary mb-4">Simple, Transparent Pricing</h2>
             <p className="text-lg text-ink-soft">No hidden fees. Save more with packages.</p>
           </div>
@@ -213,8 +213,7 @@ export default function BHS() {
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
               <h3 className="text-xl font-bold text-primary mb-2">Single Session</h3>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold text-primary">{inr(prices?.single)}</span>
-                <span className="text-ink-soft">/ session</span>
+                {prices ? <><span className="text-4xl font-bold text-primary">{inr(prices.single)}</span><span className="text-ink-soft">/ session</span></> : <span className="text-2xl font-bold text-primary">Price on request</span>}
               </div>
               <p className="text-sm text-ink-soft mb-8 pb-8 border-b border-gray-100">Perfect for one-time care</p>
               <ul className="space-y-4 mb-8">
@@ -234,8 +233,7 @@ export default function BHS() {
               </div>
               <h3 className="text-xl font-bold text-primary mb-2 mt-2">{prices?.packSessions || 10} Session Pack</h3>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold text-primary">{inr(prices?.pack)}</span>
-                <span className="text-ink-soft">/ {prices?.packSessions || 10} sessions</span>
+                {prices ? <><span className="text-4xl font-bold text-primary">{inr(prices.pack)}</span><span className="text-ink-soft">/ {prices?.packSessions || 10} sessions</span></> : <span className="text-2xl font-bold text-primary">Price on request</span>}
               </div>
               <p className="text-sm font-medium text-accent mb-8 pb-8 border-b border-gray-100">{prices ? `Save ${inr(prices.packSaving)} (${inr(prices.perSession)}/session)` : ''}</p>
               <ul className="space-y-4 mb-8">
@@ -253,8 +251,7 @@ export default function BHS() {
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
               <h3 className="text-xl font-bold text-primary mb-2">Monthly Care Plan</h3>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold text-primary">{inr(prices?.monthly)}</span>
-                <span className="text-ink-soft">/ month</span>
+                {prices ? <><span className="text-4xl font-bold text-primary">{inr(prices.monthly)}</span><span className="text-ink-soft">/ month</span></> : <span className="text-2xl font-bold text-primary">Price on request</span>}
               </div>
               <p className="text-sm text-ink-soft mb-8 pb-8 border-b border-gray-100">Unlimited sessions</p>
               <ul className="space-y-4 mb-8">
@@ -278,8 +275,8 @@ export default function BHS() {
       </section>
 
       {/* 15. Big CTA Banner */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-[32px] p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
+      <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-[32px] px-6 py-10 sm:p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none"></div>
           
           <div className="relative z-10">
@@ -302,8 +299,8 @@ export default function BHS() {
       <SiteFooter />
       
       {/* Floating WhatsApp Button */}
-      <a href={contact.whatsappHref || contact.phoneHref || '#'} target={contact.whatsappHref ? '_blank' : undefined} rel="noreferrer" aria-label="Contact us" className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform group">
-        <span className="absolute w-full h-full rounded-full bg-[#25D366] opacity-50 animate-ping group-hover:animate-none"></span>
+      <a href={contact.whatsappHref || contact.phoneHref || '#'} target={contact.whatsappHref ? '_blank' : undefined} rel="noreferrer" aria-label="Contact us" className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform group">
+        <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-50 animate-ping group-hover:animate-none pointer-events-none"></span>
         <MessageCircle className="w-6 h-6 relative z-10" />
       </a>
       

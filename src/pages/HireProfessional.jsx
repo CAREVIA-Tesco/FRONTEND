@@ -142,12 +142,12 @@ export default function HireProfessional() {
               Post your requirement and get matched with verified physiotherapists, nurses, care takers, and doctors — all background-checked and rated by real families.
             </p>
             
-            <div className="flex flex-wrap gap-4 text-sm font-semibold text-primary mb-10 bg-white/50 px-6 py-3 rounded-full border border-white/50 backdrop-blur-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary mb-8 sm:mb-10 bg-white/50 px-5 py-3 rounded-2xl sm:rounded-full border border-white/50 backdrop-blur-sm">
               <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-accent"/> {initialPros.length} Verified Pros</span>
               <span className="text-gray-300">|</span>
               <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500"/> {platform?.rating ? `${platform.rating} Rated` : 'New'}</span>
-              <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-1"><Users className="w-4 h-4 text-primary"/> {platform ? `${platform.patientsServed.toLocaleString('en-IN')} Families` : '...'}</span>
+              {platform?.patientsServed > 0 && <><span className="text-gray-300">|</span>
+              <span className="flex items-center gap-1"><Users className="w-4 h-4 text-primary"/> {`${platform.patientsServed.toLocaleString('en-IN')} Families`}</span></>}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -159,28 +159,28 @@ export default function HireProfessional() {
               </button>
             </div>
             
-            <div className="flex gap-4 mt-6 text-sm text-ink-soft font-medium">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-6 text-sm text-ink-soft font-medium">
               <span className="flex items-center gap-1"><Clock className="w-4 h-4 text-primary"/> Pro at your home in 4 hrs</span>
               <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-accent"/> Fully insured</span>
             </div>
           </div>
 
           {/* Right Hero Image */}
-          <div className="lg:w-[45%] relative w-full max-w-lg mx-auto">
+          <div className="lg:w-[45%] relative w-full max-w-lg mx-auto mt-6 lg:mt-0 px-3 sm:px-0">
             <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white">
-              <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=1000&fit=crop" alt="Nurse and Family" className="w-full h-[500px] object-cover" />
+              <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=1000&fit=crop" alt="Nurse caring for a family member at home" className="w-full h-[320px] sm:h-[440px] lg:h-[500px] object-cover" />
             </div>
             
             {/* Floating Cards */}
-            <div className="absolute -top-6 -right-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce-slow border border-gray-100">
+            <div className="absolute -top-5 right-0 sm:-top-6 sm:-right-6 bg-white p-3 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce-slow border border-gray-100">
               <div className="bg-yellow-100 p-2 rounded-full"><Star className="w-6 h-6 text-yellow-500 fill-current" /></div>
               <div>
                 <div className="font-bold text-primary">{platform?.rating ? `${platform.rating} / 5 Rating` : 'New on Carevaa'}</div>
-                <div className="text-xs text-gray-500">{platform ? `${platform.patientsServed.toLocaleString('en-IN')} ${platform.patientsServed === 1 ? 'family trusts' : 'families trust'} us` : '...'}</div>
+                <div className="text-xs text-gray-500">{platform?.patientsServed ? `${platform.patientsServed.toLocaleString('en-IN')} ${platform.patientsServed === 1 ? 'family trusts' : 'families trust'} us` : 'Verified professionals'}</div>
               </div>
             </div>
             
-            <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-pulse-slow border border-gray-100">
+            <div className="absolute -bottom-5 left-0 sm:-bottom-6 sm:-left-6 bg-white p-3 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3 animate-pulse-slow border border-gray-100">
               <div className="bg-accent/10 p-2 rounded-full"><CheckCircle className="w-6 h-6 text-accent" /></div>
               <div>
                 <div className="font-bold text-primary">Verified Professional</div>
@@ -284,8 +284,8 @@ export default function HireProfessional() {
             <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Verified Pros</div>
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? platform.patientsServed.toLocaleString('en-IN') : '...'}</div>
-            <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Families Served</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? (platform.patientsServed ? platform.patientsServed.toLocaleString('en-IN') : '24/7') : '...'}</div>
+            <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">{platform?.patientsServed ? 'Families Served' : 'Online Booking'}</div>
           </div>
           <div className="flex flex-col items-center">
             <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{platform ? platform.cities : '...'}</div>
@@ -299,7 +299,7 @@ export default function HireProfessional() {
       </section>
 
       {/* 5. Who You Can Hire */}
-      <section className="py-24 bg-white px-4 sm:px-6 lg:px-8">
+      <section className="py-14 sm:py-24 bg-white px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary mb-4">Hire the Right Professional for Your Family</h2>
@@ -318,8 +318,8 @@ export default function HireProfessional() {
                 <h3 className="text-xl font-bold text-primary mb-3">{s.t}</h3>
                 <p className="text-gray-600 mb-6 flex-grow">{s.d}</p>
                 <div className="space-y-2 mb-8">
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-800"><Check className="w-4 h-4 text-green-500"/> {s.minFee ? `Starting ₹${s.minFee.toLocaleString('en-IN')}/${s.unit}` : 'Coming soon'}</div>
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Users className="w-4 h-4 text-gray-400"/> {s.count} verified {s.count === 1 ? 'professional' : 'professionals'} available</div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-800"><Check className="w-4 h-4 text-green-500"/> {s.minFee ? `Starting ₹${s.minFee.toLocaleString('en-IN')}/${s.unit}` : 'Price shared on request'}</div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-500"><Users className="w-4 h-4 text-gray-400"/> {s.count ? `${s.count} verified ${s.count === 1 ? 'professional' : 'professionals'} available` : 'Arranged by our care team'}</div>
                 </div>
                 <button onClick={() => { setFilterRole(s.role); document.getElementById('browse-professionals')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-accent font-bold flex items-center gap-2 group-hover:gap-3 transition-all mt-auto">
                   Hire a {s.t.split(' ')[0]} <ChevronRight className="w-4 h-4"/>
@@ -331,7 +331,7 @@ export default function HireProfessional() {
       </section>
 
       {/* 6. Browse Available Professionals */}
-      <section id="browse-professionals" className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
+      <section id="browse-professionals" className="py-14 sm:py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary mb-4">👥 Browse Available Professionals Near You</h2>
@@ -397,15 +397,15 @@ export default function HireProfessional() {
       </section>
 
       {/* 7. How Hiring Works */}
-      <section className="py-24 bg-white px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="py-14 sm:py-24 bg-white px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-16">Hire in 4 Simple Steps</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-10 md:mb-16">Hire in 4 Simple Steps</h2>
           
           <div className="relative">
             {/* Dashed connector line */}
             <div className="hidden md:block absolute top-10 left-10 right-10 h-0.5 border-t-2 border-dashed border-accent/30 z-0"></div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-10 relative z-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-10 relative z-10">
               {[
                 { s: "1", i: "📋", t: "Post Requirement", d: "Tell us the care you need" },
                 { s: "2", i: "👥", t: "Get Matched", d: "We send 3+ verified profiles in 30 mins" },
@@ -417,8 +417,8 @@ export default function HireProfessional() {
                     {step.i}
                     <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">{step.s}</div>
                   </div>
-                  <h3 className="text-xl font-bold text-primary mb-2">{step.t}</h3>
-                  <p className="text-gray-600 font-medium">{step.d}</p>
+                  <h3 className="text-base sm:text-xl font-bold text-primary mb-2">{step.t}</h3>
+                  <p className="text-sm sm:text-base text-gray-600 font-medium">{step.d}</p>
                 </div>
               ))}
             </div>
@@ -427,9 +427,9 @@ export default function HireProfessional() {
       </section>
 
       {/* 8. Why Families Trust Carevaa */}
-      <section className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
+      <section className="py-14 sm:py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-16">Why Families Trust Carevaa</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-10 md:mb-16">Why Families Trust Carevaa</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
@@ -451,7 +451,7 @@ export default function HireProfessional() {
       </section>
 
       {/* 10. Pricing Overview */}
-      <section className="py-24 bg-tint px-4 sm:px-6 lg:px-8">
+      <section className="py-14 sm:py-24 bg-tint px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-12">Transparent Hiring Costs</h2>
           
@@ -496,7 +496,7 @@ export default function HireProfessional() {
             </div>
           </div>
           
-          <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm font-bold text-gray-600 bg-white/50 backdrop-blur-md px-6 py-4 rounded-full border border-blue-100 w-max mx-auto shadow-sm">
+          <div className="mt-8 flex flex-wrap justify-center gap-8 text-sm font-bold text-gray-600 bg-white/50 backdrop-blur-md px-6 py-4 rounded-2xl sm:rounded-full border border-blue-100 w-full sm:w-max mx-auto shadow-sm gap-y-3">
             <span className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">💳</div> EMI available on monthly plans</span>
             <span className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600">🛡️</div> Insurance claims supported</span>
           </div>
@@ -504,7 +504,7 @@ export default function HireProfessional() {
       </section>
 
       {/* 11. FAQ */}
-      <section className="py-24 bg-white px-4 sm:px-6 lg:px-8">
+      <section className="py-14 sm:py-24 bg-white px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold font-poppins text-primary text-center mb-12">Frequently Asked Questions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
@@ -535,7 +535,7 @@ export default function HireProfessional() {
       </section>
 
       {/* 12. Big CTA Banner */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-5xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-[2.5rem] p-12 md:p-20 text-center text-white shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
           
@@ -562,6 +562,7 @@ export default function HireProfessional() {
       </div>
 
       <SiteFooter />
+      <div className="md:hidden h-[88px] bg-primary" aria-hidden="true" />
 
       <EnquiryModal open={!!enquiry} onClose={() => setEnquiry(null)} type={enquiry?.type} service={enquiry?.service} message={enquiry?.message} />
       <BookingModal isOpen={!!bookingService} onClose={() => setBookingService(null)} serviceType={bookingService} />

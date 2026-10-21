@@ -12,9 +12,12 @@ const SECTIONS: Section[] = [
   { key: "theme", title: "Theme colours", desc: "Colour palette of the whole site: public website, login, patient and doctor dashboards, and this admin console.", single: true, preview: "/", fields: [
     { name: "palette", label: "Palette", type: "select", options: [["plum", "Plum & Rose"], ["navy", "Navy & Coral"], ["teal", "Teal & Orange"], ["blue", "Medical Blue & Green"]] },
   ] },
-  { key: "contact", title: "Contact details", desc: "Phone, email and address shown in the header, footer, Contact Us page and call buttons.", single: true, preview: "/contact", fields: [
+  { key: "contact", title: "Contact details", desc: "Phone, email, address and social media links shown in the header, footer, Contact Us page and call buttons. Leave a social link empty to hide its icon.", single: true, preview: "/contact", fields: [
     { name: "phone", label: "Phone number" }, { name: "email", label: "Email" }, { name: "whatsapp", label: "WhatsApp number (optional)", placeholder: "e.g. 919876543210" },
     { name: "hours", label: "Working hours" }, { name: "address", label: "Office address" }, { name: "careersEmail", label: "Careers email" }, { name: "careersPhone", label: "Careers phone" },
+    { name: "facebook", label: "Facebook page link", placeholder: "https://facebook.com/carevaa" }, { name: "instagram", label: "Instagram link", placeholder: "https://instagram.com/carevaa" },
+    { name: "twitter", label: "X (Twitter) link", placeholder: "https://x.com/carevaa" }, { name: "linkedin", label: "LinkedIn link", placeholder: "https://linkedin.com/company/carevaa" },
+    { name: "youtube", label: "YouTube link", placeholder: "https://youtube.com/@carevaa" },
   ] },
   { key: "faqs", title: "FAQs", desc: "Questions shown on the homepage.", preview: "/#faq", itemLabel: (i) => i.q, blank: { q: "", a: "" }, fields: [
     { name: "q", label: "Question" }, { name: "a", label: "Answer", type: "textarea" },

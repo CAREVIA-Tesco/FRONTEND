@@ -254,7 +254,7 @@ export default function DoctorDashboard() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-1">{greeting}, Dr. {firstName}</h1>
                 <p className="text-gray-500 font-medium">Here's what's happening with your practice today.</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-full text-xs font-bold border border-green-100 shadow-sm">
                   <CheckCircle className="w-4 h-4" /> {profile?.status === 'ACTIVE' ? 'Verified Profile' : 'Verification Pending'}
                 </span>
@@ -263,7 +263,7 @@ export default function DoctorDashboard() {
                 <div className="relative">
                   <button 
                     onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                    className={`flex items-center gap-2 bg-white border ${isDatePickerOpen ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200'} text-primary text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm hover:border-primary/50 transition`}
+                    className={`flex items-center gap-2 bg-white border ${isDatePickerOpen ? 'border-primary ring-2 ring-primary/20' : 'border-gray-200'} text-primary text-xs sm:text-sm font-bold py-2.5 px-3 sm:px-4 rounded-xl shadow-sm hover:border-primary/50 transition text-left`}
                   >
                     <Calendar className="w-4 h-4 text-gray-500" />
                     {rangeLabel}
@@ -271,15 +271,15 @@ export default function DoctorDashboard() {
                   </button>
 
                   {isDatePickerOpen && (
-                    <div className="absolute right-0 top-full mt-2 bg-white rounded-[24px] shadow-2xl border border-gray-100 flex overflow-hidden z-50 w-[550px] animate-[fade-in_0.2s_ease-out]">
+                    <div className="absolute right-0 top-full mt-2 bg-white rounded-[24px] shadow-2xl border border-gray-100 flex flex-col sm:flex-row overflow-hidden z-50 w-[calc(100vw-2rem)] max-w-[550px] animate-[fade-in_0.2s_ease-out]">
                       
                       {/* Left Sidebar Presets */}
-                      <div className="w-1/3 bg-gray-50/50 border-r border-gray-100 p-3 flex flex-col gap-1">
+                      <div className="sm:w-1/3 bg-gray-50/50 border-b sm:border-b-0 sm:border-r border-gray-100 p-3 grid grid-cols-3 sm:flex sm:flex-col gap-1">
                         {['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Month', 'Custom'].map(preset => (
                           <button 
                             key={preset}
                             onClick={() => { if (preset === 'Custom' && !customDate) setCustomDate(startOfDay(now)); setSelectedRange(preset); setIsDatePickerOpen(false); }}
-                            className={`text-left px-4 py-2.5 rounded-xl text-sm font-bold transition ${selectedRange === preset ? 'bg-primary/10 text-primary border border-primary/20' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent'}`}
+                            className={`text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition ${selectedRange === preset ? 'bg-primary/10 text-primary border border-primary/20' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent'}`}
                           >
                             {preset}
                           </button>
@@ -287,7 +287,7 @@ export default function DoctorDashboard() {
                       </div>
 
                       {/* Right Calendar Area */}
-                      <div className="w-2/3 p-6 bg-white">
+                      <div className="sm:w-2/3 p-4 sm:p-6 bg-white">
                         <div className="flex items-center justify-between mb-6">
                           <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-600 transition">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -530,47 +530,47 @@ export default function DoctorDashboard() {
                 </div>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:border-blue-200 transition">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                  <div className="bg-white p-4 sm:p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between gap-3 min-h-[8rem] sm:h-36 relative overflow-hidden group hover:border-blue-200 transition">
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-bold text-gray-400">Total Appointments</span>
                       <Calendar className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="text-4xl font-bold text-gray-900 mb-1">{doctorStats.thisMonth}</h3>
+                      <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{doctorStats.thisMonth}</h3>
                       <p className="text-xs font-medium text-gray-400">Scheduled this month</p>
                     </div>
                   </div>
                   
-                  <div className="bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:border-purple-200 transition">
+                  <div className="bg-white p-4 sm:p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between gap-3 min-h-[8rem] sm:h-36 relative overflow-hidden group hover:border-purple-200 transition">
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-bold text-gray-400">Total Visit Planned</span>
                       <MapPin className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-4xl font-bold text-gray-900 mb-1">{doctorStats.planned}</h3>
+                      <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{doctorStats.planned}</h3>
                       <p className="text-xs font-medium text-gray-400">Planned site visits</p>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:border-green-200 transition">
+                  <div className="bg-white p-4 sm:p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between gap-3 min-h-[8rem] sm:h-36 relative overflow-hidden group hover:border-green-200 transition">
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-bold text-gray-400">Completed Appointments</span>
                       <CheckCircle className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <h3 className="text-4xl font-bold text-gray-900 mb-1">{doctorStats.completed}</h3>
+                      <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{doctorStats.completed}</h3>
                       <p className="text-xs font-medium text-gray-400">+{doctorStats.completedToday} Completed Today</p>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between h-36 relative overflow-hidden group hover:border-orange-200 transition">
+                  <div className="bg-white p-4 sm:p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col justify-between gap-3 min-h-[8rem] sm:h-36 relative overflow-hidden group hover:border-orange-200 transition">
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-bold text-gray-400">Total Visit Completed</span>
                       <CalendarCheck className="w-5 h-5 text-orange-400" />
                     </div>
                     <div>
-                      <h3 className="text-4xl font-bold text-gray-900 mb-1">{doctorStats.completedWeek}</h3>
+                      <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-1">{doctorStats.completedWeek}</h3>
                       <p className="text-xs font-medium text-gray-400">Done this week</p>
                     </div>
                   </div>
@@ -611,8 +611,8 @@ export default function DoctorDashboard() {
                     <>
                       {upcomingAppointments.length === 0 && <p className="text-sm text-gray-500 font-medium bg-white p-6 rounded-[20px] border border-gray-100">No upcoming appointments.</p>}
                       {upcomingAppointments.map((apt) => (
-                        <div key={apt.id} className="bg-white p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-6 hover:shadow-md transition">
-                          <div className="min-w-[150px] border-r border-gray-100 pr-6">
+                        <div key={apt.id} className="bg-white p-5 sm:p-6 rounded-[20px] border border-gray-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6 hover:shadow-md transition">
+                          <div className="w-full md:w-auto md:min-w-[150px] md:border-r border-gray-100 md:pr-6 flex md:block items-center justify-between">
                             <h4 className="font-bold text-primary mb-1">{apt.date}</h4>
                             <p className="text-xs font-bold text-gray-500 uppercase">{apt.time}</p>
                           </div>
@@ -630,7 +630,7 @@ export default function DoctorDashboard() {
                             </div>
                           </div>
                           
-                          <div className="flex flex-col gap-2 min-w-[160px]">
+                          <div className="flex flex-col gap-2 w-full md:w-auto md:min-w-[160px]">
                             {apt.status === 'Waiting' && (
                               <div className="grid grid-cols-2 gap-2">
                                 <button type="button" onClick={() => respondToBooking(apt, 'Confirmed')} className="py-2.5 bg-secondary hover:brightness-95 text-white text-sm font-bold rounded-xl shadow-sm transition">Confirm</button>
@@ -659,8 +659,8 @@ export default function DoctorDashboard() {
                     <>
                       {pastAppointments.length === 0 && <p className="text-sm text-gray-500 font-medium bg-white p-6 rounded-[20px] border border-gray-100">No past appointments yet.</p>}
                       {pastAppointments.map((apt) => (
-                      <div key={apt.id} className="bg-gray-50 p-6 rounded-[20px] border border-gray-200 flex flex-col md:flex-row items-center gap-6 flex-wrap">
-                        <div className="min-w-[150px] border-r border-gray-200 pr-6 opacity-70">
+                      <div key={apt.id} className="bg-gray-50 p-5 sm:p-6 rounded-[20px] border border-gray-200 flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-6 flex-wrap">
+                        <div className="w-full md:w-auto md:min-w-[150px] md:border-r border-gray-200 md:pr-6 opacity-70 flex md:block items-center justify-between">
                           <h4 className="font-bold text-primary mb-1">{apt.date}</h4>
                           <p className="text-xs font-bold text-gray-500 uppercase">{apt.time}</p>
                         </div>
@@ -682,7 +682,7 @@ export default function DoctorDashboard() {
                         </div>
                         
                         {apt.status === 'Completed' && (
-                        <div className="flex flex-col gap-2 min-w-[160px]">
+                        <div className="flex flex-col gap-2 w-full md:w-auto md:min-w-[160px]">
                           <button onClick={() => setExpandedPastId(expandedPastId === apt.id ? null : apt.id)} className="w-full py-2.5 bg-white border border-gray-300 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-100 transition">{expandedPastId === apt.id ? 'Hide Summary' : 'View Summary'}</button>
                         </div>
                         )}

@@ -30,11 +30,11 @@ export function LabCentres() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Lab Centres</h1>
           <p className="text-muted mt-1">Diagnostic labs and sample-collection centres. Active ones appear on the Lab Tests page of the website.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <a href="/services/lab-tests" target="_blank" rel="noreferrer"><Button variant="outline"><ExternalLink className="mr-2 h-4 w-4" /> View on website</Button></a>
           <Button onClick={() => navigate("/admin/providers/new?profession=Lab%20Centre")}>
             <Plus className="mr-2 h-4 w-4" /> Add Lab Centre

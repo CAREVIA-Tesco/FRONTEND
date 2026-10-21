@@ -23,7 +23,7 @@ export default function VisitSummary() {
         if (appointment.providerId) api.getProvider(appointment.providerId).then((d) => setDoc(d.provider)).catch(() => {});
       })
       .catch((e) => setError(e.message));
-    return () => { document.title = 'Carevaa – Healthcare at home'; };
+    return () => { document.title = 'Carevaa | Doctors, Nurses & Home Care Services'; };
   }, [id, navigate]);
 
   const back = () => (window.history.length > 1 ? navigate(-1) : navigate('/'));

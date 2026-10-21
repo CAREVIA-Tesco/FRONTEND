@@ -78,10 +78,10 @@ export default function CityCare() {
           <h2 className="font-poppins font-semibold text-2xl md:text-3xl text-primary mb-6">{service ? `Other services in ${city}` : `Services available in ${city}`}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {servicesHere.filter((s) => s.key !== service?.key).map((s) => (
-              <Link key={s.key} to={`/cities/${citySlug(city)}/${s.key}`} className="group bg-cream rounded-xl p-4 flex items-center gap-3 hover:bg-mint transition-colors">
-                <span className="w-11 h-11 rounded-lg overflow-hidden bg-mint shrink-0"><img src={s.img} alt="" className="w-full h-full object-cover" /></span>
+              <Link key={s.key} to={`/cities/${citySlug(city)}/${s.key}`} className="group bg-cream rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 hover:bg-mint transition-colors min-w-0">
+                <span className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg overflow-hidden bg-mint shrink-0"><img src={s.img} alt="" className="w-full h-full object-cover" /></span>
                 <span className="min-w-0">
-                  <span className="block font-bold text-primary text-sm group-hover:text-accent">{s.title}</span>
+                  <span className="block font-bold text-primary text-[13px] sm:text-sm leading-tight break-words group-hover:text-accent">{s.title}</span>
                   <span className="block text-xs text-gray-500">{s.count ? `${s.count} ${s.count === 1 ? 'professional' : 'professionals'}` : 'On request'}</span>
                 </span>
               </Link>

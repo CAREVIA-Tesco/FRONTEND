@@ -34,31 +34,31 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-accent mb-2">{platform ? platform.patientsServed.toLocaleString('en-IN') : '...'}</div>
-              <div className="text-sm text-gray-600 font-semibold uppercase tracking-wider">Families Served</div>
+              <div className="text-4xl font-bold text-accent mb-2">{platform ? (platform.patientsServed ? platform.patientsServed.toLocaleString('en-IN') : '100%') : '...'}</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-semibold uppercase tracking-wider">{platform?.patientsServed ? 'Families Served' : 'Verified Experts'}</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-accent mb-2">{platform ? platform.providers.toLocaleString('en-IN') : '...'}</div>
-              <div className="text-sm text-gray-600 font-semibold uppercase tracking-wider">Certified Experts</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-semibold uppercase tracking-wider">Certified Experts</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-accent mb-2">24/7</div>
-              <div className="text-sm text-gray-600 font-semibold uppercase tracking-wider">Support Available</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-semibold uppercase tracking-wider">Support Available</div>
             </div>
             <div>
               <div className="text-4xl font-bold text-accent mb-2">{platform ? (platform.rating ? `${platform.rating}/5` : 'New') : '...'}</div>
-              <div className="text-sm text-gray-600 font-semibold uppercase tracking-wider">Average Rating</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-semibold uppercase tracking-wider">Average Rating</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Mission & Values */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-16 items-center">
+      <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
           <div className="lg:w-1/2 relative">
             <div className="absolute inset-0 bg-blue-100 rounded-[2rem] transform -rotate-3 scale-105 -z-10"></div>
-            <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=600&fit=crop" alt="Carevaa Team" className="rounded-[2rem] shadow-2xl object-cover w-full h-[500px]" />
+            <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&h=600&fit=crop" alt="Carevaa Team" className="rounded-[2rem] shadow-2xl object-cover w-full h-[280px] sm:h-[420px] lg:h-[500px]" />
           </div>
           
           <div className="lg:w-1/2">

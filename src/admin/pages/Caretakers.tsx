@@ -30,11 +30,11 @@ export function Caretakers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Caretakers & Nurses</h1>
           <p className="text-muted mt-1">Home care professionals. Active ones appear on the Care Taker and Nurse Care pages of the website.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <a href="/care-taker" target="_blank" rel="noreferrer"><Button variant="outline"><ExternalLink className="mr-2 h-4 w-4" /> View on website</Button></a>
           <Button onClick={() => navigate("/admin/providers/new?profession=Caretaker")}>
             <Plus className="mr-2 h-4 w-4" /> Add Caretaker

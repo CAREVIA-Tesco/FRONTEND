@@ -44,11 +44,11 @@ export function Specializations() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Specializations</h1>
           <p className="text-muted mt-1">Manage healthcare specializations available on Carevaa.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={openAdd}>
             <Plus className="mr-2 h-4 w-4" /> Add Specialization
           </Button>

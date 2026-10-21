@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PhoneCall, Mail, Clock, MapPin, Briefcase, ArrowUpRight } from 'lucide-react';
 import { useServices } from '../data/services';
 import { useContact, useSiteContent } from '../services/useSiteContent';
+import SocialLinks from './SocialLinks';
 
 // Shared footer for the public website (multi-column + legal strip).
 export default function SiteFooter() {
@@ -36,6 +37,12 @@ export default function SiteFooter() {
             <Link to="/partner" className="inline-flex items-center gap-2 text-sm font-semibold text-white border border-white/20 rounded-full px-5 py-2.5 hover:bg-white hover:text-primary transition-colors">
               Partner with us <ArrowUpRight className="w-4 h-4" />
             </Link>
+            {contact.social.length > 0 && (
+              <div className="mt-7" data-testid="footer-social">
+                <h4 className="text-white font-semibold mb-3 text-sm">Follow us</h4>
+                <SocialLinks links={contact.social} />
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2">

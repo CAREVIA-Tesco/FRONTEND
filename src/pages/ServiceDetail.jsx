@@ -19,7 +19,7 @@ export default function ServiceDetail() {
   const service = services.find((s) => s.key === key);
 
   useEffect(() => { window.scrollTo(0, 0); loadServices().finally(() => setChecked(true)); }, [key]);
-  useEffect(() => { if (service) document.title = `${service.title} at home – Carevaa`; return () => { document.title = 'Carevaa – Healthcare at home'; }; }, [service]);
+  useEffect(() => { if (service) document.title = `${service.title} at home – Carevaa`; return () => { document.title = 'Carevaa | Doctors, Nurses & Home Care Services'; }; }, [service]);
 
   if (service && !service.custom && service.link !== `/services/${key}`) return <Navigate to={service.link} replace />;
 

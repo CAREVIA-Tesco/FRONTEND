@@ -83,11 +83,11 @@ export function Services() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-charcoal">Services</h1>
           <p className="text-muted mt-1">The services shown on the website – Home page, Our Services, Book Now and the footer menu.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <a href="/services" target="_blank" rel="noreferrer"><Button variant="outline"><ExternalLink className="mr-2 h-4 w-4" /> View on website</Button></a>
           <Button onClick={openAdd}><Plus className="mr-2 h-4 w-4" /> Add Service</Button>
         </div>

@@ -29,5 +29,10 @@ export function useContact() {
     careersEmail: c.careersEmail || '',
     careersPhone: c.careersPhone || '',
     whatsappHref: digits ? `https://wa.me/${digits}` : undefined,
+    // social media pages set in Admin → Website Content → Contact details (empty ones are hidden)
+    social: [
+      ['facebook', c.facebook], ['instagram', c.instagram], ['x', c.twitter], ['linkedin', c.linkedin], ['youtube', c.youtube],
+      ['whatsapp', digits ? `https://wa.me/${digits}` : ''],
+    ].filter(([, href]) => href && /^https?:\/\//.test(String(href).trim())).map(([key, href]) => ({ key, href: String(href).trim() })),
   };
 }

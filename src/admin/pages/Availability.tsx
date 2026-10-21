@@ -27,7 +27,7 @@ const slotCount = (schedule: any) => DAYS.reduce((t, d) => t + (schedule?.[d]?.l
 export function Availability() {
   const { data, error } = useApi(() => api.getProviders({ status: "ALL" }))
   const appts = useApi(() => api.getAppointments())
-  const [view, setView] = useState<"Day" | "Week" | "Month">("Week")
+  const [view, setView] = useState<"Day" | "Week" | "Month">(() => (typeof window !== "undefined" && window.innerWidth < 640 ? "Day" : "Week"))
   const [search, setSearch] = useState("")
   const [statusSel, setStatusSel] = useState("")
   const todayKey = DAYS[(new Date().getDay() + 6) % 7]

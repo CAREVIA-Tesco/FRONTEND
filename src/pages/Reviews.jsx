@@ -106,9 +106,9 @@ export default function Reviews() {
             <h2 className="font-poppins font-semibold text-2xl sm:text-3xl mb-1">Ready to experience it yourself?</h2>
             <p className="text-white/75">Book a verified professional or talk to a care advisor.</p>
           </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={() => bookNow()} className="bg-secondary hover:bg-secondary-hover text-white px-6 py-3 rounded-lg font-bold">Book Now</button>
-            <button type="button" onClick={() => setEnquiry(true)} className="border border-white/40 px-6 py-3 rounded-lg font-bold hover:bg-white/10">Request callback</button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button type="button" onClick={() => bookNow()} className="bg-secondary hover:bg-secondary-hover text-white px-6 py-3 rounded-lg font-bold whitespace-nowrap">Book Now</button>
+            <button type="button" onClick={() => setEnquiry(true)} className="border border-white/40 px-6 py-3 rounded-lg font-bold hover:bg-white/10 whitespace-nowrap">Request callback</button>
           </div>
         </div>
       </section>

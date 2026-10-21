@@ -61,8 +61,8 @@ export default function FindJobs() {
       <SiteHeader />
 
       {/* 1. Hero Section */}
-      <section className="min-h-[calc(100vh-80px)] flex items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-12">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
+      <section className="lg:min-h-[calc(100vh-80px)] flex items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pt-28 pb-12 lg:pt-32">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
           
           <div className="lg:w-1/2">
             <h1 className="text-4xl md:text-5xl lg:text-[56px] font-bold font-poppins text-primary leading-[1.1] mb-6">
@@ -136,7 +136,7 @@ export default function FindJobs() {
       </section>
 
       {/* 3. Apply Form Section */}
-      <section id="apply" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section id="apply" className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="bg-cream rounded-[40px] p-8 md:p-16 flex flex-col lg:flex-row gap-16 items-start">
           
           <div className="lg:w-[45%]">
