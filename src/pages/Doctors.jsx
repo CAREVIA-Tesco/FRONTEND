@@ -20,6 +20,14 @@ export default function Doctors() {
   const [location, setLocation] = useState(params.get('city') || 'All Locations');
   const [specialty, setSpecialty] = useState(params.get('spec') || 'All Specialties');
 
+  // specialities managed in Admin → Specializations (hidden ones are left out)
+  const [catalog, setCatalog] = useState([]);
+  useEffect(() => { api.getSpecializations().then((d) => setCatalog((d.specializations || []).filter((s) => s.status === 'Active'))).catch(() => {}); }, []);
+  const catalogItem = catalog.find((c) => c.name === specialty);
+  const specMatches = (doc) => (catalogItem ? [catalogItem.name, ...(catalogItem.matches || [])].includes(doc.spec) || [catalogItem.name, ...(catalogItem.matches || [])].includes(doc.specialization) : doc.spec === specialty);
+  const covered = new Set(catalog.flatMap((c) => [c.name, ...(c.matches || [])]));
+  const specOptions = [...catalog.map((c) => c.name), ...[...new Set(doctors.map((d) => d.spec).filter(Boolean))].filter((sp) => !covered.has(sp))].sort();
+
   useEffect(() => {
     api.getProviders()
       .then((data) => setDoctors(data.providers || []))
@@ -30,7 +38,7 @@ export default function Doctors() {
   const visibleDoctors = doctors.filter((doc) => {
     if (search && !`${doc.name} ${doc.spec} ${doc.clinic?.name || ''}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (location !== 'All Locations' && doc.loc !== location) return false;
-    if (specialty !== 'All Specialties' && doc.spec !== specialty) return false;
+    if (specialty !== 'All Specialties' && !specMatches(doc)) return false;
     return true;
   });
 
@@ -55,7 +63,7 @@ export default function Doctors() {
           </select>
           <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-accent/50 text-sm font-medium text-gray-600 appearance-none">
             <option>All Specialties</option>
-            {[...new Set(doctors.map((d) => d.spec).filter(Boolean))].sort().map((sp) => <option key={sp}>{sp}</option>)}
+            {[...new Set([...specOptions, ...(specialty !== 'All Specialties' ? [specialty] : [])])].map((sp) => <option key={sp}>{sp}</option>)}
           </select>
         </div>
 

@@ -2,7 +2,7 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Card, CardContent } from "../components/ui/Card"
-import { Search, Filter, Calendar, Users, UserCheck, UserX, Clock } from "lucide-react"
+import { Search, Calendar, Users, UserCheck, UserX, Clock } from "lucide-react"
 import { Fragment, useState } from "react"
 import { Link } from "react-router-dom"
 import api from "../../services/api"
@@ -29,8 +29,9 @@ export function Availability() {
   const appts = useApi(() => api.getAppointments())
   const [view, setView] = useState<"Day" | "Week" | "Month">("Week")
   const [search, setSearch] = useState("")
-  const providers = ((data as any)?.providers || []).filter((p: any) => !search || `${p.name} ${p.spec}`.toLowerCase().includes(search.toLowerCase()))
+  const [statusSel, setStatusSel] = useState("")
   const todayKey = DAYS[(new Date().getDay() + 6) % 7]
+  const providers = ((data as any)?.providers || []).filter((p: any) => (!statusSel || (statusSel === "today" ? p.status === "ACTIVE" && (p.schedule?.[todayKey] || []).length > 0 : statusSel === "none" ? !slotCount(p.schedule) : p.status === statusSel)) && (!search || `${p.name} ${p.spec} ${p.loc || ""}`.toLowerCase().includes(search.toLowerCase())))
 
   // ----- live schedule overview -----
   const activeProviders = ((data as any)?.providers || []).filter((p: any) => p.status === "ACTIVE")
@@ -92,9 +93,14 @@ export function Availability() {
             <Calendar className="h-4 w-4 text-muted" />
             <span>Today, {new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
           </div>
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Availability filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All professionals</option>
+            <option value="today">Available today</option>
+            <option value="ACTIVE">Active</option>
+            <option value="none">No schedule set</option>
+            <option value="PENDING">Pending</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
         </div>
       </div>
 

@@ -1,8 +1,12 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Download, Plus, MoreHorizontal, CalendarCheck, CalendarClock, CalendarX, CalendarDays } from "lucide-react"
-import { useState, Fragment } from "react"
+import { Search, Download, Plus, CalendarCheck, CalendarClock, CalendarX, CalendarDays } from "lucide-react"
+import { useState, useEffect, Fragment } from "react"
+import { CreateAppointmentModal } from "../components/CreateAppointmentModal"
+import { Notice } from "../components/ui/Notice"
+import { Pager } from "../components/ui/Pager"
+import { paginate, inputCls, SLOTS } from "../lib/forms"
 import api from "../../services/api"
 import { useApi, downloadCsv } from "../lib/useApi"
 
@@ -12,6 +16,11 @@ export function Appointments() {
   const [statusFilter, setStatusFilter] = useState("All")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [actionError, setActionError] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [notice, setNotice] = useState("")
+  const [page, setPage] = useState(1)
+  const [moving, setMoving] = useState<{ id: string; date: string; time: string } | null>(null)
+  useEffect(() => { setPage(1) }, [search, statusFilter])
   const error = loadError || actionError
   const all = (data as any)?.appointments || []
   const STATUS_LABEL: Record<string, string> = { Waiting: "Pending", Confirmed: "Confirmed", Completed: "Completed", Cancelled: "Cancelled" }
@@ -20,20 +29,26 @@ export function Appointments() {
     .filter((a: any) => !search || `${a.code} ${a.patient} ${a.provider} ${a.specialization}`.toLowerCase().includes(search.toLowerCase()))
     .map((a: any) => ({ ...a, id: a.code, apiId: a.id, date: a.shortDate, time: a.timeSlot, status: STATUS_LABEL[a.status] || a.status }))
   const todayStr = new Date().toDateString()
-  const cycleFilter = () => {
-    const order = ["All", "Pending", "Confirmed", "Completed", "Cancelled"]
-    setStatusFilter(order[(order.indexOf(statusFilter) + 1) % order.length])
-  }
+  const paged = paginate(appointments, page)
   const changeStatus = async (apt: any, action: string) => {
     setActionError("")
     try {
       if (action === "cancel") await api.cancelAppointment(apt.apiId)
       else if (action === "complete") await api.completeAppointment(apt.apiId, {})
       else await api.setAppointmentStatus(apt.apiId, "Confirmed")
+      setNotice(`${apt.id} ${action === "cancel" ? "cancelled" : action === "complete" ? "marked completed" : "confirmed"}`)
       reload()
     } catch (err: any) {
       setActionError(err.message)
     }
+  }
+  const reschedule = async (apt: any) => {
+    if (!moving?.date || !moving?.time) { setActionError("Choose the new date and time"); return }
+    setActionError("")
+    try {
+      await api.rescheduleAppointment(apt.apiId, new Date(`${moving.date}T12:00:00`).toISOString(), moving.time)
+      setMoving(null); setNotice(`${apt.id} moved to ${moving.date} at ${moving.time}`); reload()
+    } catch (err: any) { setActionError(err.message) }
   }
   const exportCsv = () => downloadCsv("carevaa-appointments.csv", [["Appointment ID", "Patient", "Doctor", "Specialization", "Date", "Time", "Type", "Payment", "Status"], ...appointments.map((a: any) => [a.id, a.patient, a.provider, a.specialization, a.date, a.time, a.type, a.fee, a.status])])
   return (
@@ -47,11 +62,13 @@ export function Appointments() {
           <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
-          <Button>
+          <Button onClick={() => setCreating(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create Appointment
           </Button>
         </div>
       </div>
+
+      <Notice text={notice} onClose={() => setNotice("")} />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
@@ -84,19 +101,21 @@ export function Appointments() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={cycleFilter}>
-            <Filter className="mr-2 h-4 w-4" /> {statusFilter === "All" ? "Filter" : statusFilter}
-          </Button>
+          <select aria-label="Status filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="All">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
         </div>
       </div>
 
       {error && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>}
-      <Table>
+      <div className="bg-surface rounded-2xl border border-slate-200 shadow-sm">
+      <Table className="border-0 rounded-none shadow-none">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12 text-center">
-              <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-            </TableHead>
             <TableHead>Appointment ID</TableHead>
             <TableHead>Patient</TableHead>
             <TableHead>Doctor</TableHead>
@@ -109,15 +128,12 @@ export function Appointments() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {appointments.length === 0 && (
+          {paged.rows.length === 0 && (
             <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">No appointments found.</TableCell></TableRow>
           )}
-          {appointments.map((apt: any) => (
+          {paged.rows.map((apt: any) => (
             <Fragment key={apt.id}>
             <TableRow>
-              <TableCell className="text-center">
-                <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-              </TableCell>
               <TableCell className="text-brand-600 font-medium">{apt.id}</TableCell>
               <TableCell className="font-medium">{apt.patient}</TableCell>
               <TableCell>{apt.provider}</TableCell>
@@ -136,10 +152,7 @@ export function Appointments() {
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-600" onClick={() => setExpandedId(expandedId === apt.id ? null : apt.id)}>View</Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setExpandedId(expandedId === apt.id ? null : apt.id)}>
-                    <MoreHorizontal className="h-4 w-4 text-muted" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 px-2 text-brand-600" aria-expanded={expandedId === apt.id} onClick={() => { setExpandedId(expandedId === apt.id ? null : apt.id); setMoving(null) }}>{expandedId === apt.id ? "Close" : "Manage"}</Button>
                 </div>
               </TableCell>
             </TableRow>
@@ -151,14 +164,30 @@ export function Appointments() {
                       <div><span className="font-medium text-charcoal">Phone:</span> {apt.phone} · <span className="font-medium text-charcoal">Location:</span> {apt.location} · <span className="font-medium text-charcoal">Payment:</span> {apt.paymentStatus} ({apt.paymentMethod})</div>
                       {apt.visitNotes?.prescription && <div><span className="font-medium text-charcoal">Prescription:</span> {apt.visitNotes.prescription}</div>}
                     </div>
-                    {(apt.status === "Pending" || apt.status === "Confirmed") && (
-                      <div className="flex gap-2">
-                        {apt.status === "Pending" && <Button size="sm" variant="outline" onClick={() => changeStatus(apt, "confirm")}>Confirm</Button>}
-                        <Button size="sm" variant="outline" onClick={() => changeStatus(apt, "complete")}>Mark Completed</Button>
-                        <Button size="sm" variant="danger" onClick={() => changeStatus(apt, "cancel")}>Cancel</Button>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {apt.status === "Completed" && <a href={`/visit-summary/${apt.apiId}`} target="_blank" rel="noreferrer"><Button size="sm" variant="outline">Visit summary (PDF)</Button></a>}
+                      {apt.phone && apt.phone !== "-" && <a href={`tel:${apt.phone}`}><Button size="sm" variant="outline">Call patient</Button></a>}
+                      {(apt.status === "Pending" || apt.status === "Confirmed") && (
+                        <>
+                          {apt.status === "Pending" && <Button size="sm" variant="outline" onClick={() => changeStatus(apt, "confirm")}>Confirm</Button>}
+                          <Button size="sm" variant="outline" onClick={() => setMoving(moving?.id === apt.id ? null : { id: apt.id, date: "", time: "" })}>Reschedule</Button>
+                          <Button size="sm" variant="outline" onClick={() => changeStatus(apt, "complete")}>Mark Completed</Button>
+                          <Button size="sm" variant="danger" onClick={() => changeStatus(apt, "cancel")}>Cancel</Button>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  {moving?.id === apt.id && (
+                    <div className="mt-3 flex flex-wrap items-end gap-2">
+                      <input type="date" aria-label="New date" min={new Date().toISOString().slice(0, 10)} className={`${inputCls} w-auto bg-white`} value={moving.date} onChange={(e) => setMoving({ ...moving, date: e.target.value })} />
+                      <select aria-label="New time" className={`${inputCls} w-auto bg-white`} value={moving.time} onChange={(e) => setMoving({ ...moving, time: e.target.value })}>
+                        <option value="">Time</option>
+                        {SLOTS.map((t) => <option key={t}>{t}</option>)}
+                      </select>
+                      <Button size="sm" onClick={() => reschedule(apt)}>Save new time</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setMoving(null)}>Cancel</Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -166,6 +195,10 @@ export function Appointments() {
           ))}
         </TableBody>
       </Table>
+      <Pager page={paged.current} pages={paged.pages} from={paged.from} to={paged.to} total={appointments.length} label="appointments" onPage={setPage} />
+      </div>
+
+      <CreateAppointmentModal open={creating} onClose={() => setCreating(false)} appointments={all} onCreated={(a: any) => { setCreating(false); setNotice(`Appointment ${a?.code || ""} created – the professional can now confirm it`); reload() }} />
     </div>
   )
 }

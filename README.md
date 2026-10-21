@@ -1,16 +1,24 @@
-# React + Vite
+# Carevaa Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite website for https://www.carevaa.com – public website, Book Now, patient dashboard, doctor dashboard and the admin panel (`/admin`).
 
-Currently, two official plugins are available:
+```bash
+npm install
+npm run dev      # http://localhost:5173 (API calls go to http://localhost:5000)
+npm run build    # production build in dist/ – talks to https://backend-roy6.onrender.com/api
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Path | Purpose |
+|---|---|
+| `index.html` | page shell, title, link-preview tags |
+| `src/App.jsx` | all page addresses (routes) |
+| `src/pages/` | website pages, login, dashboards, visit summary (PDF) |
+| `src/components/` | shared parts: header, footer, Book Now, booking popup, dashboard layout |
+| `src/admin/` | admin panel: `pages/`, `components/`, `lib/` |
+| `src/data/services.js` | services shown on the site (managed in Admin → Services) |
+| `src/services/api.js` | every call to the backend |
+| `src/index.css` | theme colours (palettes chosen in Admin → Website Content), fonts, animations |
+| `public/` | images and logo; `.htaccess`, `_redirects` and `../vercel.json` make deep links work on any host |
+| `.env.production` | backend address used for the live build |
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+See `../README.md` for the whole project.

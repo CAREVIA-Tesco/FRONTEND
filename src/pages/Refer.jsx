@@ -6,12 +6,13 @@ import SiteFooter from '../components/SiteFooter';
 import PageHero from '../components/PageHero';
 import api, { getSessionUser } from '../services/api';
 import { useSiteContent } from '../services/useSiteContent';
-import { SERVICES } from '../data/services';
+import { useServices } from '../data/services';
 
 const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-primary placeholder:text-gray-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition';
 
 // "Refer a friend": the friend becomes a callback lead in the admin Enquiries pipeline
 export default function Refer() {
+  const SERVICES = useServices();
   const user = getSessionUser();
   const cities = useSiteContent('cities');
   const [form, setForm] = useState({ referrerName: user?.name || '', referrerPhone: user?.phone || '', name: '', phone: '', service: '', city: '', message: '', consent: true });

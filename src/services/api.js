@@ -91,6 +91,7 @@ export const api = {
   getStats: () => request('/admin/stats'),
   getPatients: (params) => request(`/admin/patients${qs(params)}`),
   getPatient: (id) => request(`/admin/patients/${id}`),
+  createPatient: (data) => request('/admin/patients', { method: 'POST', body: data }),
   updatePatient: (id, data) => request(`/admin/patients/${id}`, { method: 'PATCH', body: data }),
   getPayments: (params) => request(`/admin/payments${qs(params)}`),
   refundPayment: (id) => request(`/admin/payments/${id}/refund`, { method: 'POST' }),
@@ -103,6 +104,9 @@ export const api = {
   updateSpecialization: (id, data) => request(`/specializations/${id}`, { method: 'PUT', body: data }),
   deleteSpecialization: (id) => request(`/specializations/${id}`, { method: 'DELETE' }),
   getServices: () => request('/services', { auth: false }),
+  createService: (data) => request('/services', { method: 'POST', body: data }),
+  updateService: (id, data) => request(`/services/${id}`, { method: 'PUT', body: data }),
+  deleteService: (id) => request(`/services/${id}`, { method: 'DELETE' }),
 
   // reviews
   getReviews: (params) => request(`/reviews${qs(params)}`, { auth: false }),

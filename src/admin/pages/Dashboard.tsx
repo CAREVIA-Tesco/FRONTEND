@@ -70,12 +70,7 @@ export function Dashboard() {
             <Link to="/admin/enquiries" className="h-10 inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/20 px-4 text-sm font-medium hover:bg-white/15 transition-colors">
               <Inbox className="h-4 w-4" /> Enquiries{stats.openEnquiries ? <span className="ml-1 rounded-full bg-secondary px-1.5 text-[11px] font-semibold">{stats.openEnquiries}</span> : null}
             </Link>
-            <select aria-label="Period" className="h-10 rounded-xl bg-white/10 ring-1 ring-white/20 border-0 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-charcoal">
-              <option>Last 30 Days</option>
-              <option>Last 7 Days</option>
-              <option>This Month</option>
-              <option>This Year</option>
-            </select>
+            <Link to="/admin/appointments" className="h-10 inline-flex items-center gap-2 rounded-xl bg-white/10 ring-1 ring-white/20 px-4 text-sm font-medium hover:bg-white/15 transition-colors">Appointments</Link>
             <button onClick={exportReport} className="h-10 inline-flex items-center gap-2 rounded-xl bg-secondary px-4 text-sm font-semibold text-white hover:brightness-95 shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition">
               <Download className="h-4 w-4" /> Export Report
             </button>

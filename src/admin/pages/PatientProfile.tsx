@@ -12,8 +12,6 @@ import { ChevronRight, Edit, Ban, CalendarDays, CheckCircle2, Clock, IndianRupee
 export function PatientProfile() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [isSummaryModalOpen, setSummaryModalOpen] = useState(false);
-  const [isDocumentModalOpen, setDocumentModalOpen] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<{name: string, date: string, type?: string} | null>(null);
   
   const tabs = ['Overview', 'Appointments', 'Consultations', 'Medical History', 'Payments', 'Documents'];
 
@@ -39,7 +37,8 @@ export function PatientProfile() {
   const upcoming = appointments.filter((a) => a.status === "Waiting" || a.status === "Confirmed");
   const totalSpent = payments.filter((t) => t.type === "Payment" && t.status === "Success").reduce((t, x) => t + x.amount, 0);
   const consultations = appointments.filter((a) => a.consultationType === "online" && a.status === "Completed");
-  const documents = completed.filter((a) => a.visitNotes?.prescription).map((a) => ({ name: `Prescription_${a.code}.pdf`, date: a.shortDate, type: "pdf" }));
+  const documents = completed.map((a) => ({ id: a.id, name: `Visit summary & prescription – ${a.code}`, date: a.shortDate, type: "pdf" }));
+  const openSummary = (apptId: string) => window.open(`/visit-summary/${apptId}`, "_blank", "noopener");
   const apptBadge = (st: string) => st === "Completed" ? <Badge variant="success">Completed</Badge> : st === "Cancelled" ? <Badge variant="error">Cancelled</Badge> : st === "Confirmed" ? <Badge variant="info">Confirmed</Badge> : <Badge variant="warning">Pending</Badge>;
 
   const toggleStatus = async () => {
@@ -67,10 +66,6 @@ export function PatientProfile() {
     } catch (e: any) { setError(e.message); }
   };
 
-  const handleViewDocument = (doc: {name: string, date: string, type?: string}) => {
-     setSelectedDocument(doc);
-     setDocumentModalOpen(true);
-  };
 
   return (
     <div className="space-y-6">
@@ -339,7 +334,7 @@ export function PatientProfile() {
               <CardContent className="p-6">
                 <h3 className="text-lg font-bold text-charcoal mb-4">Patient Documents & Reports</h3>
                 <div className="space-y-4">
-                  {documents.length === 0 && <p className="text-sm text-muted">No documents yet. Prescriptions from completed visits appear here.</p>}
+                  {documents.length === 0 && <p className="text-sm text-muted">No documents yet. The summary and prescription of each completed visit appear here.</p>}
                   {documents.map((doc, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-200 rounded-xl gap-4">
                       <div className="flex items-center gap-3">
@@ -348,20 +343,15 @@ export function PatientProfile() {
                         </div>
                         <div>
                           <p className="font-medium text-sm text-charcoal">{doc.name}</p>
-                          <span className="text-xs text-muted">Uploaded on {doc.date}</span>
+                          <span className="text-xs text-muted">Visit on {doc.date}</span>
                         </div>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 px-3 flex-1 sm:flex-none"
-                          onClick={() => handleViewDocument(doc)}
-                        >
+                        <Button variant="outline" size="sm" className="h-8 px-3 flex-1 sm:flex-none" onClick={() => openSummary(doc.id)}>
                           <Eye className="h-4 w-4 mr-2" /> View
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 px-3 flex-1 sm:flex-none">
-                          <Download className="h-4 w-4 mr-2" /> Download
+                        <Button variant="outline" size="sm" className="h-8 px-3 flex-1 sm:flex-none" onClick={() => openSummary(doc.id)}>
+                          <Download className="h-4 w-4 mr-2" /> Download PDF
                         </Button>
                       </div>
                     </div>
@@ -408,69 +398,11 @@ export function PatientProfile() {
 
             <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
                <Button variant="outline" onClick={() => setSummaryModalOpen(false)}>Close</Button>
-               <Button className="bg-brand-600 hover:bg-brand-700 text-white"><Download className="h-4 w-4 mr-2"/> Download PDF</Button>
+               <Button className="bg-brand-600 hover:bg-brand-700 text-white" disabled={!selectedConsult?.id} onClick={() => openSummary(selectedConsult.id)}><Download className="h-4 w-4 mr-2"/> Download PDF</Button>
             </div>
          </div>
       </Modal>
 
-      <Modal isOpen={isDocumentModalOpen} onClose={() => setDocumentModalOpen(false)} title="Document Viewer">
-         <div className="space-y-4">
-            {selectedDocument && (
-              <>
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-brand-600" />
-                    <span className="font-medium text-charcoal text-sm">{selectedDocument.name}</span>
-                  </div>
-                  <Badge variant="default" className="bg-slate-200 text-slate-700">{selectedDocument.date}</Badge>
-                </div>
-                
-                {selectedDocument.type === 'zip' ? (
-                   <div className="bg-slate-50 border border-slate-200 rounded-xl h-64 flex flex-col items-center justify-center text-center p-6">
-                      <div className="h-16 w-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                         <Download className="h-8 w-8 text-brand-500" />
-                      </div>
-                      <h4 className="font-bold text-charcoal mb-1">ZIP Archive</h4>
-                      <p className="text-sm text-muted max-w-xs mb-4">This file format cannot be previewed directly in the browser. Please download to extract and view contents.</p>
-                      <Button className="bg-brand-600 hover:bg-brand-700 text-white">Download ZIP</Button>
-                   </div>
-                ) : (
-                   <div className="bg-slate-100 border border-slate-200 rounded-xl h-96 flex flex-col items-center justify-center text-center p-6 relative overflow-hidden">
-                      {/* Fake PDF Header / Viewer Mockup */}
-                      <div className="absolute top-0 left-0 right-0 bg-slate-700 text-slate-200 p-2 text-xs flex justify-between items-center">
-                         <span className="truncate max-w-[200px]">{selectedDocument.name}</span>
-                         <div className="flex gap-3">
-                            <span>1 / 1</span>
-                            <span>100%</span>
-                         </div>
-                      </div>
-                      <div className="bg-white w-3/4 h-5/6 mt-8 shadow-sm p-6 text-left border border-slate-200 relative overflow-hidden">
-                         <div className="w-1/3 h-4 bg-slate-200 rounded mb-6"></div>
-                         <div className="w-full h-2 bg-slate-100 rounded mb-2"></div>
-                         <div className="w-full h-2 bg-slate-100 rounded mb-2"></div>
-                         <div className="w-5/6 h-2 bg-slate-100 rounded mb-8"></div>
-                         <div className="w-1/4 h-3 bg-slate-200 rounded mb-4"></div>
-                         <div className="w-full h-2 bg-slate-100 rounded mb-2"></div>
-                         <div className="w-full h-2 bg-slate-100 rounded mb-2"></div>
-                         <div className="w-4/6 h-2 bg-slate-100 rounded mb-8"></div>
-                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center opacity-40 pointer-events-none">
-                            <FileText className="h-12 w-12 text-slate-400 mb-2" />
-                            <span className="text-slate-500 font-semibold tracking-widest uppercase">Document Preview</span>
-                         </div>
-                      </div>
-                   </div>
-                )}
-                
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => setDocumentModalOpen(false)}>Close</Button>
-                  {selectedDocument.type !== 'zip' && (
-                     <Button className="bg-brand-600 hover:bg-brand-700 text-white"><Download className="h-4 w-4 mr-2"/> Download File</Button>
-                  )}
-                </div>
-              </>
-            )}
-         </div>
-      </Modal>
       <Modal isOpen={isEditOpen} onClose={() => setEditOpen(false)} title="Edit Patient">
          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {[["name", "Full Name"], ["phone", "Phone"], ["email", "Email"], ["age", "Age"], ["gender", "Gender"], ["city", "City"], ["bloodGroup", "Blood Group"], ["allergies", "Allergies (comma separated)"], ["conditions", "Medical Conditions (comma separated)"], ["ecName", "Emergency Contact Name"], ["ecRelation", "Emergency Contact Relation"], ["ecPhone", "Emergency Contact Phone"]].map(([key, label]) => (

@@ -10,7 +10,9 @@ import { Badge } from "../components/ui/Badge"
 import { Card, CardContent } from "../components/ui/Card"
 import { Modal } from "../components/ui/Modal"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Edit, Ban, CalendarDays, CheckCircle2, Clock, Star, Download, Eye, FileText, CheckCircle, MapPin, Video, Users, Stethoscope, HandCoins } from "lucide-react"
+import { useNotice } from "../lib/forms"
+import { Notice } from "../components/ui/Notice"
+import { Edit, Ban, CalendarDays, CheckCircle2, Clock, Star, FileText, ExternalLink, CheckCircle, MapPin, Video, Users, Stethoscope, HandCoins } from "lucide-react"
 
 export function ProviderProfile() {
   const [activeTab, setActiveTab] = useState('Overview');
@@ -34,6 +36,7 @@ export function ProviderProfile() {
   };
   useEffect(load, [id]);
 
+  const [notice, setNotice] = useNotice();
   const p = provider || {};
   const initials = (p.name || "").replace(/^Dr\.?\s*/, "").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
   const code = `DOC-${String(p.id || "").slice(-4).toUpperCase()}`;
@@ -71,6 +74,7 @@ export function ProviderProfile() {
 
   return (
     <div className="space-y-6">
+      <Notice text={notice} onClose={() => setNotice("")} />
       <div className="flex items-center text-sm text-muted mb-4">
         <span className="hover:text-charcoal transition-colors cursor-pointer">Management</span>
         <span className="mx-2">/</span>
@@ -125,6 +129,11 @@ export function ProviderProfile() {
                     <Edit className="h-4 w-4 mr-2" /> Edit Profile
                   </Button>
                 </Link>
+                {p.status === "ACTIVE" && (
+                  <a href={`/doctors/${id}`} target="_blank" rel="noreferrer" className="block w-full">
+                    <Button variant="outline" className="w-full"><ExternalLink className="h-4 w-4 mr-2" /> View on website</Button>
+                  </a>
+                )}
                 {p.status === "ACTIVE" ? (
                 <Button className="w-full text-error border-error/30 hover:bg-red-50 hover:border-error" variant="outline" onClick={() => setSuspendModalOpen(true)}>
                   <Ban className="h-4 w-4 mr-2" /> Suspend Provider
@@ -284,38 +293,30 @@ export function ProviderProfile() {
           {activeTab === 'Documents' && (
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-charcoal mb-4">Documents</h3>
-                <div className="space-y-4">
+                <h3 className="text-lg font-bold text-charcoal mb-1">Verification details</h3>
+                <p className="text-sm text-muted mb-4">What the professional entered during onboarding. Check the originals (registration certificate, ID) before approving – document upload is not part of the app yet.</p>
+                <div className="space-y-3">
                   {[
-                    { name: "Medical Registration Certificate", verified: p.status === "ACTIVE" },
-                    { name: `Qualification Certificate${p.qualification ? ` (${p.qualification})` : ""}`, verified: p.status === "ACTIVE" },
-                    { name: "Government ID", verified: p.status === "ACTIVE" },
-                    { name: "Bank Details", verified: !!p.bank?.accountLast4 }
-                  ].map((doc, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-200 rounded-xl gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                    { name: p.profession === "Lab Centre" ? "Licence number" : "Medical registration", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "" },
+                    { name: p.profession === "Lab Centre" ? "Accreditation" : "Qualification", value: p.qualification || "" },
+                    { name: "Contact", value: [p.phone, p.email].filter(Boolean).join(" · ") },
+                    { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
+                  ].map((doc) => (
+                    <div key={doc.name} className="flex items-center justify-between gap-4 p-4 border border-slate-200 rounded-xl">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
                           <FileText className="h-5 w-5 text-muted" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium text-sm text-charcoal">{doc.name}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {doc.verified && <CheckCircle className="h-3 w-3 text-success" />}
-                            <span className={`text-xs font-medium ${doc.verified ? "text-success" : "text-warning"}`}>{doc.verified ? "Verified" : "Pending review"}</span>
-                          </div>
+                          <p className="text-xs text-muted truncate">{doc.value || "Not provided"}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <Button variant="outline" size="sm" className="h-8 px-3 flex-1 sm:flex-none">
-                          <Eye className="h-4 w-4 mr-2" /> Preview
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-8 px-3 flex-1 sm:flex-none">
-                          <Download className="h-4 w-4 mr-2" /> Download
-                        </Button>
-                      </div>
+                      {doc.value ? <span className="flex items-center gap-1 text-xs font-medium text-success shrink-0"><CheckCircle className="h-3 w-3" /> Provided</span> : <span className="text-xs font-medium text-warning shrink-0">Missing</span>}
                     </div>
                   ))}
                 </div>
+                <Link to={`/admin/providers/${id}/edit`} className="inline-flex mt-4 text-sm font-medium text-brand-600 hover:underline">Edit these details</Link>
               </CardContent>
             </Card>
           )}

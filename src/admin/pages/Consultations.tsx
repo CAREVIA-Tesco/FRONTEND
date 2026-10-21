@@ -2,7 +2,7 @@ import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Card, CardContent } from "../components/ui/Card"
-import { Search, Filter, Video, Users, CheckCircle2, XCircle } from "lucide-react"
+import { Search, Video, Users, CheckCircle2, XCircle } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "../../services/api"
@@ -12,12 +12,14 @@ export function Consultations() {
   const navigate = useNavigate()
   const { data, error } = useApi(() => api.getAppointments())
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const online = ((data as any)?.appointments || []).filter((a: any) => a.consultationType === "online")
   const today = new Date().toDateString()
   const isLive = (a: any) => (a.status === "Waiting" || a.status === "Confirmed") && new Date(a.scheduledAt).toDateString() === today
   const live = online.filter(isLive).slice(0, 3)
   const initials = (n: string) => (n || "").replace(/^Dr\.?\s*/, "").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
   const consultations = online
+    .filter((a: any) => !statusSel || (statusSel === "Live" ? isLive(a) : a.status === statusSel))
     .filter((a: any) => !search || `${a.code} ${a.patient} ${a.provider}`.toLowerCase().includes(search.toLowerCase()))
     .map((a: any) => ({
       id: a.code,
@@ -103,9 +105,14 @@ export function Consultations() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All consultations</option>
+            <option value="Live">Live today</option>
+            <option value="Waiting">Waiting</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
         </div>
       </div>
 

@@ -1,11 +1,14 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Download, Plus, MoreHorizontal, Users, UserCheck, AlertTriangle, ShieldCheck, Ban, Check, X } from "lucide-react"
+import { Search, Filter, Download, Plus, Users, UserCheck, AlertTriangle, ShieldCheck, Ban, Check, X } from "lucide-react"
 import { useState, useEffect } from "react"
 import api from "../../services/api"
 import { downloadCsv } from "../lib/useApi"
+import { paginate, useNotice } from "../lib/forms"
+import { Pager } from "../components/ui/Pager"
+import { Notice } from "../components/ui/Notice"
 
 export function Providers() {
   const [allProviders, setAllProviders] = useState<any[]>([]);
@@ -14,6 +17,9 @@ export function Providers() {
   const [specFilter, setSpecFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [notice, setNotice] = useNotice();
+  const navigate = useNavigate();
   
   useEffect(() => {
     loadDoctors();
@@ -44,6 +50,8 @@ export function Providers() {
     if (statusFilter && p.status !== statusFilter) return false;
     return true;
   });
+  const paged = paginate(providersList, page);
+  useEffect(() => { setPage(1); }, [search, specFilter, typeFilter, statusFilter]);
   const exportCsv = () => downloadCsv("carevaa-providers.csv", [["Provider ID", "Name", "Profession", "Specialization", "Experience", "Location", "Rating", "Status"], ...providersList.map((p: any) => [p.id, p.name, p.profession, p.spec, p.exp, p.loc, p.rating, p.status])]);
   
   const totalProviders = allProviders.length;
@@ -54,7 +62,7 @@ export function Providers() {
   return (
     <div className="space-y-6">
       <div className="flex items-center text-sm text-muted mb-2">
-        <span className="hover:text-charcoal transition-colors cursor-pointer">Management</span>
+        <span>Management</span>
         <span className="mx-2">/</span>
         <span className="text-charcoal font-medium">Doctors & Providers</span>
       </div>
@@ -68,11 +76,13 @@ export function Providers() {
           <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
-          <Button>
+          <Button onClick={() => navigate("/admin/providers/new")}>
             <Plus className="mr-2 h-4 w-4" /> Add Provider
           </Button>
         </div>
       </div>
+
+      <Notice text={notice} onClose={() => setNotice("")} />
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[
@@ -136,16 +146,10 @@ export function Providers() {
                <h3 className="font-bold text-charcoal text-lg">All Providers</h3>
                <p className="text-sm text-muted">{providersList.length} providers</p>
             </div>
-            <div className="flex gap-2">
-               <Button variant="outline" size="sm">Columns</Button>
-            </div>
          </div>
          <Table className="border-0 rounded-none shadow-none">
             <TableHeader className="bg-slate-50">
             <TableRow>
-               <TableHead className="w-12 text-center">
-                  <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-               </TableHead>
                <TableHead>Provider</TableHead>
                <TableHead>Provider ID</TableHead>
                <TableHead>Profession</TableHead>
@@ -159,14 +163,14 @@ export function Providers() {
             </TableRow>
             </TableHeader>
             <TableBody>
-            {providersList.map(provider => (
+            {paged.rows.length === 0 && (
+               <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">No providers match these filters.</TableCell></TableRow>
+            )}
+            {paged.rows.map(provider => (
                <TableRow key={provider.id}>
-                  <TableCell className="text-center">
-                     <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-                  </TableCell>
                   <TableCell>
                      <div className="flex items-center gap-3">
-                        <img src={provider.img || 'https://via.placeholder.com/40'} alt="" className="h-10 w-10 rounded-full object-cover" />
+                        <img src={provider.img} alt="" className="h-10 w-10 rounded-full object-cover" />
                         <span className="font-medium text-charcoal">{provider.name}</span>
                      </div>
                   </TableCell>
@@ -203,27 +207,17 @@ export function Providers() {
                          </button>
                        </div>
                      ) : (
-                     <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/admin/providers/${provider.id}`}>
-                           <MoreHorizontal className="h-4 w-4" />
-                        </Link>
-                     </Button>
+                     <div className="flex items-center justify-end gap-1">
+                       <Link to={`/admin/providers/${provider.id}`} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-brand-600 hover:bg-slate-100">View</Link>
+                       <Link to={`/admin/providers/${provider.id}/edit?back=/admin/providers`} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-charcoal hover:bg-slate-100">Edit</Link>
+                     </div>
                      )}
                   </TableCell>
                </TableRow>
             ))}
             </TableBody>
          </Table>
-         <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-white rounded-b-2xl">
-            <span className="text-sm text-muted">Showing {providersList.length} of {totalProviders} providers</span>
-            <div className="flex gap-1">
-               <Button variant="outline" size="sm" className="px-2 text-muted">Previous</Button>
-               <Button variant="outline" size="sm" className="px-3 bg-brand-50 text-brand-600 border-brand-200">1</Button>
-               <Button variant="outline" size="sm" className="px-3 text-muted">2</Button>
-               <Button variant="outline" size="sm" className="px-3 text-muted">3</Button>
-               <Button variant="outline" size="sm" className="px-2 text-muted">Next</Button>
-            </div>
-         </div>
+         <Pager page={paged.current} pages={paged.pages} from={paged.from} to={paged.to} total={providersList.length} label="providers" onPage={setPage} />
       </div>
     </div>
   )

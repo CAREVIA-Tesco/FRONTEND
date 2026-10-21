@@ -8,11 +8,12 @@ import BookingModal from '../components/BookingModal';
 import EnquiryModal from '../components/EnquiryModal';
 import { useBookNow } from '../components/BookNow';
 import Reveal from '../components/Reveal';
-import { SERVICES, BOOKING_TYPE } from '../data/services';
+import { BOOKING_TYPE, useServices } from '../data/services';
 import { usePublicStats, serviceStats, inr, plural } from '../services/usePublicStats';
 
 // "Our Services" overview: every service with live price/count and both ways to start care
 export default function ServicesPage() {
+  const SERVICES = useServices();
   const stats = usePublicStats();
   const [booking, setBooking] = useState({ open: false, type: undefined });
   const [enquiry, setEnquiry] = useState(null);
@@ -43,7 +44,7 @@ export default function ServicesPage() {
                     </div>
                     <p className="text-sm text-gray-600 mb-4 flex-1">{s.desc}</p>
                     <div className="flex flex-wrap gap-2 text-xs font-semibold mb-5">
-                      {st?.minFee ? <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full">From {inr(st.minFee)}</span> : null}
+                      {st?.minFee ? <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full">From {inr(st.minFee)}</span> : s.price ? <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full">From {s.price}</span> : null}
                       {st?.providers ? <span className="bg-tint text-primary px-3 py-1 rounded-full">{plural(st.providers, 'professional')}</span> : null}
                       {st?.rating ? <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full">★ {st.rating}</span> : null}
                     </div>

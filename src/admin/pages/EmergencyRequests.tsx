@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, AlertTriangle, Clock, UserCheck, CheckCircle2 } from "lucide-react"
+import { Search, AlertTriangle, Clock, UserCheck, CheckCircle2 } from "lucide-react"
 import { Fragment, useState } from "react"
 import api from "../../services/api"
 import { useApi } from "../lib/useApi"
@@ -17,6 +17,7 @@ export function EmergencyRequests() {
   const { data, error: loadError, reload } = useApi(() => api.getEmergencies())
   const providers = useApi(() => api.getProviders())
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const [activeOnly, setActiveOnly] = useState(false)
   const [assigningId, setAssigningId] = useState<string | null>(null)
   const [actionError, setActionError] = useState("")
@@ -26,6 +27,7 @@ export function EmergencyRequests() {
   const active = all.filter((r: any) => r.status !== "Resolved")
   const requests = all
     .filter((r: any) => !activeOnly || r.status !== "Resolved")
+    .filter((r: any) => !statusSel || r.status === statusSel || r.priority === statusSel)
     .filter((r: any) => !search || `${r.code} ${r.patient} ${r.location} ${r.type}`.toLowerCase().includes(search.toLowerCase()))
   const doctorList = ((providers.data as any)?.providers || [])
   const update = async (id: string, body: any) => {
@@ -84,9 +86,14 @@ export function EmergencyRequests() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All requests</option>
+            <option value="Waiting">Waiting</option>
+            <option value="Assigned">Assigned</option>
+            <option value="Resolved">Resolved</option>
+            <option value="CRITICAL">Critical priority</option>
+            <option value="HIGH">High priority</option>
+          </select>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Download } from "lucide-react"
+import { Search, Download } from "lucide-react"
 import { useState } from "react"
 import api from "../../services/api"
 import { useApi, inr, downloadCsv } from "../lib/useApi"
@@ -10,6 +10,7 @@ export function Payments() {
   const { data, error: loadError, reload } = useApi(() => api.getPayments({ type: "Payment" }))
   const stats = useApi(() => api.getStats())
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const [range, setRange] = useState("Last 30 Days")
   const [notice, setNotice] = useState("")
   const [actionError, setActionError] = useState("")
@@ -18,6 +19,7 @@ export function Payments() {
   const since = range === "This Month" ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(Date.now() - days * 86400000)
   const payments = ((data as any)?.payments || [])
     .filter((t: any) => new Date(t.createdAt) >= since)
+    .filter((t: any) => !statusSel || t.status === statusSel)
     .filter((t: any) => !search || `${t.txnId} ${t.patient} ${t.provider} ${t.appointmentCode}`.toLowerCase().includes(search.toLowerCase()))
   const st = (stats.data as any)?.stats || {}
 
@@ -78,9 +80,13 @@ export function Payments() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All statuses</option>
+            <option value="Success">Successful</option>
+            <option value="Pending">Pending</option>
+            <option value="Refunded">Refunded</option>
+            <option value="Failed">Failed</option>
+          </select>
         </div>
       </div>
 

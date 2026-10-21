@@ -1,28 +1,31 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Card, CardContent } from "../components/ui/Card"
-import { Shield, Smartphone, Key, Monitor, Edit } from "lucide-react"
+import { Shield, Key, Monitor, Edit, LogOut } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { Modal } from "../components/ui/Modal"
-import api, { getSessionUser, saveSession, getToken } from "../../services/api"
+import api, { getSessionUser, saveSession, getToken, logout } from "../../services/api"
 import { useApi } from "../lib/useApi"
 
 export function SuperAdminProfile() {
+  const navigate = useNavigate()
   const { data, reload } = useApi(() => api.me())
   const me = (data as any)?.user || getSessionUser() || {}
   const [mode, setMode] = useState<"" | "profile" | "password">("")
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" })
+  const [form, setForm] = useState({ name: "", email: "", current: "", password: "", confirm: "" })
   const [msg, setMsg] = useState("")
   const [err, setErr] = useState("")
   const initials = (me.name || "SA").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
-  const open = (m: "profile" | "password") => { setForm({ name: me.name || "", email: me.email || "", password: "", confirm: "" }); setErr(""); setMode(m) }
+  const open = (m: "profile" | "password") => { setForm({ name: me.name || "", email: me.email || "", current: "", password: "", confirm: "" }); setErr(""); setMode(m) }
   const save = async () => {
     setErr("")
     try {
       if (mode === "password") {
+        if (!form.current) { setErr("Enter your current password"); return }
         if (form.password.length < 6) { setErr("Password must be at least 6 characters"); return }
         if (form.password !== form.confirm) { setErr("Passwords do not match"); return }
-        await api.updateMe({ password: form.password })
+        await api.updateMe({ currentPassword: form.current, password: form.password })
         setMsg("Password changed successfully.")
       } else {
         const res: any = await api.updateMe({ name: form.name, email: form.email })
@@ -94,27 +97,14 @@ export function SuperAdminProfile() {
                   <Button variant="outline" size="sm" onClick={() => open("password")}>Change Password</Button>
                 </div>
 
-                <div className="flex items-center justify-between pb-6 border-b border-slate-100">
-                  <div>
-                    <h4 className="font-medium text-charcoal flex items-center gap-2">
-                      <Smartphone className="h-4 w-4 text-muted" /> Two-Factor Authentication
-                    </h4>
-                    <p className="text-sm text-muted mt-1">Secure your account with 2FA</p>
-                  </div>
-                  <Badge variant="success">Enabled</Badge>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium text-charcoal flex items-center gap-2">
-                      <Monitor className="h-4 w-4 text-muted" /> Active Sessions
+                      <Monitor className="h-4 w-4 text-muted" /> This device
                     </h4>
-                    <p className="text-sm text-muted mt-1">Manage your active logins across devices</p>
+                    <p className="text-sm text-muted mt-1">{me.lastLoginAt ? `Last login ${new Date(me.lastLoginAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : "Signed in as administrator"}. Sign out when you use a shared computer.</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-charcoal">3 Devices</span>
-                    <Button variant="outline" size="sm">Manage Sessions</Button>
-                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/login") }}><LogOut className="h-4 w-4 mr-2" /> Sign out</Button>
                 </div>
               </div>
             </CardContent>
@@ -136,6 +126,10 @@ export function SuperAdminProfile() {
               </>
             ) : (
               <>
+                <div className="space-y-2">
+                  <label htmlFor="adm-current" className="text-sm font-medium text-charcoal block">Current Password</label>
+                  <input id="adm-current" type="password" autoComplete="current-password" value={form.current} onChange={(e) => setForm({ ...form, current: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-charcoal block">New Password</label>
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500" />

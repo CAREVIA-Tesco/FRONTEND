@@ -25,6 +25,7 @@ import Partner from './pages/Partner.jsx';
 import TrackRequest from './pages/TrackRequest.jsx';
 import BlogPost from './pages/BlogPost.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
+import ServiceDetail from './pages/ServiceDetail';
 import ThemeLoader from './components/ThemeLoader.jsx';
 import VisitSummary from './pages/VisitSummary.jsx';
 import ProfessionalProfile from './pages/ProfessionalProfile.jsx';
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/services" element={<ServicesPage />} />
+        <Route path="/services/:key" element={<ServiceDetail />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/partner" element={<Partner />} />
         <Route path="/track" element={<TrackRequest />} />

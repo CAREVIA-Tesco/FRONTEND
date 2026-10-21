@@ -14,7 +14,7 @@ import Reveal from '../components/Reveal';
 import api from '../services/api';
 import { usePublicStats, serviceStats, usePricingRules, packagePrices, inr } from '../services/usePublicStats';
 import { useSiteContent, useContact } from '../services/useSiteContent';
-import { SERVICES, BOOKING_TYPE } from '../data/services';
+import { BOOKING_TYPE, useServices } from '../data/services';
 import { postSlug } from '../utils/slug';
 
 const STEPS = [
@@ -69,6 +69,7 @@ function TestimonialCard({ t }) {
 }
 
 export default function Home() {
+  const SERVICES = useServices();
   const stats = usePublicStats();
   const rules = usePricingRules();
   const contact = useContact();
@@ -274,7 +275,7 @@ export default function Home() {
                         <span className="font-bold text-primary text-[15px] sm:text-[17px] xl:text-[19px] leading-tight group-hover:text-accent transition-colors">{s.title}</span>
                         <ArrowRight className="hidden sm:block w-4 h-4 text-gray-400 shrink-0 group-hover:translate-x-1 group-hover:text-accent transition-all" />
                       </span>
-                      <span className="block text-[13px] text-gray-500 mt-0.5">{price ? `From ${inr(price)}` : s.short}</span>
+                      <span className="block text-[13px] text-gray-500 mt-0.5">{price ? `From ${inr(price)}` : s.price ? `From ${s.price}` : s.short}</span>
                     </Link>
                     <button type="button" onClick={() => bookNow({ service: s.title })} className="shrink-0 w-full sm:w-auto border border-accent/40 text-accent hover:bg-accent hover:text-white rounded-full px-3 sm:px-4 py-2 text-[13px] sm:text-[14px] font-bold transition-colors">
                       Book Now

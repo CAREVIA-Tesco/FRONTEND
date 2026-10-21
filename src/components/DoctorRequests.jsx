@@ -87,13 +87,13 @@ export default function DoctorRequests({ appointments, isDoctor, onChanged, onCo
                 </ul>
                 {isDoctor && (
                   <label className="block text-xs text-gray-500 mb-3">Visit type
-                    <select aria-label={`Visit type for ${r.code}`} value={visitType[r.id] || 'home'} onChange={(e) => setVisitType({ ...visitType, [r.id]: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-primary">
+                    <select aria-label={`Visit type for ${r.code}`} value={visitType[r.id] || r.visitType || 'home'} onChange={(e) => setVisitType({ ...visitType, [r.id]: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-primary">
                       <option value="home">Home visit</option><option value="clinic">Clinic visit</option><option value="online">Online consult</option>
                     </select>
                   </label>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" disabled={!!busy} onClick={() => act(`a${r.id}`, () => api.acceptRequest(r.id, { consultationType: visitType[r.id] || 'home' }), 'Accepted')} className="bg-secondary text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy === `a${r.id}` ? 'Accepting…' : 'Accept request'}</button>
+                  <button type="button" disabled={!!busy} onClick={() => act(`a${r.id}`, () => api.acceptRequest(r.id, { consultationType: visitType[r.id] || r.visitType || 'home' }), 'Accepted')} className="bg-secondary text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy === `a${r.id}` ? 'Accepting…' : 'Accept request'}</button>
                   <button type="button" disabled={!!busy} onClick={() => act(`x${r.id}`, () => api.declineRequest(r.id), 'Hidden')} className="border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-bold hover:bg-gray-50 disabled:opacity-60">Not for me</button>
                 </div>
               </div>

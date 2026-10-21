@@ -1,4 +1,9 @@
-import { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance } from 'lucide-react';
+import { request } from '../services/api';
+
+// icon names the admin can pick for a service
+export const SERVICE_ICONS = { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance };
 
 // The care services Carevaa offers. Each one links to its existing service page and
 // maps to the booking modal's serviceType (prices/counts come live from /api/public/stats).
@@ -26,7 +31,58 @@ const SERVICE_SPEC_MAP = {
   ayurveda: ['Ayurveda Doctor'],
   bhs: ['BHS'],
 };
-export const specsFor = (key) => SERVICE_SPEC_MAP[key] || [];
+
+// ---- live list managed in Admin → Services ------------------------------------------------
+// The website shows the services saved by the admin (name, text, price, picture, order, hidden or not).
+// Built-in services keep their own pages; new ones open /services/<key>. Until the list loads (or if the
+// server is unreachable) the built-in list above is shown.
+let live = null;
+let loading = null;
+const listeners = new Set();
+const fromApi = (sv) => {
+  const base = SERVICES.find((b) => b.key === sv.key) || {};
+  return {
+    ...base,
+    id: sv.id,
+    key: sv.key,
+    title: sv.name,
+    short: sv.short || base.short || '',
+    desc: sv.desc || base.desc || '',
+    price: sv.price || '',
+    img: sv.image || base.img || '/service-homecare.png',
+    icon: SERVICE_ICONS[sv.icon] || base.icon || Stethoscope,
+    link: base.link || `/services/${sv.key}`,
+    matches: sv.matches || [],
+    custom: !base.key,
+  };
+};
+export function loadServices(force = false) {
+  if (loading && !force) return loading;
+  loading = request('/services', { auth: false })
+    .then((d) => {
+      live = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key).sort((a, b) => (a.order ?? 100) - (b.order ?? 100)).map(fromApi);
+      listeners.forEach((fn) => fn(live));
+      return live;
+    })
+    .catch(() => { loading = null; return live || SERVICES; });
+  return loading;
+}
+export function useServices() {
+  const [list, setList] = useState(live || SERVICES);
+  useEffect(() => {
+    listeners.add(setList);
+    if (live) setList(live); else loadServices();
+    return () => listeners.delete(setList);
+  }, []);
+  return list;
+}
+export const findService = (list, key) => list.find((s) => s.key === key);
+
+export const specsFor = (key) => {
+  const sv = live?.find((s) => s.key === key);
+  if (sv?.matches?.length) return sv.matches;
+  return SERVICE_SPEC_MAP[key] || [];
+};
 export const providersForService = (providers, key) => (key === 'doctor-visit' ? providers.filter((p) => p.isDoctor) : providers.filter((p) => specsFor(key).includes(p.spec)));
-export const serviceForProvider = (p) => SERVICES.find((s) => s.key !== 'doctor-visit' && specsFor(s.key).includes(p.spec)) || (p.isDoctor ? SERVICES.find((s) => s.key === 'doctor-visit') : null);
+export const serviceForProvider = (p) => (live || SERVICES).find((s) => s.key !== 'doctor-visit' && specsFor(s.key).includes(p.spec)) || (p.isDoctor ? SERVICES.find((s) => s.key === 'doctor-visit') : null);
 export const citySlug = (c) => encodeURIComponent(String(c || '').trim());

@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Undo2, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { Search, Undo2, Clock, CheckCircle2, XCircle } from "lucide-react"
 import { useState } from "react"
 import api from "../../services/api"
 import { useApi } from "../lib/useApi"
@@ -9,9 +9,10 @@ import { useApi } from "../lib/useApi"
 export function Refunds() {
   const { data, error } = useApi(() => api.getPayments({ type: "Refund" }))
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const notice = ""
   const all = (data as any)?.payments || []
-  const refunds = all.filter((r: any) => !search || `${r.txnId} ${r.patient} ${r.appointmentCode}`.toLowerCase().includes(search.toLowerCase()))
+  const refunds = all.filter((r: any) => !statusSel || r.status === statusSel).filter((r: any) => !search || `${r.txnId} ${r.patient} ${r.appointmentCode}`.toLowerCase().includes(search.toLowerCase()))
   return (
     <div className="space-y-6">
       <div>
@@ -51,9 +52,12 @@ export function Refunds() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All refunds</option>
+            <option value="Success">Completed</option>
+            <option value="Pending">Pending</option>
+            <option value="Failed">Rejected</option>
+          </select>
         </div>
       </div>
 

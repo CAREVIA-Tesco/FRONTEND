@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle2, Loader2, PhoneCall } from 'lucide-react';
 import api, { getSessionUser } from '../services/api';
 import { useSiteContent, useContact } from '../services/useSiteContent';
-import { SERVICES } from '../data/services';
+import { useServices } from '../data/services';
 
 export const TIME_SLOTS = ['Morning (8am – 12pm)', 'Afternoon (12pm – 4pm)', 'Evening (4pm – 8pm)', 'Anytime'];
 export const CONTACT_SUBJECTS = ['Booking help', 'Feedback', 'Complaint', 'Billing & refunds', 'Other'];
@@ -32,6 +32,7 @@ function Field({ label, error, children, className = '' }) {
  * Saves to POST /api/enquiries and shows the request ID the customer can track.
  */
 export default function EnquiryForm({ type = 'callback', service = '', plan = '', message = '', city = '', submitLabel, onDone, compact = false }) {
+  const SERVICES = useServices();
   const user = getSessionUser();
   const location = useLocation();
   const cities = useSiteContent('cities');

@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Check, ChevronDown, Loader2, ShieldCheck, UserCheck, MapPin, CalendarDays, Clock, Phone, ArrowLeft, Sun, Sunset, Moon } from 'lucide-react';
+import { X, Check, ChevronDown, Loader2, ShieldCheck, UserCheck, MapPin, CalendarDays, Clock, Phone, ArrowLeft, Sun, Sunset, Moon, Stethoscope, House, Video, Building2 } from 'lucide-react';
 import api, { getSessionUser } from '../services/api';
 import { useSiteContent, useContact } from '../services/useSiteContent';
-import { SERVICES } from '../data/services';
+import { useServices } from '../data/services';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
@@ -35,14 +35,22 @@ const slotsFor = (g) => Array.from({ length: (g.to - g.from) * 2 }, (_, i) => `$
 const fieldCls = 'w-full h-12 rounded-xl border border-line bg-white px-4 text-[15px] text-primary placeholder:text-placeholder outline-none focus:border-secondary focus:ring-4 focus:ring-secondary/15 transition';
 const labelCls = 'block text-[13px] font-semibold text-primary mb-1.5';
 
+// where the visit happens – the care team and professionals see this with the request
+const VISIT_TYPES = [
+  ['home', 'Home visit', 'At your address', House],
+  ['online', 'Online', 'Video / phone call', Video],
+  ['clinic', 'Clinic', 'Visit the clinic', Building2],
+];
+
 function BookNowModal({ open, onClose, preset }) {
+  const SERVICES = useServices();
   const navigate = useNavigate();
   const location = useLocation();
   const cities = useSiteContent('cities');
   const contact = useContact();
   const user = getSessionUser();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', service: '', date: '', time: '' });
+  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', service: '', visitType: 'home', date: '', time: '' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -57,6 +65,7 @@ function BookNowModal({ open, onClose, preset }) {
       city: preset?.city || user?.city || '',
       pincode: '',
       service: preset?.service || '',
+      visitType: preset?.visitType || 'home',
       date: localDate(slot),
       time: `${pad(slot.getHours())}:${pad(slot.getMinutes())}`,
     });
@@ -102,7 +111,7 @@ function BookNowModal({ open, onClose, preset }) {
     setSaving(true); setServerError('');
     try {
       const res = await api.createEnquiry({
-        type: 'booking', name: form.name, phone: form.phone, city: form.city, pincode: form.pincode, service: form.service || undefined,
+        type: 'booking', name: form.name, phone: form.phone, city: form.city, pincode: form.pincode, service: form.service || undefined, visitType: form.visitType,
         preferredDate: form.date, preferredTime: form.time, source: location.pathname,
       });
       onClose();
@@ -115,7 +124,7 @@ function BookNowModal({ open, onClose, preset }) {
   };
 
   const Err = ({ k }) => (errors[k] ? <p role="alert" className="text-[13px] text-red-600 mt-1.5">{errors[k]}</p> : null);
-  const STEPS = [['Contact details', 'Who should we call?'], ['Date & time', 'When should we visit?']];
+  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', 'Home, online or clinic']];
 
   return (
     <div className="theme-portea fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 font-sans" role="dialog" aria-modal="true" aria-label="Book medical services at home">
@@ -129,7 +138,7 @@ function BookNowModal({ open, onClose, preset }) {
             <span className="h-11 w-11 rounded-xl bg-white flex items-center justify-center"><img src="/logo.png" alt="Carevaa" className="h-9 w-9 object-contain" /></span>
             <div className="leading-tight">
               <p className="text-[11px] uppercase tracking-[0.16em] text-on-deep">Carevaa</p>
-              <p className="font-serif text-[20px] font-semibold">Book a home visit</p>
+              <p className="font-serif text-[20px] font-semibold">{form.visitType === 'online' ? 'Book a consultation' : form.visitType === 'clinic' ? 'Book a clinic visit' : 'Book a home visit'}</p>
             </div>
           </div>
           {form.service && <p className="relative mt-4 self-start text-[13px] font-semibold bg-white/10 ring-1 ring-white/20 rounded-full px-3 py-1">{form.service}</p>}
@@ -164,7 +173,7 @@ function BookNowModal({ open, onClose, preset }) {
         <div className="relative px-5 py-6 sm:px-9 sm:py-8 sm:max-h-[94vh] sm:overflow-y-auto">
           <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center text-primary/60 hover:text-primary hover:bg-tint rounded-full transition"><X className="w-5 h-5" /></button>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Step {step} of 2</p>
-          <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Choose a date and time'}</h2>
+          <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Visit type, date and time'}</h2>
           <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : 'Pick a slot that suits you. We will confirm it with the professional.'}</p>
 
           {step === 1 ? (
@@ -217,6 +226,21 @@ function BookNowModal({ open, onClose, preset }) {
           ) : (
             <div key="s2" className="cv-slide-in mt-6 space-y-5">
               <div>
+                <p className={`${labelCls} flex items-center gap-1.5`}><Stethoscope className="w-4 h-4 text-accent" /> How should we see the patient?</p>
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Visit type">
+                  {VISIT_TYPES.map(([v, l, sub, Icon]) => {
+                    const on = form.visitType === v;
+                    return (
+                      <button key={v} type="button" role="radio" aria-checked={on} onClick={() => setVal('visitType', v)} className={`rounded-xl border px-2 py-2.5 text-center transition ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>
+                        <Icon className={`w-5 h-5 mx-auto ${on ? 'text-white' : 'text-accent'}`} />
+                        <span className="block text-[13px] font-semibold mt-1 leading-tight">{l}</span>
+                        <span className={`block text-[11px] leading-tight mt-0.5 ${on ? 'text-white/70' : 'text-primary/50'}`}>{sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
                 <p className={`${labelCls} flex items-center gap-1.5`}><CalendarDays className="w-4 h-4 text-accent" /> Date</p>
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1" role="group" aria-label="Upcoming days">
                   {days.map((d, i) => {
@@ -267,7 +291,7 @@ function BookNowModal({ open, onClose, preset }) {
               <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-4 text-[14px]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/50 mb-1.5">Visit summary</p>
                 {whenLabel && <p className="font-semibold text-primary" data-testid="booknow-when">{whenLabel}</p>}
-                <p className="text-primary/65 mt-0.5">{[form.service || 'Care visit', `${form.city}${form.pincode ? ` ${form.pincode}` : ''}`, form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
+                <p className="text-primary/65 mt-0.5">{[form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], `${form.city}${form.pincode ? ` ${form.pincode}` : ''}`, form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
               </div>
               {serverError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{serverError}</p>}
               <div className="flex gap-3">

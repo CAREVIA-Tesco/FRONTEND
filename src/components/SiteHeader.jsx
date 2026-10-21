@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, X, Phone, ArrowRight, PhoneCall, SearchCheck, Handshake, Briefcase } from 'lucide-react';
 import { getSessionUser } from '../services/api';
 import { useContact } from '../services/useSiteContent';
-import { SERVICES } from '../data/services';
+import { useServices } from '../data/services';
 import BookingModal from './BookingModal';
 import EnquiryModal from './EnquiryModal';
 import { useBookNow } from './BookNow';
@@ -11,6 +11,7 @@ import { useBookNow } from './BookNow';
 // Public website header (Portea-style: cream bar, services menu, phone box, orange Book Now).
 // The login page keeps its original <Navbar />.
 export default function SiteHeader() {
+  const SERVICES = useServices();
   const sessionUser = getSessionUser();
   const accountLink = sessionUser
     ? (sessionUser.role === 'admin' ? '/admin' : sessionUser.role === 'doctor' ? (sessionUser.providerId ? '/doctor/dashboard' : '/professional/onboarding') : '/patient/dashboard')

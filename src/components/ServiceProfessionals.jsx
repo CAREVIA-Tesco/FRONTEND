@@ -5,10 +5,11 @@ import ProCard from './ProCard';
 import BookingModal from './BookingModal';
 import api from '../services/api';
 import { useSiteContent } from '../services/useSiteContent';
-import { SERVICES, BOOKING_TYPE, providersForService, specsFor, citySlug } from '../data/services';
+import { BOOKING_TYPE, providersForService, specsFor, citySlug, useServices } from '../data/services';
 
 // "Our physiotherapists" block on each service page: featured professionals + city links
 export default function ServiceProfessionals({ serviceKey }) {
+  const SERVICES = useServices();
   const service = SERVICES.find((s) => s.key === serviceKey);
   const cities = useSiteContent('cities');
   const [providers, setProviders] = useState([]);

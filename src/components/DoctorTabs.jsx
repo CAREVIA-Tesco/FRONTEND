@@ -184,7 +184,7 @@ export function ReviewsTab({ providerId, profile }) {
 export function SettingsTab({ profile, onLogout }) {
   const user = getSessionUser() || {};
   const [account, setAccount] = useState({ name: user.name || '', email: user.email || '', phone: user.phone || '' });
-  const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [msg, setMsg] = useState({});
   const [busy, setBusy] = useState('');
   const field = 'w-full h-11 px-4 rounded-xl border border-line bg-white text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition';
@@ -199,10 +199,11 @@ export function SettingsTab({ profile, onLogout }) {
   };
   const savePassword = async (e) => {
     e.preventDefault(); setMsg({});
+    if (!pw.current) { setMsg({ pw: { ok: false, text: 'Enter your current password.' } }); return; }
     if (pw.next.length < 6) { setMsg({ pw: { ok: false, text: 'Use at least 6 characters.' } }); return; }
     if (pw.next !== pw.confirm) { setMsg({ pw: { ok: false, text: 'The two passwords do not match.' } }); return; }
     setBusy('pw');
-    try { await api.updateMe({ password: pw.next }); setPw({ next: '', confirm: '' }); setMsg({ pw: { ok: true, text: 'Password changed.' } }); } catch (err) { setMsg({ pw: { ok: false, text: err.message } }); } finally { setBusy(''); }
+    try { await api.updateMe({ currentPassword: pw.current, password: pw.next }); setPw({ current: '', next: '', confirm: '' }); setMsg({ pw: { ok: true, text: 'Password changed.' } }); } catch (err) { setMsg({ pw: { ok: false, text: err.message } }); } finally { setBusy(''); }
   };
   const Note = ({ m }) => (m ? <p role="status" className={`text-[13px] rounded-xl px-3 py-2 ${m.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{m.text}</p> : null);
   const STATUS = { ACTIVE: ['Live – patients can book you', 'bg-emerald-50 text-emerald-700'], PENDING: ['Waiting for verification', 'bg-amber-50 text-amber-700'], REJECTED: ['Not approved – contact support', 'bg-red-50 text-red-700'], SUSPENDED: ['Paused by the care team', 'bg-red-50 text-red-700'] };
@@ -224,6 +225,7 @@ export function SettingsTab({ profile, onLogout }) {
         <div className="space-y-4">
           <form onSubmit={savePassword} className={`${card} p-6 space-y-4`}>
             <h3 className="font-semibold text-primary flex items-center gap-2"><KeyRound className="w-5 h-5 text-accent" /> Change password</h3>
+            <label className="block"><span className="block text-[13px] font-semibold text-primary mb-1.5">Current password</span><input type="password" autoComplete="current-password" className={field} value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} /></label>
             <label className="block"><span className="block text-[13px] font-semibold text-primary mb-1.5">New password</span><input type="password" autoComplete="new-password" className={field} value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} /></label>
             <label className="block"><span className="block text-[13px] font-semibold text-primary mb-1.5">Confirm new password</span><input type="password" autoComplete="new-password" className={field} value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} /></label>
             <Note m={msg.pw} />

@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, HandCoins, CheckCircle2, Users, CalendarCheck } from "lucide-react"
+import { Search, HandCoins, CheckCircle2, Users, CalendarCheck } from "lucide-react"
 import { useState } from "react"
 import api from "../../services/api"
 import { useApi, inr } from "../lib/useApi"
@@ -9,11 +9,12 @@ import { useApi, inr } from "../lib/useApi"
 export function ProviderPayouts() {
   const { data, error: loadError, reload } = useApi(() => api.getPayouts())
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const [notice, setNotice] = useState("")
   const [actionError, setActionError] = useState("")
   const error = loadError || actionError
   const summary = (data as any)?.summary || {}
-  const payouts = ((data as any)?.payouts || []).filter((p: any) => !search || (p.provider || "").toLowerCase().includes(search.toLowerCase()))
+  const payouts = ((data as any)?.payouts || []).filter((p: any) => !statusSel || p.status === statusSel).filter((p: any) => !search || (p.provider || "").toLowerCase().includes(search.toLowerCase()))
   const nextPayout = (() => {
     const d = new Date()
     d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7)) // next Sunday
@@ -67,9 +68,11 @@ export function ProviderPayouts() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All providers</option>
+            <option value="Pending">Payout pending</option>
+            <option value="Paid">Paid up</option>
+          </select>
         </div>
       </div>
 

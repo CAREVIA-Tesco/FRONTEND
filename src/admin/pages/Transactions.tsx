@@ -1,7 +1,7 @@
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Download, ArrowRightLeft, CheckCircle2, Clock, XCircle, Undo2 } from "lucide-react"
+import { Search, Download, ArrowRightLeft, CheckCircle2, Clock, XCircle, Undo2 } from "lucide-react"
 import { useState } from "react"
 import api from "../../services/api"
 import { useApi, downloadCsv } from "../lib/useApi"
@@ -9,9 +9,10 @@ import { useApi, downloadCsv } from "../lib/useApi"
 export function Transactions() {
   const { data, error } = useApi(() => api.getPayments())
   const [search, setSearch] = useState("")
+  const [statusSel, setStatusSel] = useState("")
   const notice = ""
   const all = (data as any)?.payments || []
-  const txns = all.filter((t: any) => !search || `${t.txnId} ${t.patient} ${t.provider} ${t.type}`.toLowerCase().includes(search.toLowerCase()))
+  const txns = all.filter((t: any) => !statusSel || (statusSel === "Refund" ? t.type === "Refund" : t.type === "Payment" && t.status === statusSel)).filter((t: any) => !search || `${t.txnId} ${t.patient} ${t.provider} ${t.type}`.toLowerCase().includes(search.toLowerCase()))
   const exportCsv = () => downloadCsv("carevaa-transactions.csv", [["Transaction ID", "Type", "Patient", "Provider", "Amount", "Method", "Date", "Status"], ...txns.map((t: any) => [t.txnId, t.type, t.patient, t.provider, t.amount, t.method, t.date, t.status])])
   return (
     <div className="space-y-6">
@@ -21,10 +22,9 @@ export function Transactions() {
           <p className="text-muted mt-1">View and manage all financial transactions.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 h-4 w-4" /> Download CSV
           </Button>
-          <Button variant="outline" onClick={exportCsv}>Export</Button>
         </div>
       </div>
 
@@ -60,9 +60,13 @@ export function Transactions() {
           />
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          <select aria-label="Status filter" value={statusSel} onChange={(e) => setStatusSel(e.target.value)} className="h-10 w-full sm:w-auto rounded-lg border border-slate-200 bg-surface px-3 text-sm">
+            <option value="">All transactions</option>
+            <option value="Success">Successful payments</option>
+            <option value="Pending">Pending payments</option>
+            <option value="Failed">Failed payments</option>
+            <option value="Refund">Refunds</option>
+          </select>
         </div>
       </div>
 

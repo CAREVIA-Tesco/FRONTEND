@@ -25,7 +25,7 @@ export function DispatchPanel({ enquiry, allProviders, onDone }: { enquiry: any;
 
   useEffect(() => {
     setMsg(null); setShowAll(false)
-    setForm({ providerId: "", date: isoDay(enquiry.preferredDate), time: toSlot(enquiry.preferredTime) || "10:00 AM", consultationType: "home" })
+    setForm({ providerId: "", date: isoDay(enquiry.preferredDate), time: toSlot(enquiry.preferredTime) || "10:00 AM", consultationType: enquiry.visitType || "home" })
     api.requestMatches(enquiry.id).then((d: any) => setMatches(d.providers || [])).catch(() => setMatches([]))
   }, [enquiry.id, enquiry.preferredDate, enquiry.preferredTime])
 

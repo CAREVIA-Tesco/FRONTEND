@@ -12,10 +12,11 @@ import Reveal from '../components/Reveal';
 import api from '../services/api';
 import { inr } from '../services/usePublicStats';
 import { useSiteContent } from '../services/useSiteContent';
-import { SERVICES, BOOKING_TYPE, providersForService, citySlug } from '../data/services';
+import { BOOKING_TYPE, providersForService, citySlug, useServices } from '../data/services';
 
 // City landing pages: /cities/Chennai (all services) and /cities/Chennai/physiotherapy (one service)
 export default function CityCare() {
+  const SERVICES = useServices();
   const { city: cityParam, serviceKey } = useParams();
   const city = decodeURIComponent(cityParam || '');
   const service = SERVICES.find((s) => s.key === serviceKey);

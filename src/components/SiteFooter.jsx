@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { PhoneCall, Mail, Clock, MapPin, Briefcase, ArrowUpRight } from 'lucide-react';
-import { SERVICES } from '../data/services';
+import { useServices } from '../data/services';
 import { useContact, useSiteContent } from '../services/useSiteContent';
 
 // Shared footer for the public website (multi-column + legal strip).
 export default function SiteFooter() {
+  const SERVICES = useServices();
   const contact = useContact();
   const cities = useSiteContent('cities');
 

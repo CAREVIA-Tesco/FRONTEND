@@ -8,13 +8,14 @@ import EnquiryModal from '../components/EnquiryModal';
 import { useBookNow } from '../components/BookNow';
 import api from '../services/api';
 import { useSiteContent } from '../services/useSiteContent';
-import { SERVICES, specsFor } from '../data/services';
+import { specsFor, useServices } from '../data/services';
 
 const shortName = (n = '') => { const [a, b] = String(n).split(' '); return b ? `${a} ${b[0]}.` : a || 'Patient'; };
 const Stars = ({ n, size = 'w-4 h-4' }) => <span className="flex gap-0.5">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={`${size} ${i <= Math.round(n) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />)}</span>;
 
 // All patient reviews (verified visits) + featured stories, filterable by service
 export default function Reviews() {
+  const SERVICES = useServices();
   const testimonials = useSiteContent('testimonials');
   const [filter, setFilter] = useState('');
   const [data, setData] = useState(null);

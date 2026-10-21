@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  LayoutDashboard, User, Calendar, BarChart3, Star, MessageSquare, 
-  Settings, Bell, Search, TrendingUp, Users, MousePointerClick, 
-  Activity, CheckCircle, ChevronDown, Menu, X, MapPin, Mic, Video, PhoneOff, Clock, Phone, CalendarCheck, LogOut
+  LayoutDashboard, User, Calendar, BarChart3, Star,
+  Settings, Search, TrendingUp, Users,
+  Activity, CheckCircle, ChevronDown, X, MapPin, Phone, CalendarCheck
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api, { getSessionUser, logout } from '../services/api';
 import DoctorRequests from '../components/DoctorRequests';
 import DashboardShell from '../components/DashboardShell';
 import { AnalyticsTab, ReviewsTab, SettingsTab } from '../components/DoctorTabs';
-import { Inbox } from 'lucide-react';
+import { Inbox, MessageCircle, Stethoscope } from 'lucide-react';
+
+const STATUS_STYLE = { Waiting: 'bg-amber-100 text-amber-800', Confirmed: 'bg-blue-100 text-blue-700', Completed: 'bg-green-100 text-green-700', Cancelled: 'bg-gray-200 text-gray-700' };
+const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const waLink = (phone) => `https://wa.me/91${String(phone || '').replace(/\D/g, '').slice(-10)}`;
 
 export default function DoctorDashboard() {
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -130,16 +134,20 @@ export default function DoctorDashboard() {
   const selectedDay = selectedRange === 'Custom' && customDate ? customDate : selectedRange === 'Today' ? startOfDay(now) : null;
 
   // past-appointments window (Appointments tab)
-  const pastDays = pastRange === 'Last 7 Days' ? 7 : pastRange === 'Last 30 Days' ? 30 : null;
-  const pastFrom = pastDays ? addDays(startOfDay(now), -(pastDays - 1)) : null;
-  const pastLabel = pastDays ? `${pastRange} (${fmtShort(pastFrom)} - ${fmtShort(now)})` : 'All Time';
-  const cyclePastRange = () => setPastRange((r) => (r === 'Last 30 Days' ? 'Last 7 Days' : r === 'Last 7 Days' ? 'All Time' : 'Last 30 Days'));
 
   // Next 7 days for the reschedule picker, e.g. "Thu, May 22"
-  const rescheduleDates = Array.from({ length: 7 }, (_, i) => {
+  const rescheduleDates = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() + i + 1);
-    return { label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), iso: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).toISOString() };
+    return { label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), iso: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).toISOString(), date: d };
   });
+  // open slots on a day: the doctor's weekly schedule minus slots already booked
+  const slotsFor = (day, apt) => {
+    if (!day) return [];
+    const taken = allAppointments.filter((a) => a.id !== apt?.id && (a.status === 'Waiting' || a.status === 'Confirmed') && isSameDay(new Date(a.scheduledAt), day.date)).map((a) => a.timeSlot);
+    const mine = profile?.schedule?.[DAY_KEYS[day.date.getDay()]] || [];
+    return mine.filter((t) => !taken.includes(t));
+  };
+  const startVisit = (apt) => { setActiveCallAppointment(apt); setActionError(''); setVisitNotes({ symptoms: '', prescription: '' }); setVisitVitals({ bloodPressure: '', weight: '' }); setIsVideoCallOpen(true); };
 
   const handleLogout = () => { logout(); navigate('/login'); };
   // Accept or decline a booking that is waiting for this doctor (direct booking or care-team assignment)
@@ -194,7 +202,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const requestBadge = requestTotal ?? (openRequestCount + allAppointments.filter((a) => a.status === 'Waiting').length);
   const DOCTOR_NAV = [
@@ -333,8 +340,8 @@ export default function DoctorDashboard() {
                     <div className={`p-2.5 rounded-xl ${stat.bg} ${stat.color}`}>
                       <stat.icon className="w-5 h-5" />
                     </div>
-                    <span className="flex items-center gap-1 text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">
-                      <TrendingUp className="w-3 h-3" /> {stat.trend}
+                    <span className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg ${String(stat.trend).startsWith('-') ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
+                      <TrendingUp className={`w-3 h-3 ${String(stat.trend).startsWith('-') ? 'rotate-180' : ''}`} /> {stat.trend}
                     </span>
                   </div>
                   <h3 className="text-3xl font-bold text-primary mb-1">{stat.value}</h3>
@@ -350,7 +357,7 @@ export default function DoctorDashboard() {
               {/* Upcoming Appointments */}
               <div className="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                 <div className="p-6 border-b border-gray-50 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-primary">Today's Appointments</h2>
+                  <h2 className="text-lg font-bold text-primary">{todaysAppointments.length ? "Today's Appointments" : 'Upcoming Appointments'}</h2>
                   <button onClick={() => setActiveTab('Appointments')} className="text-sm font-bold text-secondary hover:underline">View All</button>
                 </div>
                 <div className="p-6 flex-1">
@@ -372,9 +379,11 @@ export default function DoctorDashboard() {
                             <p className="font-bold text-primary">{apt.time}</p>
                             <p className="text-xs font-medium text-gray-500">{apt.date}</p>
                           </div>
-                          <button onClick={() => { setActiveCallAppointment(apt); setIsVideoCallOpen(true); }} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-sm transition">
-                            Join
-                          </button>
+                          {apt.status === 'Waiting' ? (
+                            <button type="button" onClick={() => respondToBooking(apt, 'Confirmed')} className="px-4 py-2 bg-secondary text-white text-sm font-bold rounded-xl hover:brightness-95 shadow-sm transition">Confirm</button>
+                          ) : (
+                            <button type="button" onClick={() => startVisit(apt)} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover shadow-sm transition">Start visit</button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -584,14 +593,16 @@ export default function DoctorDashboard() {
                     </button>
                   </div>
                   
-                  <div className="flex gap-4">
-                    <button onClick={cyclePastRange} title="Filter past appointments" className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm hover:border-gray-300 transition">
+                  {appointmentTab === 'Past' && (
+                    <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
                       <Calendar className="w-4 h-4" />
-                      {pastLabel}
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
-                    </button>
-
-                  </div>
+                      <select aria-label="Past appointments period" value={pastRange} onChange={(e) => setPastRange(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-sm font-bold py-2.5 px-3 rounded-xl shadow-sm">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                        <option>All Time</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
 
                 {/* Appointment List */}
@@ -609,12 +620,13 @@ export default function DoctorDashboard() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="text-lg font-bold text-primary">{apt.title}</h3>
-                              <span className={`bg-${apt.statusColor}-100 text-${apt.statusColor}-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider`}>{apt.status}</span>
+                              <span className={`${STATUS_STYLE[apt.status] || 'bg-gray-100 text-gray-700'} px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider`}>{apt.status === 'Waiting' ? 'Needs your confirmation' : apt.status}</span>
                             </div>
                             <div className="flex flex-wrap items-center gap-4 sm:gap-8 text-sm text-gray-500 font-medium">
                               <div className="flex items-center gap-2"><User className="w-4 h-4" /> {apt.patient}</div>
-                              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> {apt.phone}</div>
+                              <div className="flex items-center gap-2"><Phone className="w-4 h-4" /> {apt.phoneHidden ? 'Shown after you confirm' : apt.phone ? <a href={`tel:${apt.phone}`} className="hover:text-primary">{apt.phone}</a> : '-'}</div>
                               <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {apt.location}</div>
+                              <div className="flex items-center gap-2">₹{apt.fee || 0} · {apt.paymentStatus === 'Paid' ? 'Paid' : 'Collect at visit'}</div>
                             </div>
                           </div>
                           
@@ -629,7 +641,7 @@ export default function DoctorDashboard() {
                               onClick={() => {
                                 setActiveRescheduleId(apt.id);
                                 setRescheduleStep('select');
-                                setSelectedRescheduleDate(rescheduleDates[0].label);
+                                setSelectedRescheduleDate((rescheduleDates.find((d) => slotsFor(d, apt).length) || rescheduleDates[0]).label);
                                 setActionError('');
                                 setSelectedRescheduleTime('');
                                 setIsRescheduleOpen(true);
@@ -638,7 +650,7 @@ export default function DoctorDashboard() {
                             >
                               Reschedule
                             </button>
-                            <button onClick={() => { setActiveCallAppointment(apt); setActionError(''); setIsVideoCallOpen(true); }} className="w-full py-2.5 bg-strong hover:bg-deep-3 text-white text-sm font-bold rounded-xl shadow-sm transition">Appointment Start</button>
+                            {apt.status === 'Confirmed' && <button type="button" onClick={() => startVisit(apt)} className="w-full py-2.5 bg-strong hover:bg-deep-3 text-white text-sm font-bold rounded-xl shadow-sm transition">Start visit</button>}
                           </div>
                         </div>
                       ))}
@@ -729,7 +741,7 @@ export default function DoctorDashboard() {
                       {rescheduleDates.map(d => d.label).map(date => (
                         <button 
                           key={date}
-                          onClick={() => setSelectedRescheduleDate(date)}
+                          onClick={() => { setSelectedRescheduleDate(date); setSelectedRescheduleTime(''); }}
                           className={`shrink-0 px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all ${selectedRescheduleDate === date ? 'border-strong bg-strong/5 text-strong' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                         >
                           {date}
@@ -742,7 +754,8 @@ export default function DoctorDashboard() {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Available Time Slots</label>
                     <div className="grid grid-cols-3 gap-3">
-                      {['09:00 AM', '10:30 AM', '11:00 AM', '02:00 PM', '03:30 PM', '05:00 PM'].map(time => (
+                      {slotsFor(rescheduleDates.find((d) => d.label === selectedRescheduleDate), activeAppointment).length === 0 && <p className="col-span-3 text-sm text-gray-500">No open slots on this day – pick another date, or add slots in Settings → Edit profile and availability.</p>}
+                      {slotsFor(rescheduleDates.find((d) => d.label === selectedRescheduleDate), activeAppointment).map(time => (
                         <button 
                           key={time}
                           onClick={() => setSelectedRescheduleTime(time)}
@@ -791,105 +804,67 @@ export default function DoctorDashboard() {
         </div>
       )}
 
-      {/* Video Consultation Overlay */}
-      {isVideoCallOpen && (
-        <div className="fixed inset-0 z-[200] bg-gray-900 flex flex-col md:flex-row overflow-hidden animate-[fade-in_0.3s_ease-out]">
-          
-          {/* Main Video Area */}
-          <div className="flex-1 relative flex flex-col">
-            
-            {/* Top Bar */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/60 to-transparent">
-              <div className="flex items-center gap-4">
-                <div className="bg-red-500 w-3 h-3 rounded-full animate-pulse"></div>
-                <span className="text-white font-bold tracking-widest text-sm">LIVE</span>
-                <span className="text-white/80 font-medium ml-2 border-l border-white/20 pl-4">00:14:32</span>
-              </div>
-              <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-white font-bold text-sm">
-                {activeCallAppointment?.patient} - {activeCallAppointment?.title}
-              </div>
-            </div>
-
-            {/* Main Patient Video (Placeholder) */}
-            <div className="flex-1 bg-black w-full h-full relative">
-              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(activeCallAppointment?.patient || 'Patient')}&background=334155&color=fff&size=512`} alt="Patient Video" className="w-full h-full object-cover opacity-80" />
-              
-              {/* Doctor PIP */}
-              <div className="absolute bottom-28 right-6 w-48 h-64 bg-black rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl">
-                <img src={profile?.img || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'Doctor')}&background=5A2F8F&color=fff`} alt="Doctor Video" className="w-full h-full object-cover" />
-                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded">{profile?.name || 'You'} (You)</div>
-              </div>
-            </div>
-
-            {/* Bottom Controls */}
-            <div className="h-24 bg-gray-900 border-t border-gray-800 flex items-center justify-center gap-6 px-6">
-              <button className="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition">
-                <Mic className="w-5 h-5" />
-              </button>
-              <button className="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition">
-                <Video className="w-5 h-5" />
-              </button>
-              <button onClick={() => setIsVideoCallOpen(false)} className="w-16 h-12 rounded-2xl bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-500/20 transition">
-                <PhoneOff className="w-6 h-6" />
-              </button>
-              <button className="w-12 h-12 rounded-full bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center transition">
-                <MessageSquare className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Clinical Notes Sidebar */}
-          <div className="w-full md:w-[400px] bg-white border-l border-gray-200 flex flex-col h-full">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-primary">Clinical Notes</h3>
-              <button onClick={() => setIsVideoCallOpen(false)} className="p-2 hover:bg-gray-200 rounded-lg text-gray-500 transition">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-auto p-6">
-              <div className="mb-6">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Patient History</p>
-                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    <strong>Patient:</strong> {activeCallAppointment?.patient} ({activeCallAppointment?.phone})<br/>
-                    <strong>Previous Visits:</strong> {allAppointments.filter((a) => a.status === 'Completed' && a.patient === activeCallAppointment?.patient).length}<br/>
-                    <strong>Consultation:</strong> {activeCallAppointment?.title} • {activeCallAppointment?.location}<br/>
-                    <strong>Chief Complaint:</strong> {activeCallAppointment?.reason || 'Not provided by patient.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-4 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Blood Pressure</label>
-                  <input value={visitVitals.bloodPressure} onChange={(e) => setVisitVitals((v) => ({ ...v, bloodPressure: e.target.value }))} placeholder="120/80" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-strong/50 outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Weight (kg)</label>
-                  <input type="number" min="0" value={visitVitals.weight} onChange={(e) => setVisitVitals((v) => ({ ...v, weight: e.target.value }))} placeholder="70" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-strong/50 outline-none" />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Symptoms & Observations</label>
-                <textarea value={visitNotes.symptoms} onChange={(e) => setVisitNotes((n) => ({ ...n, symptoms: e.target.value }))} className="w-full h-32 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-strong/50 outline-none resize-none" placeholder="Type clinical observations here during the call..."></textarea>
-              </div>
-
+      {/* Visit panel: contact the patient, record vitals, notes and the prescription */}
+      {isVideoCallOpen && activeCallAppointment && (
+        <div className="fixed inset-0 z-[200] flex items-stretch sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="Visit">
+          <div className="absolute inset-0 bg-deep/60 backdrop-blur-sm" onClick={() => setIsVideoCallOpen(false)}></div>
+          <div className="relative bg-white sm:rounded-[24px] w-full max-w-3xl max-h-full sm:max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-[fade-in_0.3s_ease-out]">
+            <div className="bg-deep text-white p-6 flex items-start justify-between gap-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Prescription / Action Plan</label>
-                <textarea value={visitNotes.prescription} onChange={(e) => setVisitNotes((n) => ({ ...n, prescription: e.target.value }))} className="w-full h-32 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-strong/50 outline-none resize-none" placeholder="List medications or next steps..."></textarea>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60 flex items-center gap-1.5"><Stethoscope className="w-3.5 h-3.5" /> {activeCallAppointment.title} · {activeCallAppointment.code}</p>
+                <h2 className="text-2xl font-semibold mt-1">{activeCallAppointment.patient}</h2>
+                <p className="text-sm text-white/70 mt-1">{activeCallAppointment.date} at {activeCallAppointment.time} · {activeCallAppointment.location}</p>
+              </div>
+              <button type="button" aria-label="Close visit" onClick={() => setIsVideoCallOpen(false)} className="p-2 rounded-full bg-white/10 hover:bg-white/20"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-6 grid md:grid-cols-[1fr_1.4fr] gap-6">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 space-y-1.5">
+                  <p><strong>Phone:</strong> {activeCallAppointment.phone || '-'}</p>
+                  <p><strong>Previous visits with you:</strong> {allAppointments.filter((a) => a.status === 'Completed' && a.patient === activeCallAppointment.patient).length}</p>
+                  <p><strong>Reason:</strong> {activeCallAppointment.reason || 'Not provided by the patient.'}</p>
+                  <p><strong>Fee:</strong> ₹{activeCallAppointment.fee || 0} · {activeCallAppointment.paymentStatus === 'Paid' ? 'Paid online' : 'Collect at the visit'}</p>
+                </div>
+                {activeCallAppointment.phone && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <a href={`tel:${activeCallAppointment.phone}`} className="h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover"><Phone className="w-4 h-4" /> Call</a>
+                    <a href={waLink(activeCallAppointment.phone)} target="_blank" rel="noreferrer" className="h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 text-primary text-sm font-bold hover:bg-gray-50"><MessageCircle className="w-4 h-4" /> WhatsApp</a>
+                  </div>
+                )}
+                {activeCallAppointment.consultationType === 'online' && (
+                  <p className="text-xs text-gray-500 leading-relaxed">For an online consultation, call the patient or start a WhatsApp video call at the booked time, then record the visit here.</p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Blood Pressure</span>
+                    <input id="visit-bp" value={visitVitals.bloodPressure} onChange={(e) => setVisitVitals((v) => ({ ...v, bloodPressure: e.target.value }))} placeholder="120/80" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-strong/50 outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Weight (kg)</span>
+                    <input id="visit-weight" type="number" min="0" value={visitVitals.weight} onChange={(e) => setVisitVitals((v) => ({ ...v, weight: e.target.value }))} placeholder="70" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-strong/50 outline-none" />
+                  </label>
+                </div>
+                <label className="block">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Symptoms & Observations</span>
+                  <textarea value={visitNotes.symptoms} onChange={(e) => setVisitNotes((n) => ({ ...n, symptoms: e.target.value }))} className="w-full h-28 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-strong/50 outline-none resize-none" placeholder="Clinical observations from the visit..."></textarea>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Prescription / Action Plan</span>
+                  <textarea value={visitNotes.prescription} onChange={(e) => setVisitNotes((n) => ({ ...n, prescription: e.target.value }))} className="w-full h-28 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-strong/50 outline-none resize-none" placeholder="List medications or next steps..."></textarea>
+                </label>
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50">
-              {actionError && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-3">{actionError}</p>}
-              <button onClick={handleCompleteVisit} className="w-full py-3 bg-strong hover:bg-deep-3 text-white font-bold rounded-xl shadow-md transition">
-                Save & Complete Visit
-              </button>
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+              {actionError && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2 sm:mr-auto">{actionError}</p>}
+              <button type="button" onClick={() => setIsVideoCallOpen(false)} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50">Close</button>
+              <button type="button" onClick={handleCompleteVisit} className="px-6 py-3 bg-strong hover:bg-deep-3 text-white font-bold rounded-xl shadow-md transition">Save & Complete Visit</button>
             </div>
           </div>
-
         </div>
       )}
 

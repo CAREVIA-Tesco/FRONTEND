@@ -106,6 +106,9 @@ export default function ProfessionalOnboarding() {
   const updateForm = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   // Only logged-in doctors can onboard; prefill the form if a profile already exists
+  // specialities added in Admin → Specializations
+  const [catalogSpecs, setCatalogSpecs] = useState([]);
+  useEffect(() => { api.getSpecializations().then((d) => setCatalogSpecs((d.specializations || []).filter((x) => x.status === 'Active').map((x) => x.name))).catch(() => {}); }, []);
   useEffect(() => {
     const user = getSessionUser();
     if (!user || user.role !== 'doctor') {
@@ -420,7 +423,7 @@ export default function ProfessionalOnboarding() {
                     {profession && profession !== 'Select Profession' ? (
                       <select id="ob-spec" value={form.specialization} onChange={updateForm('specialization')} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition text-gray-600">
                         <option value="">Select {profession === 'Lab Centre' ? 'Service' : 'Specialization'}</option>
-                        {specializationOptions[profession]?.map(opt => (
+                        {[...new Set([...(specializationOptions[profession] || []), ...(profession === 'MBBS Doctor' ? catalogSpecs : [])])].map(opt => (
                           <option key={opt}>{opt}</option>
                         ))}
                       </select>
