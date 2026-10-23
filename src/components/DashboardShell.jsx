@@ -6,11 +6,12 @@ function Avatar({ src, initials, className }) {
   return <span className={`${className} shrink-0 flex items-center justify-center font-semibold text-white bg-secondary`}>{initials}</span>;
 }
 import { Link } from 'react-router-dom';
-import { Menu, X, LogOut, ExternalLink, Bell } from 'lucide-react';
+import { Menu, X, LogOut, ExternalLink } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 // Shared layout for the patient and doctor dashboards (Plum & Rose theme):
 // deep plum sidebar (drawer on mobile) + light top bar + content area.
-export default function DashboardShell({ roleLabel, nav, active, onSelect, onLogout, user, title, headerCenter, headerActions, notifications = 0, onNotifications, children }) {
+export default function DashboardShell({ roleLabel, nav, active, onSelect, onLogout, user, title, headerCenter, headerActions, children }) {
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [active]);
   const initials = (user?.name || '?').replace(/^Dr\.?\s*/i, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
@@ -79,10 +80,7 @@ export default function DashboardShell({ roleLabel, nav, active, onSelect, onLog
           <div className="flex-1 flex justify-end sm:justify-center min-w-0">{headerCenter}</div>
           <div className="flex items-center gap-1 sm:gap-2">
             {headerActions}
-            <button type="button" onClick={onNotifications} className="relative p-2.5 rounded-xl text-primary/60 hover:text-primary hover:bg-tint" aria-label="Notifications">
-              <Bell className="h-5 w-5" />
-              {notifications > 0 && <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-white text-[10px] font-semibold flex items-center justify-center">{notifications}</span>}
-            </button>
+            <NotificationBell buttonClassName="text-primary/60 hover:text-primary hover:bg-tint" />
             <span className="hidden md:flex items-center gap-2.5 pl-2 ml-1 border-l border-line-soft">
               <Avatar src={user?.img} initials={initials} className="h-9 w-9 rounded-full text-sm" />
               <span className="hidden xl:block leading-tight">

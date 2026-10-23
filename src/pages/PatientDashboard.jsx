@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Calendar, FileText, Search, Activity, User, MapPin, CheckCircle, Clock,
   ClipboardList, Star, Filter, UserCog, KeyRound, Phone, CreditCard,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { getSessionUser, logout } from '../services/api';
 import { saveCurrentUser } from '../utils/storage';
 import BookingModal from '../components/BookingModal';
@@ -34,6 +34,16 @@ export default function PatientDashboard() {
   const [sortBy, setSortBy] = useState('rating');
 
   const navigate = useNavigate();
+  // notifications open a tab with ?tab=…  (the parameter is removed once used, so the same link works again)
+  const [tabParams, setTabParams] = useSearchParams();
+  useEffect(() => {
+    const t = tabParams.get('tab');
+    if (!t) return;
+    setActiveTab(t);
+    const next = new URLSearchParams(tabParams);
+    next.delete('tab');
+    setTabParams(next, { replace: true });
+  }, [tabParams]);
   const sessionUser = getSessionUser();
   const [allAppointments, setAllAppointments] = useState([]);
   const [doctorList, setDoctorList] = useState([]);
@@ -194,8 +204,6 @@ export default function PatientDashboard() {
       onLogout={handleLogout}
       user={{ name: sessionUser?.name || 'Patient', sub: sessionUser?.email || sessionUser?.phone || 'Patient' }}
       title={TAB_TITLES[activeTab] || 'Dashboard'}
-      notifications={myAppointments.length}
-      onNotifications={() => setActiveTab('Appointments')}
       headerActions={
         <button type="button" onClick={() => openBooking()} className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-secondary text-white text-sm font-semibold shadow-[0_10px_24px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] hover:brightness-95 transition">
           <Calendar className="w-4 h-4" /> Book a visit

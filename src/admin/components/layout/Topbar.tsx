@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"
-import { Search, Bell, LogOut, Menu, ExternalLink } from "lucide-react"
+import { useState } from "react"
+import { Search, LogOut, Menu, ExternalLink } from "lucide-react"
+import NotificationBell from "../../../components/NotificationBell"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import api, { getSessionUser, logout } from "../../../services/api"
+import { getSessionUser, logout } from "../../../services/api"
 
 const TITLES: Record<string, string> = {
   "": "Dashboard", patients: "Patients", providers: "Doctors & Providers", specializations: "Specializations",
@@ -19,12 +20,8 @@ export function Topbar({ onMenu }: { onMenu?: () => void }) {
   const initials = name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
   const section = location.pathname.replace(/^\/admin\/?/, "").split("/")[0]
   const title = TITLES[section] || "Admin"
-  const [alerts, setAlerts] = useState(0)
   const [query, setQuery] = useState("")
 
-  useEffect(() => {
-    api.getStats().then((d: any) => setAlerts((d?.stats?.newEnquiries || 0) + (d?.stats?.pendingProviders || 0))).catch(() => {})
-  }, [location.pathname])
 
   const handleLogout = () => {
     logout()
@@ -61,11 +58,7 @@ export function Topbar({ onMenu }: { onMenu?: () => void }) {
       </form>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <Link to="/admin/enquiries" className="relative p-2.5 rounded-xl text-muted hover:text-charcoal hover:bg-slate-100" title="Notifications">
-          <span className="sr-only">View notifications</span>
-          <Bell className="h-5 w-5" aria-hidden="true" />
-          {alerts > 0 && <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-white text-[10px] font-semibold flex items-center justify-center">{alerts > 99 ? "99+" : alerts}</span>}
-        </Link>
+        <NotificationBell buttonClassName="text-muted hover:text-charcoal hover:bg-slate-100" badgeClassName="bg-secondary" accentClassName="text-brand-600" />
         <a href="/" target="_blank" rel="noreferrer" className="hidden md:flex p-2.5 rounded-xl text-muted hover:text-charcoal hover:bg-slate-100" title="View website">
           <span className="sr-only">View website</span>
           <ExternalLink className="h-5 w-5" aria-hidden="true" />

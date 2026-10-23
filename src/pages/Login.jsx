@@ -175,7 +175,7 @@ export default function Login() {
                     key={key}
                     type="button"
                     aria-pressed={role === key}
-                    onClick={() => setRole(key)}
+                    onClick={() => { setRole(key); if (key === 'admin' && view === 'register') switchView('login'); }}
                     className={`h-10 text-sm font-semibold rounded-xl transition-all ${role === key ? 'bg-primary text-white shadow-md' : 'text-primary/60 hover:text-primary hover:bg-white'}`}
                   >
                     {label}
@@ -282,12 +282,14 @@ export default function Login() {
                   </div>
                 </form>
 
+                {role !== 'admin' && (
                 <p className="mt-6 lg:mt-5 text-center text-sm text-primary/70">
                   {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
                   <button type="button" onClick={() => switchView(isRegister ? 'login' : 'register')} className="font-semibold text-secondary hover:underline">
                     {isRegister ? 'Login here' : 'Register'}
                   </button>
                 </p>
+                )}
               </div>
             </div>
 

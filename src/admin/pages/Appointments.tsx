@@ -3,6 +3,7 @@ import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
 import { Search, Download, Plus, CalendarCheck, CalendarClock, CalendarX, CalendarDays } from "lucide-react"
 import { useState, useEffect, Fragment } from "react"
+import { useSearchParams } from "react-router-dom"
 import { CreateAppointmentModal } from "../components/CreateAppointmentModal"
 import { Notice } from "../components/ui/Notice"
 import { Pager } from "../components/ui/Pager"
@@ -12,7 +13,9 @@ import { useApi, downloadCsv } from "../lib/useApi"
 
 export function Appointments() {
   const { data, error: loadError, reload } = useApi(() => api.getAppointments())
-  const [search, setSearch] = useState("")
+  const [urlParams] = useSearchParams()
+  const [search, setSearch] = useState(urlParams.get("q") || "")
+  useEffect(() => { const q = urlParams.get("q"); if (q !== null) setSearch(q) }, [urlParams])
   const [statusFilter, setStatusFilter] = useState("All")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [actionError, setActionError] = useState("")

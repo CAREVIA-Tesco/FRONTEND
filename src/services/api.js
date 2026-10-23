@@ -66,6 +66,11 @@ export const api = {
   login: (identifier, password, role) => request('/auth/login', { method: 'POST', body: { identifier, password, role }, auth: false }),
   register: (name, identifier, password, role, details = {}) => request('/auth/register', { method: 'POST', body: { ...details, name, identifier, password, role }, auth: false }),
   me: () => request('/auth/me'),
+  // notifications (bell icon)
+  notifications: (limit = 30) => request(`/notifications?limit=${limit}`),
+  readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
+  readAllNotifications: () => request('/notifications/read-all', { method: 'POST' }),
+  clearNotifications: () => request('/notifications', { method: 'DELETE' }),
   updateMe: (data) => request('/auth/me', { method: 'PUT', body: data }),
   // forgot password (SMS OTP)
   forgotPassword: (phone) => request('/auth/forgot-password', { method: 'POST', body: { phone }, auth: false }),

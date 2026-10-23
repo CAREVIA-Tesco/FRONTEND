@@ -4,7 +4,7 @@ import {
   Settings, Search, TrendingUp, Users,
   Activity, CheckCircle, ChevronDown, X, MapPin, Phone, CalendarCheck
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { getSessionUser, logout } from '../services/api';
 import DoctorRequests from '../components/DoctorRequests';
 import DashboardShell from '../components/DashboardShell';
@@ -24,6 +24,16 @@ export default function DoctorDashboard() {
   const [appointmentTab, setAppointmentTab] = React.useState('Upcoming');
   
   const navigate = useNavigate();
+  // notifications open a tab with ?tab=…  (the parameter is removed once used, so the same link works again)
+  const [tabParams, setTabParams] = useSearchParams();
+  React.useEffect(() => {
+    const t = tabParams.get('tab');
+    if (!t) return;
+    setActiveTab(t);
+    const next = new URLSearchParams(tabParams);
+    next.delete('tab');
+    setTabParams(next, { replace: true });
+  }, [tabParams]);
   const [profile, setProfile] = React.useState(null);
   const [allAppointments, setAllAppointments] = React.useState([]);
   const [loadError, setLoadError] = React.useState('');
@@ -222,8 +232,6 @@ export default function DoctorDashboard() {
       onLogout={handleLogout}
       user={{ name: profile?.name || getSessionUser()?.name || 'Doctor', sub: profile?.spec || 'Healthcare professional', img: profile?.img }}
       title={activeTab}
-      notifications={requestBadge}
-      onNotifications={() => setActiveTab('Care Requests')}
       headerCenter={
         <div className="hidden md:flex items-center relative w-full max-w-md">
           <Search className="w-4 h-4 absolute left-3.5 text-primary/40" />
