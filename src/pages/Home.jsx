@@ -124,6 +124,13 @@ export default function Home() {
   // offers: the admin's own list (Admin → Website Content → Offers); while that is empty,
   // automatic offers built from the pricing rules + live fees
   const customOffers = useSiteContent('offers');
+  // Admin → Website Content → Homepage sections: any section can be hidden
+  const sectionSettings = useSiteContent('home-sections')[0] || {};
+  const on = (k) => sectionSettings[k] !== 'hide';
+  const howSteps = useSiteContent('how-it-works');
+  const whyPoints = useSiteContent('why-carevaa');
+  const steps = howSteps.length ? howSteps.filter((x) => x && x.title).map((x, i) => ({ ...x, icon: STEPS[i % STEPS.length].icon })) : STEPS;
+  const benefits = whyPoints.length ? whyPoints.filter((x) => x && x.title).map((x, i) => ({ ...x, icon: BENEFITS[i % BENEFITS.length].icon })) : BENEFITS;
   const autoOffers = useMemo(() => {
     if (!rules) return [];
     const list = [];
@@ -139,7 +146,7 @@ export default function Home() {
   }, [rules, stats, minOnlineFee]);
   const offers = customOffers.length
     ? customOffers.filter((o) => o && o.show !== 'hide' && o.title).map((o, i) => ({ key: `offer-${i}`, img: o.img || '/home-hero.jpg', badge: o.badge, title: o.title, line: o.line, service: o.service || o.title, plan: o.plan, terms: o.terms }))
-    : autoOffers;
+    : on('offersAuto') ? autoOffers : [];
 
   // cities grouped by state
   const states = useMemo(() => {
@@ -263,6 +270,7 @@ export default function Home() {
       </section>
 
       {/* 2. Services */}
+      {on('services') && (<>
       <section id="services" className="py-14 lg:py-24 bg-cream">
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-12">
           <Heading eyebrow="What we do" title="Healthcare Services at Your Doorstep" desc="Carevaa brings a full range of medical and care services to patients at home, including:" />
@@ -295,14 +303,16 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
+      </>)}
 
       {/* 3. How it works */}
+      {on('how') && (<>
       <section id="how-it-works" className="py-14 lg:py-24 bg-gradient-to-br from-deep via-deep-2 to-deep-3 relative overflow-hidden">
         <div className="dot-grid absolute inset-0 pointer-events-none" />
         <div className="relative max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
           <Heading light eyebrow="A simple, guided process" title="How Carevaa Works" />
           <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2">
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <Reveal key={s.title} delay={i * 100} className="w-[80%] shrink-0 snap-start sm:w-auto">
                 <div className="relative h-full rounded-2xl border border-white/10 bg-white/[0.04] p-6 lg:p-7 overflow-hidden hover:bg-white/[0.07] transition-colors">
                   <span className="absolute -top-3 right-4 font-poppins font-bold text-[96px] leading-none text-white/[0.06] select-none" aria-hidden="true">{i + 1}</span>
@@ -315,8 +325,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </>)}
 
       {/* 4. Offers */}
+      {on('offers') && (<>
       {offers.length > 0 && (
         <section id="offers" className="py-14 lg:py-24 bg-white">
           <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
@@ -344,8 +356,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 5. Stats band */}
+      {on('stats') && (<>
       <section className="bg-tint dot-grid-dark border-y border-black/[0.04]">
         <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16 py-8 lg:py-12 grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-black/10">
           <div className="col-span-2 lg:col-span-1 text-center px-4 py-4 lg:py-6">
@@ -360,8 +374,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </>)}
 
       {/* 6. Testimonials */}
+      {on('testimonials') && (<>
       {testimonials.length > 0 && (
         <section id="testimonials" className="py-14 lg:py-24 bg-white">
           <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
@@ -385,8 +401,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 7. Expert doctor panel */}
+      {on('doctors') && (<>
       {experts.length > 0 && (
         <section id="experts" className="py-14 lg:py-24 bg-tint">
           <div className="max-w-[1320px] mx-auto px-5 sm:px-8">
@@ -418,8 +436,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 8. Why Carevaa */}
+      {on('why') && (<>
       <section id="about" className="py-14 lg:py-24 bg-white overflow-hidden">
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 grid lg:grid-cols-2 gap-14 items-center">
           <Reveal className="relative">
@@ -436,7 +456,7 @@ export default function Home() {
               <p className="mt-4 text-[15px] md:text-lg leading-relaxed text-gray-600 font-light">Carevaa brings hospital-quality care home. We connect families with qualified doctors, physiotherapists, nurses and caregivers – and keep every visit, prescription and payment in one place.</p>
             </Reveal>
             <div className="grid sm:grid-cols-2 gap-4 mt-8 mb-9">
-              {BENEFITS.map((b, i) => (
+              {benefits.map((b, i) => (
                 <Reveal key={b.title} delay={i * 70} className="flex gap-4 p-4 rounded-xl border border-black/[0.06] hover:border-accent/30 transition-colors">
                   <span className="w-12 h-12 rounded-lg bg-mint text-accent flex items-center justify-center shrink-0"><b.icon className="w-5 h-5" /></span>
                   <div>
@@ -453,8 +473,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </>)}
 
       {/* 9. Stories & articles */}
+      {on('articles') && (<>
       {blog.length > 0 && (
         <section id="stories" className="py-14 lg:py-24 bg-cream">
           <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
@@ -477,8 +499,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 10. Presence */}
+      {on('cities') && (<>
       {states.length > 0 && (
         <section id="cities" className="py-14 lg:py-24 bg-white">
           <div className="max-w-[1320px] mx-auto px-5 sm:px-8">
@@ -501,8 +525,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 11. Partner / join */}
+      {on('partner') && (<>
       <section className="py-20 bg-tint">
         <Reveal className="max-w-[1320px] mx-auto px-5 sm:px-8">
           <div className="bg-white rounded-2xl overflow-hidden grid lg:grid-cols-2 items-center border border-black/[0.05]">
@@ -519,8 +545,10 @@ export default function Home() {
           </div>
         </Reveal>
       </section>
+      </>)}
 
       {/* 12. FAQ */}
+      {on('faq') && (<>
       {faqs.length > 0 && (
         <section id="faq" className="py-14 lg:py-24 bg-white">
           <div className="max-w-[1100px] mx-auto px-4 sm:px-8">
@@ -553,8 +581,10 @@ export default function Home() {
           </div>
         </section>
       )}
+      </>)}
 
       {/* 13. Closing CTA */}
+      {on('cta') && (<>
       <section className="py-20 lg:py-24 bg-gradient-to-br from-deep via-deep-2 to-deep-3 relative overflow-hidden">
         <div className="dot-grid absolute inset-0 pointer-events-none" />
         <Reveal className="relative max-w-4xl mx-auto px-4 text-center text-white">
@@ -570,11 +600,14 @@ export default function Home() {
 
       <SiteFooter />
       <div className="sm:hidden h-[72px] bg-primary" />
+      </>)}
 
       {/* Floating chat bubble */}
+      {on('chat') && (<>
       <button type="button" onClick={chat} aria-label="Chat with us" className="fixed bottom-24 sm:bottom-6 right-4 sm:right-6 z-40 w-14 h-14 sm:w-[64px] sm:h-[58px] text-accent hover:scale-105 transition-transform drop-shadow-lg">
         <MessageCircleMore className="w-full h-full fill-accent text-white" strokeWidth={1.4} />
       </button>
+      </>)}
 
       {/* Mobile sticky action bar */}
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-black/5 px-4 py-3 grid grid-cols-2 gap-3 shadow-[0_-8px_24px_color-mix(in_srgb,var(--color-primary)_8%,transparent)]">

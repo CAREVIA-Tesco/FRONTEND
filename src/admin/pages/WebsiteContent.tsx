@@ -5,7 +5,9 @@ import { Button } from "../components/ui/Button"
 import api from "../../services/api"
 
 type Field = { name: string; label: string; type?: "text" | "textarea" | "number" | "paragraphs" | "select"; placeholder?: string; options?: [string, string][] }
-type Section = { key: string; title: string; desc: string; single?: boolean; preview?: string; itemLabel?: (i: any) => string; fields: Field[]; blank?: any }
+type Section = { key: string; title: string; desc: string; single?: boolean; preview?: string; itemLabel?: (i: any) => string; fields: Field[]; blank?: any; defaults?: any[] }
+
+const SHOW: [string, string][] = [["show", "Shown"], ["hide", "Hidden"]]
 
 // Everything the public website reads from GET /api/content/:key, editable without touching code
 const SECTIONS: Section[] = [
@@ -19,7 +21,23 @@ const SECTIONS: Section[] = [
     { name: "twitter", label: "X (Twitter) link", placeholder: "https://x.com/carevaa" }, { name: "linkedin", label: "LinkedIn link", placeholder: "https://linkedin.com/company/carevaa" },
     { name: "youtube", label: "YouTube link", placeholder: "https://youtube.com/@carevaa" },
   ] },
-  { key: "offers", title: "Offers", desc: "Offer cards in the homepage \"New Offers\" section. While this list is empty the website shows automatic offers worked out from the Package pricing rules and your professionals' fees. Once you add offers here, only these are shown – set an offer to Hidden to take it off the site without deleting it.", preview: "/#offers", itemLabel: (i) => `${i.title || "New offer"}${i.show === "hide" ? " (hidden)" : ""}`, blank: { title: "", badge: "", line: "", service: "", plan: "", img: "/physio-section.png", show: "show" }, fields: [
+  { key: "home-sections", title: "Homepage sections", desc: "Show or hide each section of the homepage. Hidden sections disappear from the website straight away; their content is kept so you can show them again later.", single: true, preview: "/", fields: [
+    { name: "services", label: "Our services", type: "select", options: SHOW },
+    { name: "how", label: "How Carevaa works", type: "select", options: SHOW },
+    { name: "offers", label: "New offers", type: "select", options: SHOW },
+    { name: "offersAuto", label: "Automatic offers (shown while your Offers list is empty)", type: "select", options: SHOW },
+    { name: "stats", label: "Numbers band", type: "select", options: SHOW },
+    { name: "testimonials", label: "Testimonials", type: "select", options: SHOW },
+    { name: "doctors", label: "Meet our expert doctors", type: "select", options: SHOW },
+    { name: "why", label: "About / Why Carevaa", type: "select", options: SHOW },
+    { name: "articles", label: "Stories & articles (blog)", type: "select", options: SHOW },
+    { name: "cities", label: "Cities we serve", type: "select", options: SHOW },
+    { name: "partner", label: "Partner / join us", type: "select", options: SHOW },
+    { name: "faq", label: "FAQs", type: "select", options: SHOW },
+    { name: "cta", label: "Closing call-to-action", type: "select", options: SHOW },
+    { name: "chat", label: "Floating chat button", type: "select", options: SHOW },
+  ] },
+  { key: "offers", title: "Offers", desc: "Offer cards in the homepage \"New Offers\" section. While this list is empty the website shows automatic offers worked out from the Package pricing rules and your professionals' fees – to remove those, set Homepage sections → Automatic offers to Hidden. Once you add offers here, only yours are shown. Delete an offer with the bin icon, or set it to Hidden to keep it for later.", preview: "/#offers", itemLabel: (i) => `${i.title || "New offer"}${i.show === "hide" ? " (hidden)" : ""}`, blank: { title: "", badge: "", line: "", service: "", plan: "", img: "/physio-section.png", show: "show" }, fields: [
     { name: "show", label: "Show on website", type: "select", options: [["show", "Shown"], ["hide", "Hidden"]] },
     { name: "badge", label: "Badge", placeholder: "e.g. 10% Off, From ₹500, New" }, { name: "title", label: "Title", placeholder: "e.g. Physiotherapy" },
     { name: "line", label: "Offer text", type: "textarea", placeholder: "e.g. 10-session pack at ₹315 per session – save ₹350" },
@@ -27,6 +45,22 @@ const SECTIONS: Section[] = [
     { name: "plan", label: "Plan name (optional)", placeholder: "Fill for a plan – the button becomes \"Get this plan\" and opens a plan enquiry" },
     { name: "img", label: "Image URL", placeholder: "/physio-section.png, /nurse-hero.jpg, /caretaker-hero.png, /home-hero.jpg or https://…" },
     { name: "terms", label: "Small print (optional)", placeholder: "*T&C Apply" },
+  ] },
+  { key: "how-it-works", title: "How Carevaa works", desc: "The steps in the homepage \"How Carevaa Works\" section. Add, edit, reorder or delete steps.", preview: "/#how-it-works", itemLabel: (i) => i.title, blank: { title: "", desc: "" }, defaults: [
+    { title: "Book or request a call", desc: "Pick an open slot online, or leave your number and a Carevaa care advisor calls you back." },
+    { title: "Understand the need", desc: "We learn about the patient’s condition and match a qualified professional to it." },
+    { title: "Care at your doorstep", desc: "A verified doctor, nurse, physio or caregiver visits your home – or consults online." },
+    { title: "Records & follow-up", desc: "Vitals, notes and prescriptions are saved to your dashboard after every visit." },
+  ], fields: [
+    { name: "title", label: "Step title" }, { name: "desc", label: "Description", type: "textarea" },
+  ] },
+  { key: "why-carevaa", title: "Why Carevaa points", desc: "The benefit boxes in the homepage \"About Carevaa\" section.", preview: "/#about", itemLabel: (i) => i.title, blank: { title: "", desc: "" }, defaults: [
+    { title: "Verified Professionals", desc: "Qualifications and registration checked at onboarding" },
+    { title: "24/7 Booking", desc: "Book anytime and see real open slots instantly" },
+    { title: "Transparent Pricing", desc: "See the exact fee before you pay – no hidden charges" },
+    { title: "Easy Refunds", desc: "Cancelled paid appointments are refunded automatically" },
+  ], fields: [
+    { name: "title", label: "Title" }, { name: "desc", label: "Description", type: "textarea" },
   ] },
   { key: "faqs", title: "FAQs", desc: "Questions shown on the homepage.", preview: "/#faq", itemLabel: (i) => i.q, blank: { q: "", a: "" }, fields: [
     { name: "q", label: "Question" }, { name: "a", label: "Answer", type: "textarea" },
@@ -70,7 +104,7 @@ export function WebsiteContent() {
   useEffect(() => {
     setLoading(true); setMsg(null); setDirty(false); setOpenIdx(0)
     api.getContent(active)
-      .then((d: any) => setItems(section.single ? [d.items?.[0] || {}] : d.items || []))
+      .then((d: any) => setItems(section.single ? [d.items?.[0] || {}] : d.items?.length ? d.items : (section.defaults || []).map((x) => ({ ...x }))))
       .catch((e: any) => setMsg({ ok: false, text: e.message }))
       .finally(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -9,12 +9,14 @@ export function useNotifications({ interval = 45000 } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const alive = useRef(true);
+  const changes = useRef(0); // bumped by every local change, so a slower load can't undo it
 
   const load = useCallback(async () => {
     if (!getToken()) { setLoading(false); return; }
+    const at = changes.current;
     try {
       const d = await api.notifications(30);
-      if (!alive.current) return;
+      if (!alive.current || at !== changes.current) return;
       setItems(d.notifications || []);
       setUnread(d.unread || 0);
       setError('');
@@ -43,18 +45,21 @@ export function useNotifications({ interval = 45000 } = {}) {
   const markRead = useCallback((id) => {
     const wasUnread = items.some((n) => n.id === id && !n.read);
     if (!wasUnread) return;
+    changes.current += 1;
     setItems((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
     setUnread((u) => Math.max(0, u - 1));
     api.readNotification(id).catch(() => load());
   }, [items, load]);
 
   const markAllRead = useCallback(async () => {
+    changes.current += 1;
     setItems((list) => list.map((n) => ({ ...n, read: true })));
     setUnread(0);
     await api.readAllNotifications().catch(() => load());
   }, [load]);
 
   const clearAll = useCallback(async () => {
+    changes.current += 1;
     setItems([]);
     setUnread(0);
     await api.clearNotifications().catch(() => load());
