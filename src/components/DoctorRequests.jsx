@@ -41,7 +41,7 @@ export default function DoctorRequests({ appointments, isDoctor, onChanged, onCo
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <p className="font-bold text-primary flex items-center gap-2"><User className="w-4 h-4" /> {a.patient}</p>
-                    <p className="text-xs text-gray-500">{a.code} · {a.type} · {a.fromRequest ? 'Assigned by the care team' : 'Booked by the patient'}</p>
+                    <p className="text-xs text-gray-500">{a.code} · {a.type} · Arranged by the Carevaa team</p>
                   </div>
                   <span className="text-xs font-bold bg-amber-50 text-amber-700 rounded-full px-2.5 py-1">Awaiting you</span>
                 </div>

@@ -28,7 +28,7 @@ export function Enquiries() {
 
   const all: any[] = (data as any)?.enquiries || []
   const counts = (data as any)?.counts || {}
-  const list = all.filter((e) => !search || `${e.code} ${e.name} ${e.phone} ${e.email || ""} ${e.city || ""} ${e.pincode || ""} ${e.locality || ""} ${e.district || ""} ${e.service || ""} ${e.organisation || ""}`.toLowerCase().includes(search.toLowerCase()))
+  const list = all.filter((e) => !search || `${e.code} ${e.name} ${e.phone} ${e.email || ""} ${e.city || ""} ${e.requestedProvider || ""} ${e.pincode || ""} ${e.locality || ""} ${e.district || ""} ${e.service || ""} ${e.organisation || ""}`.toLowerCase().includes(search.toLowerCase()))
   const selected = all.find((e) => e.id === openId)
   const doctorList = ((providers.data as any)?.providers || [])
 
@@ -136,7 +136,7 @@ export function Enquiries() {
             <TableRow key={e.id} className={e.id === openId ? "bg-brand-50/50" : ""}>
               <TableCell><span className="text-brand-600 font-medium">{e.code}</span><span className="block text-xs text-muted">{TYPES[e.type]}</span></TableCell>
               <TableCell className="font-medium">{e.name}<span className="block text-xs text-muted">{e.phone}</span></TableCell>
-              <TableCell>{e.service || e.subject || "-"}{e.plan && <span className="block text-xs text-muted">{e.plan}</span>}{e.organisation && <span className="block text-xs text-muted">{e.organisation}</span>}</TableCell>
+              <TableCell>{e.service || e.subject || (e.requestedProvider ? "Doctor appointment" : "-")}{e.requestedProvider && <span className="block text-xs font-medium text-brand-600">Requested: {e.requestedProvider}</span>}{e.plan && <span className="block text-xs text-muted">{e.plan}</span>}{e.organisation && <span className="block text-xs text-muted">{e.organisation}</span>}</TableCell>
               <TableCell>{e.city || "-"}{(e.locality || e.pincode) && <span className="block text-xs text-muted">{[e.locality, e.pincode].filter(Boolean).join(" · ")}</span>}</TableCell>
               <TableCell>{e.preferredDateLabel || "-"}<span className="block text-xs text-muted">{e.preferredTime}</span></TableCell>
               <TableCell>{fmt(e.createdAt)}</TableCell>
@@ -173,7 +173,7 @@ export function Enquiries() {
 
               <dl className="grid grid-cols-2 gap-3 text-sm bg-slate-50 rounded-xl p-4">
                 {[
-                  ["Name", selected.name], ["Phone", selected.phone], ["Email", selected.email], ["PIN code", selected.pincode], ["Area / post office", selected.locality], ["City", selected.city], ["District", selected.district], ["State", selected.state], ["Visit type", selected.visitTypeLabel],
+                  ["Name", selected.name], ["Phone", selected.phone], ["Email", selected.email], ["PIN code", selected.pincode], ["Area / post office", selected.locality], ["City", selected.city], ["District", selected.district], ["State", selected.state], ["Requested doctor", selected.requestedProvider ? `${selected.requestedProvider}${selected.requestedProviderSpec ? ` (${selected.requestedProviderSpec})` : ""}` : ""], ["Visit type", selected.visitTypeLabel],
                   ["Service", selected.service], ["Care plan", selected.plan], ["Subject", selected.subject], ["Organisation", selected.organisation],
                   ["Preferred date", selected.preferredDateLabel], ["Best time", selected.preferredTime], ["Referred by", selected.referrerName ? `${selected.referrerName} (${selected.referrerPhone})` : ""], ["From page", selected.source],
                 ].filter(([, v]) => v).map(([k, v]) => (

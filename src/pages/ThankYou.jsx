@@ -108,7 +108,9 @@ export default function ThankYou() {
                 <ul className="px-6 pt-5 pb-2 space-y-3.5 text-[15px]">
                   {enquiry.preferredDateLabel && <li className="flex items-start gap-3"><CalendarClock className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Preferred visit</span>{enquiry.preferredDateLabel}{enquiry.preferredTime ? `, ${enquiry.preferredTime}` : ''}</span></li>}
                   {enquiry.city && <li className="flex items-start gap-3"><MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Location</span>{[enquiry.locality, enquiry.city, enquiry.state].filter(Boolean).join(', ')}{enquiry.pincode ? ` – ${enquiry.pincode}` : ''}</span></li>}
-                  <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Service</span>{enquiry.service || 'Our advisor will help you choose'}</span></li>
+                  {enquiry.requestedProvider
+                    ? <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Doctor</span>{enquiry.requestedProvider}{enquiry.requestedProviderSpec ? ` · ${enquiry.requestedProviderSpec}` : ''}</span></li>
+                    : <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Service</span>{enquiry.service || 'Our advisor will help you choose'}</span></li>}
                   {enquiry.phone && <li className="flex items-start gap-3"><Phone className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">We will call</span>+91 {String(enquiry.phone).replace(/\D/g, '').slice(-10)}</span></li>}
                 </ul>
                 <div className="px-6 pb-6 pt-3 grid sm:grid-cols-2 gap-2.5">

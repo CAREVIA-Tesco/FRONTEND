@@ -50,7 +50,7 @@ export default function MyRequests() {
           {list.map((e) => (
             <button key={e.id} type="button" onClick={() => setOpenId(e.id)} className="w-full text-left flex items-center gap-4 p-5 hover:bg-gray-50 transition-colors">
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900">{e.code} · {e.service || e.subject || TYPE_LABEL[e.type]}</p>
+                <p className="font-bold text-gray-900">{e.code} · {e.requestedProvider ? `Appointment with ${e.requestedProvider}` : e.service || e.subject || TYPE_LABEL[e.type]}</p>
                 <p className="text-sm text-gray-500 truncate">{TYPE_LABEL[e.type]}{e.plan ? ` · ${e.plan}` : ''} · {e.createdLabel}</p>
                 <p className="text-xs text-gray-400 truncate mt-0.5">{e.timeline[e.timeline.length - 1]?.note}</p>
               </div>

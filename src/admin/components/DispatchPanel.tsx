@@ -25,9 +25,9 @@ export function DispatchPanel({ enquiry, allProviders, onDone }: { enquiry: any;
 
   useEffect(() => {
     setMsg(null); setShowAll(false)
-    setForm({ providerId: "", date: isoDay(enquiry.preferredDate), time: toSlot(enquiry.preferredTime) || "10:00 AM", consultationType: enquiry.visitType || "home" })
+    setForm({ providerId: enquiry.requestedProviderId || "", date: isoDay(enquiry.preferredDate), time: toSlot(enquiry.preferredTime) || "10:00 AM", consultationType: enquiry.visitType || "home" })
     api.requestMatches(enquiry.id).then((d: any) => setMatches(d.providers || [])).catch(() => setMatches([]))
-  }, [enquiry.id, enquiry.preferredDate, enquiry.preferredTime])
+  }, [enquiry.id, enquiry.preferredDate, enquiry.preferredTime, enquiry.requestedProviderId])
 
   const run = async (fn: () => Promise<any>) => {
     setBusy(true); setMsg(null)
@@ -45,17 +45,21 @@ export function DispatchPanel({ enquiry, allProviders, onDone }: { enquiry: any;
   }
   if (closed) return null
 
-  const options = showAll ? allProviders.map((p: any) => ({ id: p.id, name: p.name, spec: p.spec, city: p.loc })) : (matches || [])
+  const base = showAll ? allProviders.map((p: any) => ({ id: p.id, name: p.name, spec: p.spec, city: p.loc })) : (matches || [])
+  // the doctor the patient asked for is always in the list, first
+  const asked = enquiry.requestedProviderId ? (allProviders.find((p: any) => p.id === enquiry.requestedProviderId) || null) : null
+  const options = asked ? [{ id: asked.id, name: asked.name, spec: asked.spec, city: asked.loc, asked: true }, ...base.filter((p: any) => p.id !== asked.id)] : base
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 p-4">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-semibold text-charcoal">Send to a professional</h3>
         <label className="text-xs text-muted flex items-center gap-1.5"><input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} /> show all</label>
       </div>
+      {enquiry.requestedProvider && <p className="text-sm rounded-lg bg-brand-50 text-brand-700 px-3 py-2">Patient asked for <strong>{enquiry.requestedProvider}</strong>. Call the doctor to arrange the time, then send it below.</p>}
       <p className="text-xs text-muted">{matches === null ? "Finding matching professionals…" : `${matches.length} professional${matches.length === 1 ? "" : "s"} match ${enquiry.service || "this request"}${enquiry.city ? ` in ${enquiry.city}` : ""}.`}</p>
       <select aria-label="Professional" value={form.providerId} onChange={(e) => setForm({ ...form, providerId: e.target.value })} className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
         <option value="">Choose a professional</option>
-        {options.map((p: any) => <option key={p.id} value={p.id}>{p.name} · {p.spec} · {p.city}{p.declined ? " (declined before)" : ""}</option>)}
+        {options.map((p: any) => <option key={p.id} value={p.id}>{p.name} · {p.spec} · {p.city}{p.asked ? " (requested by patient)" : ""}{p.declined ? " (declined before)" : ""}</option>)}
       </select>
       <div className="grid grid-cols-3 gap-2">
         <input aria-label="Visit date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="h-10 rounded-lg border border-slate-200 px-2 text-sm" />

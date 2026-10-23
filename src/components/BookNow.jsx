@@ -9,6 +9,8 @@ import { usePincode, pincodeErrors } from '../services/usePincode';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
+// Booking a particular doctor: useBookNow()({ doctor: { id, name, spec } }) – the request names that doctor
+// and goes to the admin team, who arrange the appointment with the doctor.
 const BookNowContext = createContext(() => {});
 export const useBookNow = () => useContext(BookNowContext);
 
@@ -116,7 +118,7 @@ function BookNowModal({ open, onClose, preset }) {
     setSaving(true); setServerError('');
     try {
       const res = await api.createEnquiry({
-        type: 'booking', name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, service: form.service || undefined, visitType: form.visitType,
+        type: 'booking', providerId: doctor?.id || undefined, name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, service: form.service || undefined, visitType: form.visitType,
         preferredDate: form.date, preferredTime: form.time, source: location.pathname,
       });
       onClose();
@@ -130,6 +132,7 @@ function BookNowModal({ open, onClose, preset }) {
 
   const Err = ({ k }) => (errors[k] ? <p role="alert" className="text-[13px] text-red-600 mt-1.5">{errors[k]}</p> : null);
   const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', 'Home, online or clinic']];
+  const doctor = preset?.doctor || null;
 
   return (
     <div className="theme-portea fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 font-sans" role="dialog" aria-modal="true" aria-label="Book medical services at home">
@@ -146,7 +149,9 @@ function BookNowModal({ open, onClose, preset }) {
               <p className="font-serif text-[20px] font-semibold">{form.visitType === 'online' ? 'Book a consultation' : form.visitType === 'clinic' ? 'Book a clinic visit' : 'Book a home visit'}</p>
             </div>
           </div>
-          {form.service && <p className="relative mt-4 self-start text-[13px] font-semibold bg-white/10 ring-1 ring-white/20 rounded-full px-3 py-1">{form.service}</p>}
+          {doctor ? (
+            <p data-testid="booknow-doctor" className="relative mt-4 self-start text-[13px] font-semibold bg-white/10 ring-1 ring-white/20 rounded-full px-3 py-1 flex items-center gap-1.5"><Stethoscope className="w-3.5 h-3.5" /> {doctor.name}{doctor.spec ? ` · ${doctor.spec}` : ''}</p>
+          ) : form.service && <p className="relative mt-4 self-start text-[13px] font-semibold bg-white/10 ring-1 ring-white/20 rounded-full px-3 py-1">{form.service}</p>}
 
           <ol className="relative mt-6 sm:mt-8 flex sm:flex-col gap-4 sm:gap-0">
             {STEPS.map(([title, sub], i) => {
@@ -179,7 +184,7 @@ function BookNowModal({ open, onClose, preset }) {
           <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center text-primary/60 hover:text-primary hover:bg-tint rounded-full transition"><X className="w-5 h-5" /></button>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Step {step} of 2</p>
           <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Visit type, date and time'}</h2>
-          <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : 'Pick a slot that suits you. We will confirm it with the professional.'}</p>
+          <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : `Pick a slot that suits you. We will confirm it with ${doctor ? doctor.name : 'the professional'}.`}</p>
 
           {step === 1 ? (
             <div key="s1" className="cv-slide-in mt-6 space-y-4">
@@ -196,7 +201,7 @@ function BookNowModal({ open, onClose, preset }) {
                 <Err k="phone" />
               </div>
               <PincodeFields idPrefix="bn" value={form} onChange={patchForm} lookup={pin} errors={errors} fieldCls={fieldCls} labelCls={labelCls} errCls="text-[13px] text-red-600 mt-1" hintCls="text-[13px] mt-1" />
-              {!preset?.service && (
+              {!preset?.service && !doctor && (
                 <div>
                   <label htmlFor="bn-service" className={labelCls}>Service <span className="font-normal text-primary/45">(optional)</span></label>
                   <span className="relative block">
@@ -278,7 +283,7 @@ function BookNowModal({ open, onClose, preset }) {
               <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-4 text-[14px]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/50 mb-1.5">Visit summary</p>
                 {whenLabel && <p className="font-semibold text-primary" data-testid="booknow-when">{whenLabel}</p>}
-                <p className="text-primary/65 mt-0.5">{[form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], [form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
+                <p className="text-primary/65 mt-0.5">{[doctor ? `${doctor.name}${doctor.spec ? ` (${doctor.spec})` : ''}` : form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], [form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
               </div>
               {serverError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{serverError}</p>}
               <div className="flex gap-3">
