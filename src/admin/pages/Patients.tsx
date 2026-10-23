@@ -10,8 +10,10 @@ import { useEffect, useState } from "react"
 import api from "../../services/api"
 import { useApi, downloadCsv } from "../lib/useApi"
 import { inputCls, labelCls, paginate } from "../lib/forms"
+import PincodeFields from "../../components/PincodeFields"
+import { usePincode, pincodeErrors } from "../../services/usePincode"
 
-const blank = { name: "", phone: "", email: "", age: "", gender: "", city: "", pincode: "", conditions: "", password: "" }
+const blank = { name: "", phone: "", email: "", age: "", gender: "", city: "", pincode: "", district: "", state: "", locality: "", conditions: "", password: "" }
 
 export function Patients() {
   const navigate = useNavigate()
@@ -34,11 +36,14 @@ export function Patients() {
   const paged = paginate(patientList, page)
   const exportCsv = () => downloadCsv("carevaa-patients.csv", [["Patient ID", "Name", "Email", "Phone", "Age", "Gender", "City", "PIN code", "Appointments", "Status", "Joined"], ...patientList.map((p: any) => [p.code, p.name, p.email, p.phone, p.age, p.gender, p.city, p.pincode, p.appointments, p.status, p.joined])])
   const set = (k: keyof typeof blank) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const patchForm = (patch: any) => setForm((f) => ({ ...f, ...patch }))
+  const pinLookup = usePincode(form, patchForm)
 
   const save = async () => {
     if (!form.name.trim()) { setFormError("Patient name is required"); return }
     if (!/^[6-9]\d{9}$/.test(form.phone)) { setFormError("Please enter a valid 10-digit mobile number"); return }
-    if (form.pincode && !/^[1-9]\d{5}$/.test(form.pincode)) { setFormError("Please enter a valid 6-digit PIN code"); return }
+    const addrErr = pincodeErrors(form, pinLookup, { required: false })
+    if (addrErr.pincode) { setFormError(addrErr.pincode); return }
     if (form.password && form.password.length < 6) { setFormError("Password must be at least 6 characters"); return }
     setSaving(true); setFormError("")
     try {
@@ -158,8 +163,7 @@ export function Patients() {
               <div><label htmlFor="ap-age" className={labelCls}>Age</label><input id="ap-age" type="number" min="0" max="120" className={inputCls} value={form.age} onChange={set("age")} /></div>
               <div><label htmlFor="ap-gender" className={labelCls}>Gender</label><select id="ap-gender" className={inputCls} value={form.gender} onChange={set("gender")}><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></div>
             </div>
-            <div><label htmlFor="ap-city" className={labelCls}>City</label><input id="ap-city" className={inputCls} value={form.city} onChange={set("city")} /></div>
-            <div><label htmlFor="ap-pin" className={labelCls}>PIN code</label><input id="ap-pin" inputMode="numeric" maxLength={6} className={inputCls} value={form.pincode} onChange={(e) => setForm((f) => ({ ...f, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))} /></div>
+            <PincodeFields idPrefix="ap" value={form} onChange={patchForm} lookup={pinLookup} required={false} fieldCls={inputCls} labelCls={labelCls} errCls="text-xs text-red-600 mt-1" hintCls="text-xs mt-1" className="sm:col-span-2 space-y-4" />
             <div className="sm:col-span-2"><label htmlFor="ap-cond" className={labelCls}>Medical conditions / allergies</label><input id="ap-cond" className={inputCls} placeholder="e.g. Diabetes, BP (comma separated)" value={form.conditions} onChange={set("conditions")} /></div>
             <div className="sm:col-span-2"><label htmlFor="ap-pass" className={labelCls}>Password <span className="font-normal text-muted">(leave empty to create a temporary one)</span></label><input id="ap-pass" type="text" autoComplete="off" className={inputCls} value={form.password} onChange={set("password")} /></div>
           </div>

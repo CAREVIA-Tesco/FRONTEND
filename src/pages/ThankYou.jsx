@@ -25,7 +25,7 @@ function addToCalendar(enquiry) {
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Carevaa//Home visit//EN', 'BEGIN:VEVENT',
     `UID:${enquiry.code}@carevaa`, `DTSTAMP:${icsStamp(new Date())}`, `DTSTART:${icsStamp(start)}`, `DTEND:${icsStamp(end)}`,
     `SUMMARY:Carevaa ${enquiry.service || 'home visit'} (${enquiry.code})`,
-    `LOCATION:${[enquiry.city, enquiry.pincode].filter(Boolean).join(' ')}`,
+    `LOCATION:${[enquiry.locality, enquiry.city, enquiry.pincode].filter(Boolean).join(' ')}`,
     'DESCRIPTION:Requested home visit. Our care advisor will call to confirm the professional and time.',
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
@@ -107,7 +107,7 @@ export default function ThankYou() {
                 </div>
                 <ul className="px-6 pt-5 pb-2 space-y-3.5 text-[15px]">
                   {enquiry.preferredDateLabel && <li className="flex items-start gap-3"><CalendarClock className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Preferred visit</span>{enquiry.preferredDateLabel}{enquiry.preferredTime ? `, ${enquiry.preferredTime}` : ''}</span></li>}
-                  {enquiry.city && <li className="flex items-start gap-3"><MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Location</span>{enquiry.city}{enquiry.pincode ? ` – ${enquiry.pincode}` : ''}</span></li>}
+                  {enquiry.city && <li className="flex items-start gap-3"><MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Location</span>{[enquiry.locality, enquiry.city, enquiry.state].filter(Boolean).join(', ')}{enquiry.pincode ? ` – ${enquiry.pincode}` : ''}</span></li>}
                   <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Service</span>{enquiry.service || 'Our advisor will help you choose'}</span></li>
                   {enquiry.phone && <li className="flex items-start gap-3"><Phone className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">We will call</span>+91 {String(enquiry.phone).replace(/\D/g, '').slice(-10)}</span></li>}
                 </ul>

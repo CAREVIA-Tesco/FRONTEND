@@ -2,8 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Check, ChevronDown, Loader2, ShieldCheck, UserCheck, MapPin, CalendarDays, Clock, Phone, ArrowLeft, Sun, Sunset, Moon, Stethoscope, House, Video, Building2 } from 'lucide-react';
 import api, { getSessionUser } from '../services/api';
-import { useSiteContent, useContact } from '../services/useSiteContent';
+import { useContact } from '../services/useSiteContent';
 import { useServices } from '../data/services';
+import PincodeFields from './PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
@@ -46,11 +48,10 @@ function BookNowModal({ open, onClose, preset }) {
   const SERVICES = useServices();
   const navigate = useNavigate();
   const location = useLocation();
-  const cities = useSiteContent('cities');
   const contact = useContact();
   const user = getSessionUser();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', service: '', visitType: 'home', date: '', time: '' });
+  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', service: '', visitType: 'home', date: '', time: '' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -62,8 +63,10 @@ function BookNowModal({ open, onClose, preset }) {
     setForm({
       name: user?.name || '',
       phone: String(user?.phone || '').replace(/\D/g, '').slice(-10),
-      city: preset?.city || user?.city || '',
-      pincode: '',
+      // the saved address is reused unless this booking is for another city (city pages pass one)
+      ...(!preset?.city || !user?.city || preset.city === user.city
+        ? { city: preset?.city || user?.city || '', pincode: user?.pincode || '', district: user?.district || '', state: user?.state || '', locality: user?.locality || '' }
+        : { city: preset.city, pincode: '', district: '', state: '', locality: '' }),
       service: preset?.service || '',
       visitType: preset?.visitType || 'home',
       date: localDate(slot),
@@ -77,16 +80,18 @@ function BookNowModal({ open, onClose, preset }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const patchForm = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrors((er) => ({ ...er, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })); };
+  const pin = usePincode(form, patchForm);
+
   if (!open) return null;
   const setVal = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((er) => ({ ...er, [k]: undefined })); };
   const set = (k) => (e) => setVal(k, e.target.value);
-  const cityNames = [...new Set([...cities.map((c) => c.name), form.city].filter((c) => c && c !== 'Other'))];
 
   const nextFromContact = () => {
     const er = {};
     if (String(form.phone).replace(/\D/g, '').length !== 10) er.phone = 'Enter a valid 10-digit mobile number';
-    if (!form.city) er.city = 'Select the city where you need the service';
-    if (!/^[1-9]\d{5}$/.test(form.pincode)) er.pincode = 'Enter a valid 6-digit PIN code';
+    Object.assign(er, pincodeErrors(form, pin, { requireLocality: true }));
+    if (er.city) er.city = 'Enter the city where you need the service';
     setErrors(er);
     if (!Object.keys(er).length) setStep(2);
   };
@@ -111,7 +116,7 @@ function BookNowModal({ open, onClose, preset }) {
     setSaving(true); setServerError('');
     try {
       const res = await api.createEnquiry({
-        type: 'booking', name: form.name, phone: form.phone, city: form.city, pincode: form.pincode, service: form.service || undefined, visitType: form.visitType,
+        type: 'booking', name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, service: form.service || undefined, visitType: form.visitType,
         preferredDate: form.date, preferredTime: form.time, source: location.pathname,
       });
       onClose();
@@ -190,25 +195,7 @@ function BookNowModal({ open, onClose, preset }) {
                 </div>
                 <Err k="phone" />
               </div>
-              <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-3">
-                <div>
-                  <label htmlFor="bn-city" className={labelCls}>City <span className="text-secondary">*</span></label>
-                  <span className="relative block">
-                    <select id="bn-city" aria-label="City" className={`${fieldCls} appearance-none pr-10`} value={form.city} onChange={set('city')} aria-invalid={!!errors.city}>
-                      <option value="">Select city</option>
-                      {cityNames.map((c) => <option key={c}>{c}</option>)}
-                      <option value="Other">Other</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-primary/60" />
-                  </span>
-                  <Err k="city" />
-                </div>
-                <div>
-                  <label htmlFor="bn-pin" className={labelCls}>PIN code <span className="text-secondary">*</span></label>
-                  <input id="bn-pin" aria-label="PIN code" className={fieldCls} value={form.pincode} onChange={(e) => setVal('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="600001" inputMode="numeric" autoComplete="postal-code" aria-invalid={!!errors.pincode} />
-                  <Err k="pincode" />
-                </div>
-              </div>
+              <PincodeFields idPrefix="bn" value={form} onChange={patchForm} lookup={pin} errors={errors} fieldCls={fieldCls} labelCls={labelCls} errCls="text-[13px] text-red-600 mt-1" hintCls="text-[13px] mt-1" />
               {!preset?.service && (
                 <div>
                   <label htmlFor="bn-service" className={labelCls}>Service <span className="font-normal text-primary/45">(optional)</span></label>
@@ -291,7 +278,7 @@ function BookNowModal({ open, onClose, preset }) {
               <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-4 text-[14px]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/50 mb-1.5">Visit summary</p>
                 {whenLabel && <p className="font-semibold text-primary" data-testid="booknow-when">{whenLabel}</p>}
-                <p className="text-primary/65 mt-0.5">{[form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], `${form.city}${form.pincode ? ` ${form.pincode}` : ''}`, form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
+                <p className="text-primary/65 mt-0.5">{[form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], [form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
               </div>
               {serverError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{serverError}</p>}
               <div className="flex gap-3">

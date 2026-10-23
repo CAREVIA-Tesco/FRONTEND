@@ -9,6 +9,8 @@ import { saveCurrentUser } from '../utils/storage';
 import BookingModal from '../components/BookingModal';
 import MyRequests from '../components/MyRequests';
 import DashboardShell from '../components/DashboardShell';
+import PincodeFields from '../components/PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 
 // colours for appointment statuses (written out so Tailwind keeps the classes)
 const STATUS_STYLE = {
@@ -115,7 +117,7 @@ export default function PatientDashboard() {
   // ----- my profile -----
   const toForm = (u = {}) => ({
     name: u.name || '', phone: u.phone || '', email: u.email || '', age: u.age ?? '', gender: u.gender || '', careFor: u.careFor || '',
-    city: u.city || '', pincode: u.pincode || '', bloodGroup: u.bloodGroup || '', allergies: (u.allergies || []).join(', '), conditions: (u.conditions || []).join(', '),
+    city: u.city || '', pincode: u.pincode || '', district: u.district || '', state: u.state || '', locality: u.locality || '', bloodGroup: u.bloodGroup || '', allergies: (u.allergies || []).join(', '), conditions: (u.conditions || []).join(', '),
     ecName: u.emergencyContact?.name || '', ecRelation: u.emergencyContact?.relation || '', ecPhone: u.emergencyContact?.phone || '',
   });
   const [profile, setProfile] = useState(() => toForm(sessionUser || {}));
@@ -129,11 +131,14 @@ export default function PatientDashboard() {
     api.me().then(({ user }) => { setProfile(toForm(user)); saveCurrentUser({ ...getSessionUser(), ...user }); }).catch(() => {});
   }, [activeTab]);
   const setP = (k) => (e) => setProfile((p) => ({ ...p, [k]: e.target.value }));
+  const patchProfile = (patch) => setProfile((p) => ({ ...p, ...patch }));
+  const pinLookup = usePincode(profile, patchProfile);
   const saveProfile = async (e) => {
     e.preventDefault(); setProfileMsg(null);
     if (!profile.name.trim()) { setProfileMsg({ ok: false, text: 'Please enter your name.' }); return; }
     if (profile.phone && !/^[6-9]\d{9}$/.test(profile.phone)) { setProfileMsg({ ok: false, text: 'Please enter a valid 10-digit mobile number.' }); return; }
-    if (profile.pincode && !/^[1-9]\d{5}$/.test(profile.pincode)) { setProfileMsg({ ok: false, text: 'Please enter a valid 6-digit PIN code.' }); return; }
+    const addrErr = pincodeErrors(profile, pinLookup, { required: false });
+    if (addrErr.pincode) { setProfileMsg({ ok: false, text: addrErr.pincode }); return; }
     if (profile.ecPhone && !/^[6-9]\d{9}$/.test(profile.ecPhone)) { setProfileMsg({ ok: false, text: 'Please enter a valid 10-digit number for the emergency contact.' }); return; }
     setBusy('profile');
     const { ecName, ecRelation, ecPhone, ...rest } = profile;
@@ -471,8 +476,7 @@ export default function PatientDashboard() {
                   <label className="block"><span className={label}>Age</span><input id="pp-age" type="number" min="0" max="120" className={field} value={profile.age} onChange={setP('age')} /></label>
                   <label className="block"><span className={label}>Gender</span><select id="pp-gender" className={field} value={profile.gender} onChange={setP('gender')}><option value="">—</option><option>Female</option><option>Male</option><option>Other</option></select></label>
                 </div>
-                <label className="block"><span className={label}>City</span><input id="pp-city" className={field} value={profile.city} onChange={setP('city')} /></label>
-                <label className="block"><span className={label}>PIN code</span><input id="pp-pin" inputMode="numeric" maxLength={6} className={field} value={profile.pincode} onChange={(e) => setProfile((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} /></label>
+                <PincodeFields idPrefix="pp" value={profile} onChange={patchProfile} lookup={pinLookup} required={false} showDetails="always" fieldCls={field} labelCls={label} className="sm:col-span-2 space-y-4" />
                 <label className="block"><span className={label}>Blood group</span><select id="pp-blood" className={field} value={profile.bloodGroup} onChange={setP('bloodGroup')}><option value="">—</option>{['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => <option key={g}>{g}</option>)}</select></label>
                 <label className="block"><span className={label}>Allergies</span><input id="pp-allergies" className={field} placeholder="e.g. Penicillin" value={profile.allergies} onChange={setP('allergies')} /></label>
                 <label className="block sm:col-span-2"><span className={label}>Medical conditions</span><input id="pp-conditions" className={field} placeholder="e.g. Diabetes, high BP (comma separated)" value={profile.conditions} onChange={setP('conditions')} /></label>

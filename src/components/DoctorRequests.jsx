@@ -81,7 +81,7 @@ export default function DoctorRequests({ appointments, isDoctor, onChanged, onCo
                 </div>
                 <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
                   <li className="flex items-center gap-2"><CalendarClock className="w-4 h-4 text-accent" /> {r.preferredDateLabel || 'Date to be agreed'}{r.preferredTime ? ` · ${r.preferredTime}` : ''}</li>
-                  <li className="flex items-center gap-2"><MapPin className="w-4 h-4 text-accent" /> {r.city || '—'}{r.pincode ? ` · ${r.pincode}` : ''}</li>
+                  <li className="flex items-center gap-2"><MapPin className="w-4 h-4 text-accent" /> {[r.locality, r.city].filter(Boolean).join(', ') || '—'}{r.pincode ? ` · ${r.pincode}` : ''}</li>
                   <li className="flex items-center gap-2"><Stethoscope className="w-4 h-4 text-accent" /> {r.service}{r.plan ? ` · ${r.plan}` : ''}</li>
                   {r.message && <li className="flex items-start gap-2"><MessageSquare className="w-4 h-4 text-accent mt-0.5" /> {r.message}</li>}
                 </ul>

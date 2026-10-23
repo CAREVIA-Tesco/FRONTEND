@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Lock, Eye, EyeOff, Phone, ArrowLeft, HeartPulse, CalendarCheck, FileText, Inbox, Star, LayoutDashboard, BarChart3, UserCheck, AlertCircle } from 'lucide-react';
 import api, { saveSession } from '../services/api';
-import { useSiteContent } from '../services/useSiteContent';
+import PincodeFields from '../components/PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 
@@ -18,9 +19,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [regStep, setRegStep] = useState(1); // patient sign-up: 1 = account, 2 = about the patient
-  const [details, setDetails] = useState({ careFor: 'Myself', age: '', gender: '', phone: '', city: '', pincode: '', conditions: '' });
-  const cities = useSiteContent('cities');
+  const [details, setDetails] = useState({ careFor: 'Myself', age: '', gender: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', conditions: '' });
   const setDetail = (k, v) => setDetails((d) => ({ ...d, [k]: v }));
+  const patchDetails = (patch) => { setDetails((d) => ({ ...d, ...patch })); setError(''); };
+  const pin = usePincode(details, patchDetails);
 
   const dashboardFor = (user) => {
     if (user.role === 'admin') return '/admin';
@@ -65,8 +67,9 @@ export default function Login() {
       if (details.age === '' || !Number.isInteger(age) || age < 0 || age > 120) { setError("Please enter the patient's age in years."); return; }
       if (!details.gender) { setError("Please select the patient's gender."); return; }
       if (details.phone.replace(/\D/g, '').length !== 10) { setError('Please enter a valid 10-digit mobile number.'); return; }
-      if (!details.city) { setError('Please select your city.'); return; }
-      if (!/^[1-9]\d{5}$/.test(details.pincode)) { setError('Please enter a valid 6-digit PIN code.'); return; }
+      const addrErr = pincodeErrors(details, pin);
+      if (addrErr.pincode) { setError(addrErr.pincode); return; }
+      if (addrErr.city) { setError('Please enter your city.'); return; }
     }
     setLoading(true);
     try {
@@ -87,7 +90,6 @@ export default function Login() {
   const panel = PANELS[role];
   const isRegister = view === 'register';
   const patientStep2 = isRegister && role === 'patient' && regStep === 2;
-  const cityNames = [...new Set(cities.map((c) => c.name).filter(Boolean))];
   const inputCls = 'w-full h-12 lg:h-11 px-4 rounded-xl border border-line bg-white text-primary placeholder:text-placeholder focus:ring-4 focus:ring-secondary/15 focus:border-secondary transition-all outline-none';
   const labelCls = 'block text-[13px] font-semibold text-primary mb-1.5';
   const smallCls = inputCls.replace('lg:h-11', 'lg:h-10');
@@ -226,20 +228,7 @@ export default function Login() {
                           <input id="pt-phone" inputMode="numeric" autoComplete="tel-national" value={details.phone} onChange={(e) => setDetail('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="For visit updates" className={`${smallCls} rounded-l-none`} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-3">
-                        <div>
-                          <label htmlFor="pt-city" className={labelCls}>City</label>
-                          <select id="pt-city" value={details.city} onChange={(e) => setDetail('city', e.target.value)} className={smallCls}>
-                            <option value="">Select city</option>
-                            {cityNames.map((c) => <option key={c}>{c}</option>)}
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label htmlFor="pt-pin" className={labelCls}>PIN code</label>
-                          <input id="pt-pin" inputMode="numeric" autoComplete="postal-code" value={details.pincode} onChange={(e) => setDetail('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="600001" className={smallCls} />
-                        </div>
-                      </div>
+                      <PincodeFields idPrefix="pt" value={details} onChange={patchDetails} lookup={pin} required={false} fieldCls={smallCls} labelCls={labelCls} className="space-y-4" />
                       <div>
                         <label htmlFor="pt-conditions" className={labelCls}>Ongoing conditions or allergies <span className="font-normal text-primary/45">(optional)</span></label>
                         <input id="pt-conditions" value={details.conditions} onChange={(e) => setDetail('conditions', e.target.value)} placeholder="e.g. Diabetes, penicillin allergy" className={smallCls} />
@@ -262,7 +251,7 @@ export default function Login() {
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
                       <label htmlFor="password" className="block text-[13px] font-semibold text-primary">Password</label>
-                      {!isRegister && <Link to="/contact" className="text-[13px] font-semibold text-secondary hover:underline">Forgot Password?</Link>}
+                      {!isRegister && role !== 'admin' && <Link to={`/forgot-password${/^\D*\d[\d\s+-]{8,}$/.test(identifier) ? `?phone=${identifier.replace(/\D/g, '').slice(-10)}` : ''}`} className="text-[13px] font-semibold text-secondary hover:underline">Forgot Password?</Link>}
                     </div>
                     <div className="relative">
                       <input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isRegister ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`${inputCls} pr-12`} />

@@ -5,7 +5,8 @@ import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import PageHero from '../components/PageHero';
 import api, { getSessionUser } from '../services/api';
-import { useSiteContent } from '../services/useSiteContent';
+import PincodeFields from '../components/PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 import { useServices } from '../data/services';
 
 const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-primary placeholder:text-gray-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition';
@@ -14,8 +15,7 @@ const inputCls = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 te
 export default function Refer() {
   const SERVICES = useServices();
   const user = getSessionUser();
-  const cities = useSiteContent('cities');
-  const [form, setForm] = useState({ referrerName: user?.name || '', referrerPhone: user?.phone || '', name: '', phone: '', service: '', city: '', message: '', consent: true });
+  const [form, setForm] = useState({ referrerName: user?.name || '', referrerPhone: user?.phone || '', name: '', phone: '', service: '', pincode: '', city: '', district: '', state: '', locality: '', message: '', consent: true });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -24,6 +24,8 @@ export default function Refer() {
 
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })); setErrors((er) => ({ ...er, [k]: undefined })); };
   const digits = (v) => String(v).replace(/\D/g, '');
+  const patchForm = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrors((er) => ({ ...er, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })); };
+  const pinLookup = usePincode(form, patchForm);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -33,6 +35,7 @@ export default function Refer() {
     if (!form.name.trim()) er.name = "Enter your friend's name";
     if (digits(form.phone).length < 10) er.phone = "Enter your friend's 10-digit mobile number";
     if (!form.service) er.service = 'Choose a service';
+    Object.assign(er, pincodeErrors(form, pinLookup, { required: false }));
     if (!form.consent) er.consent = 'Please confirm your friend is happy to be contacted';
     setErrors(er);
     if (Object.keys(er).length) return;
@@ -87,9 +90,8 @@ export default function Refer() {
                   <label className="block"><span className="block text-xs font-semibold text-gray-500 mb-1.5">Care needed *</span>
                     <select className={inputCls} value={form.service} onChange={set('service')}><option value="">Select a service</option>{SERVICES.map((s) => <option key={s.key} value={s.title}>{s.title}</option>)}</select><Err k="service" />
                   </label>
-                  <label className="block"><span className="block text-xs font-semibold text-gray-500 mb-1.5">City</span>
-                    <select className={inputCls} value={form.city} onChange={set('city')}><option value="">Select city</option>{cities.map((c) => <option key={c.name}>{c.name}</option>)}<option>Other</option></select>
-                  </label>
+                  <span className="hidden sm:block" aria-hidden="true" />
+                  <PincodeFields idPrefix="rf" value={form} onChange={patchForm} lookup={pinLookup} errors={errors} required={false} fieldCls={inputCls} labelCls="block text-xs font-semibold text-gray-500 mb-1.5" errCls="block text-xs text-red-600 mt-1" hintCls="text-xs mt-1" className="sm:col-span-2 space-y-4" />
                 </fieldset>
                 <label className="block"><span className="block text-xs font-semibold text-gray-500 mb-1.5">Anything we should know?</span><textarea rows={3} className={`${inputCls} resize-none`} value={form.message} onChange={set('message')} placeholder="e.g. My uncle, 70, needs physiotherapy after a fall" /></label>
                 <label className="flex items-start gap-2 text-xs text-gray-500"><input type="checkbox" checked={form.consent} onChange={set('consent')} className="mt-0.5" /> My friend knows I am sharing their details and is happy to be contacted by Carevaa.</label>

@@ -5,6 +5,8 @@ import { Button } from "../components/ui/Button"
 import { Card, CardContent } from "../components/ui/Card"
 import api from "../../services/api"
 import { inputCls, areaCls, labelCls, DAYS, SLOTS, resizeImage } from "../lib/forms"
+import PincodeFields from "../../components/PincodeFields"
+import { usePincode, pincodeErrors } from "../../services/usePincode"
 
 const PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHS"]
 const SPECIALIZATIONS: Record<string, string[]> = {
@@ -17,7 +19,6 @@ const SPECIALIZATIONS: Record<string, string[]> = {
   "Lab Centre": ["General Diagnostic Tests", "Blood Tests", "Imaging & Diagnostics", "Full Body Checkups"],
   BHS: ["General Health Science", "Community Health", "Public Health"],
 }
-const STATES = ["Andhra Pradesh", "Delhi", "Goa", "Gujarat", "Haryana", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Puducherry", "Punjab", "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal"]
 const PAGE_FOR: Record<string, [string, string]> = {
   Caretaker: ["Caretakers", "/admin/caretakers"],
   Nurse: ["Caretakers", "/admin/caretakers"],
@@ -29,7 +30,7 @@ const emptySchedule = () => Object.fromEntries(DAYS.map((d) => [d, d === "Sun" ?
 const blank = {
   name: "", gender: "", email: "", phone: "", img: "",
   profession: "MBBS Doctor", specialization: "", qualification: "", experience: "", registrationNumber: "", registrationCouncil: "", languages: "English", bio: "",
-  city: "", state: "", pincode: "", clinicName: "", address: "", homeVisitRadiusKm: "",
+  city: "", state: "", district: "", locality: "", pincode: "", clinicName: "", address: "", homeVisitRadiusKm: "",
   onlineFee: "", clinicFee: "", homeFee: "", status: "ACTIVE",
 }
 
@@ -47,6 +48,8 @@ export function EditProvider() {
   const [loading, setLoading] = useState(!isNew)
   const [clinicExtra, setClinicExtra] = useState<{ phone?: string; website?: string }>({})
   const set = (k: keyof typeof blank) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const patchForm = (patch: any) => setForm((f) => ({ ...f, ...patch }))
+  const pinLookup = usePincode(form, patchForm)
 
   const isLab = form.profession === "Lab Centre"
   const isCare = form.profession === "Caretaker" || form.profession === "Nurse"
@@ -65,7 +68,7 @@ export function EditProvider() {
           profession: p.profession || "MBBS Doctor", specialization: p.specialization || "", qualification: p.qualification || "",
           experience: p.experience ?? "", registrationNumber: p.registrationNumber || "", registrationCouncil: p.registrationCouncil || "",
           languages: (p.languages || []).join(", "), bio: p.bio || "",
-          city: p.city || "", state: p.state || "", pincode: p.pincode || "", clinicName: p.clinic?.name || "", address: p.clinic?.address || "", homeVisitRadiusKm: p.homeVisitRadiusKm ?? "",
+          city: p.city || "", state: p.state || "", district: p.district || "", locality: p.locality || "", pincode: p.pincode || "", clinicName: p.clinic?.name || "", address: p.clinic?.address || "", homeVisitRadiusKm: p.homeVisitRadiusKm ?? "",
           onlineFee: p.onlineFee ?? "", clinicFee: p.clinicFee ?? "", homeFee: p.fee ?? "", status: p.status || "ACTIVE",
         })
         setSchedule(Object.fromEntries(DAYS.map((d) => [d, p.schedule?.[d] || []])))
@@ -92,7 +95,8 @@ export function EditProvider() {
     if (form.phone && !/^[6-9]\d{9}$/.test(form.phone.replace(/\D/g, "").slice(-10))) return "Please enter a valid 10-digit mobile number"
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) return "Please enter a valid email address"
     if (!form.city.trim()) return "City is required – patients find professionals by city"
-    if (form.pincode && !/^[1-9]\d{5}$/.test(form.pincode)) return "Please enter a valid 6-digit PIN code"
+    const addrErr = pincodeErrors(form, pinLookup, { required: false })
+    if (addrErr.pincode) return addrErr.pincode
     if (!Object.values(schedule).some((d) => d.length)) return "Choose at least one day and time when patients can book"
     return ""
   }
@@ -107,7 +111,7 @@ export function EditProvider() {
       profession: form.profession, specialization: form.specialization, qualification: form.qualification,
       experience: form.experience, registrationNumber: form.registrationNumber, registrationCouncil: form.registrationCouncil,
       languages: form.languages, bio: form.bio,
-      city: form.city.trim(), state: form.state, pincode: form.pincode, homeVisitRadiusKm: form.homeVisitRadiusKm,
+      city: form.city.trim(), state: form.state.trim(), district: form.district.trim(), locality: form.locality.trim(), pincode: form.pincode, homeVisitRadiusKm: form.homeVisitRadiusKm,
       clinic: { ...clinicExtra, name: form.clinicName.trim() || (isLab ? form.name.trim() : undefined), address: form.address },
       onlineFee: isLab || isCare ? "" : form.onlineFee, clinicFee: isCare ? "" : form.clinicFee, homeFee: form.homeFee,
       schedule, status: form.status,
@@ -231,21 +235,7 @@ export function EditProvider() {
         <CardContent className="p-6 space-y-4">
           <h2 className="text-lg font-bold text-charcoal">Location</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="pf-city" className={labelCls}>City *</label>
-              <input id="pf-city" className={inputCls} placeholder="e.g. Chennai" value={form.city} onChange={set("city")} />
-            </div>
-            <div>
-              <label htmlFor="pf-state" className={labelCls}>State</label>
-              <select id="pf-state" className={inputCls} value={form.state} onChange={set("state")}>
-                <option value="">Select…</option>
-                {[...new Set([...STATES, form.state].filter(Boolean))].map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="pf-pin" className={labelCls}>PIN code</label>
-              <input id="pf-pin" inputMode="numeric" maxLength={6} className={inputCls} value={form.pincode} onChange={(e) => setForm((f) => ({ ...f, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))} />
-            </div>
+            <PincodeFields idPrefix="pf" value={form} onChange={patchForm} lookup={pinLookup} required={false} cityRequired showDetails="always" fieldCls={inputCls} labelCls={labelCls} errCls="text-xs text-red-600 mt-1" hintCls="text-xs mt-1" className="md:col-span-3 space-y-4" />
             {!isCare && (
               <div>
                 <label htmlFor="pf-clinic" className={labelCls}>{isLab ? "Branch name" : "Clinic name"} <span className="font-normal text-muted">(optional)</span></label>

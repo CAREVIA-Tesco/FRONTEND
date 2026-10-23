@@ -13,6 +13,7 @@ import DoctorVisit from './pages/DoctorVisit.jsx';
 import About from './pages/About.jsx';
 import Blog from './pages/Blog.jsx';
 import Login from './pages/Login.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import HireProfessional from './pages/HireProfessional.jsx';
 import FindJobs from './pages/FindJobs.jsx';
 import NurseCare from './pages/NurseCare.jsx';
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/partner" element={<Partner />} />
         <Route path="/track" element={<TrackRequest />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/hire-professional" element={<HireProfessional />} />
         <Route path="/jobs" element={<FindJobs />} />
         <Route path="/nurse-care" element={<NurseCare />} />

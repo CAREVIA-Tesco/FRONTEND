@@ -67,6 +67,10 @@ export const api = {
   register: (name, identifier, password, role, details = {}) => request('/auth/register', { method: 'POST', body: { ...details, name, identifier, password, role }, auth: false }),
   me: () => request('/auth/me'),
   updateMe: (data) => request('/auth/me', { method: 'PUT', body: data }),
+  // forgot password (SMS OTP)
+  forgotPassword: (phone) => request('/auth/forgot-password', { method: 'POST', body: { phone }, auth: false }),
+  verifyOtp: (phone, code) => request('/auth/verify-otp', { method: 'POST', body: { phone, code }, auth: false }),
+  resetPassword: (resetToken, password) => request('/auth/reset-password', { method: 'POST', body: { resetToken, password }, auth: false }),
 
   // providers
   getProviders: (params) => request(`/providers${qs(params)}`),
@@ -128,6 +132,8 @@ export const api = {
 
   // enquiries / callback requests
   createEnquiry: (data) => request('/enquiries', { method: 'POST', body: data }),
+  // PIN code -> city, district, state and post offices (works for every PIN code in India)
+  pincode: (pin) => request(`/pincode/${encodeURIComponent(pin)}`, { auth: false }),
   trackEnquiry: (code, phone) => request(`/enquiries/track${qs({ code, phone })}`, { auth: false }),
   myEnquiries: () => request('/enquiries/mine'),
   cancelEnquiry: (id, phone) => request(`/enquiries/${id}/cancel`, { method: 'PATCH', body: { phone } }),

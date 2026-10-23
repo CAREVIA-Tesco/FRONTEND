@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle2, Loader2, PhoneCall } from 'lucide-react';
 import api, { getSessionUser } from '../services/api';
-import { useSiteContent, useContact } from '../services/useSiteContent';
+import { useContact } from '../services/useSiteContent';
+import PincodeFields from './PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 import { useServices } from '../data/services';
 
 export const TIME_SLOTS = ['Morning (8am – 12pm)', 'Afternoon (12pm – 4pm)', 'Evening (4pm – 8pm)', 'Anytime'];
@@ -35,7 +37,7 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
   const SERVICES = useServices();
   const user = getSessionUser();
   const location = useLocation();
-  const cities = useSiteContent('cities');
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const contact = useContact();
   const isLead = ['callback', 'plan', 'requirement'].includes(type);
 
@@ -44,6 +46,10 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
     phone: user?.phone || '',
     email: user?.email || '',
     city: city || user?.city || '',
+    pincode: !city || city === user?.city ? user?.pincode || '' : '',
+    district: !city || city === user?.city ? user?.district || '' : '',
+    state: !city || city === user?.city ? user?.state || '' : '',
+    locality: !city || city === user?.city ? user?.locality || '' : '',
     service: service || '',
     plan: plan || '',
     subject: type === 'contact' ? CONTACT_SUBJECTS[0] : type === 'partner' ? PARTNER_TYPES[0] : '',
@@ -58,10 +64,8 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
   const [serverError, setServerError] = useState('');
   const [done, setDone] = useState(null);
 
-  const cityOptions = useMemo(() => {
-    const names = cities.map((c) => c.name);
-    return form.city && !names.includes(form.city) ? [...names, form.city] : names;
-  }, [cities, form.city]);
+  const patchForm = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrors((er) => ({ ...er, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })); };
+  const pinLookup = usePincode(form, patchForm);
 
   const set = (k) => (e) => {
     setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
@@ -76,6 +80,7 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
     if (isLead && !form.service) e.service = 'Choose a service';
     if (type === 'contact' && !form.message.trim()) e.message = 'Please type your message';
     if (type === 'partner' && !form.organisation.trim()) e.organisation = 'Enter your organisation name';
+    if (type !== 'contact') Object.assign(e, pincodeErrors(form, pinLookup, { required: false }));
     if (!form.consent) e.consent = 'Please allow us to contact you';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -152,13 +157,7 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
             </select>
           </Field>
         ) : (
-          <Field label="City">
-            <select className={inputCls} value={form.city} onChange={set('city')}>
-              <option value="">Select your city</option>
-              {cityOptions.map((c) => <option key={c}>{c}</option>)}
-              <option value="Other">Other</option>
-            </select>
-          </Field>
+          <PincodeFields idPrefix={`eq${uid}`} value={form} onChange={patchForm} lookup={pinLookup} errors={errors} required={false} fieldCls={inputCls} labelCls={labelCls} errCls="block text-xs text-red-600 mt-1" hintCls="text-xs mt-1" className={`space-y-4 ${compact ? '' : 'sm:col-span-2'}`} />
         )}
 
         {isLead && (

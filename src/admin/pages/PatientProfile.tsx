@@ -1,6 +1,8 @@
 import { Link, useParams } from "react-router-dom"
 import { useEffect, useState } from "react"
 import api from "../../services/api"
+import PincodeFields from "../../components/PincodeFields"
+import { usePincode, pincodeErrors } from "../../services/usePincode"
 import { inr } from "../lib/useApi"
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
@@ -22,7 +24,8 @@ export function PatientProfile() {
   const [error, setError] = useState("");
   const [selectedConsult, setSelectedConsult] = useState<any>(null);
   const [isEditOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", age: "", gender: "", city: "", bloodGroup: "", allergies: "", conditions: "", ecName: "", ecRelation: "", ecPhone: "" });
+  const [editForm, setEditForm] = useState<any>({ name: "", phone: "", email: "", age: "", gender: "", city: "", pincode: "", district: "", state: "", locality: "", bloodGroup: "", allergies: "", conditions: "", ecName: "", ecRelation: "", ecPhone: "" });
+  const pinLookup = usePincode(editForm, (patch: any) => setEditForm((f: any) => ({ ...f, ...patch })));
 
   const load = () => {
     api.getPatient(id as string)
@@ -50,6 +53,7 @@ export function PatientProfile() {
   const openEdit = () => {
     setEditForm({
       name: pt.name || "", phone: pt.phone || "", email: pt.email || "", age: pt.age ?? "", gender: pt.gender || "", city: pt.city || "",
+      pincode: pt.pincode || "", district: pt.district || "", state: pt.state || "", locality: pt.locality || "",
       bloodGroup: pt.bloodGroup || "", allergies: (pt.allergies || []).join(", "), conditions: (pt.conditions || []).join(", "),
       ecName: pt.emergencyContact?.name || "", ecRelation: pt.emergencyContact?.relation || "", ecPhone: pt.emergencyContact?.phone || "",
     });
@@ -57,9 +61,11 @@ export function PatientProfile() {
   };
   const saveEdit = async () => {
     try {
+      const addrErr = pincodeErrors(editForm, pinLookup, { required: false });
+      if (addrErr.pincode) { setError(addrErr.pincode); return; }
       const { ecName, ecRelation, ecPhone, ...rest } = editForm as any;
       const body: any = { ...rest, emergencyContact: { name: ecName, relation: ecRelation, phone: ecPhone } };
-      ["name", "phone", "email", "age", "gender", "city"].forEach((k) => { if (body[k] === "") delete body[k]; });
+      ["name", "phone", "email", "age", "gender", "city", "pincode"].forEach((k) => { if (body[k] === "") delete body[k]; });
       await api.updatePatient(id as string, body);
       setEditOpen(false);
       load();
@@ -118,7 +124,7 @@ export function PatientProfile() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted text-sm mb-1">Location</span>
-                  <span className="font-medium text-sm">{pt.city || "-"}</span>
+                  <span className="font-medium text-sm">{[pt.locality, pt.city, pt.district && pt.district !== pt.city ? pt.district : "", pt.state].filter(Boolean).join(", ") || "-"}{pt.pincode ? ` – ${pt.pincode}` : ""}</span>
                 </div>
               </div>
 
@@ -405,7 +411,19 @@ export function PatientProfile() {
 
       <Modal isOpen={isEditOpen} onClose={() => setEditOpen(false)} title="Edit Patient">
          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-            {[["name", "Full Name"], ["phone", "Phone"], ["email", "Email"], ["age", "Age"], ["gender", "Gender"], ["city", "City"], ["bloodGroup", "Blood Group"], ["allergies", "Allergies (comma separated)"], ["conditions", "Medical Conditions (comma separated)"], ["ecName", "Emergency Contact Name"], ["ecRelation", "Emergency Contact Relation"], ["ecPhone", "Emergency Contact Phone"]].map(([key, label]) => (
+            {[["name", "Full Name"], ["phone", "Phone"], ["email", "Email"], ["age", "Age"], ["gender", "Gender"]].map(([key, label]) => (
+              <div key={key} className="space-y-2">
+                <label className="text-sm font-medium text-charcoal block">{label}</label>
+                <input
+                  type={key === "age" ? "number" : "text"}
+                  value={(editForm as any)[key]}
+                  onChange={(e) => setEditForm({ ...editForm, [key]: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+            ))}
+            <PincodeFields idPrefix="ep" value={editForm} onChange={(patch: any) => setEditForm((f: any) => ({ ...f, ...patch }))} lookup={pinLookup} required={false} showDetails="always" fieldCls="w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500" labelCls="text-sm font-medium text-charcoal block mb-2" errCls="text-xs text-red-600 mt-1" hintCls="text-xs mt-1" className="space-y-4" />
+            {[["bloodGroup", "Blood Group"], ["allergies", "Allergies (comma separated)"], ["conditions", "Medical Conditions (comma separated)"], ["ecName", "Emergency Contact Name"], ["ecRelation", "Emergency Contact Relation"], ["ecPhone", "Emergency Contact Phone"]].map(([key, label]) => (
               <div key={key} className="space-y-2">
                 <label className="text-sm font-medium text-charcoal block">{label}</label>
                 <input

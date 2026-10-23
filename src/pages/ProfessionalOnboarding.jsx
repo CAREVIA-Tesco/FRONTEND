@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getDoctors, saveDoctors, saveCurrentUser } from '../utils/storage';
 import api, { getSessionUser } from '../services/api';
 import { CheckCircle, Upload, Camera, Building, FileText, Calendar, Clock, ArrowRight, ShieldCheck, Check } from 'lucide-react';
+import PincodeFields from '../components/PincodeFields';
+import { usePincode, pincodeErrors } from '../services/usePincode';
 
 
 const specializationOptions = {
@@ -48,17 +50,6 @@ const specializationOptions = {
 };
 
 
-const INDIAN_STATES_CITIES = {
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik"],
-  "Karnataka": ["Bangalore", "Mysore", "Hubli", "Mangalore"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Trichy"],
-  "Delhi": ["New Delhi"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
-  "Telangana": ["Hyderabad", "Warangal"],
-  "West Bengal": ["Kolkata", "Howrah", "Darjeeling"],
-  "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Noida", "Agra"]
-};
 
 const NEEDS_REGISTRATION = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor', 'Physiotherapist', 'Nurse'];
 
@@ -84,8 +75,6 @@ function resizePhoto(file) {
 
 export default function ProfessionalOnboarding() {
   const [step, setStep] = useState(2);
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
   const [profession, setProfession] = useState("");
   const [selectedDay, setSelectedDay] = useState('Mon');
   const [schedule, setSchedule] = useState({
@@ -96,7 +85,7 @@ export default function ProfessionalOnboarding() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '', specialization: '', experience: '', languages: '', homeFee: '', onlineFee: '', clinicFee: '',
-    gender: '', qualification: '', registrationNumber: '', registrationCouncil: '', pincode: '', homeVisitRadiusKm: '10', bio: '', img: '',
+    gender: '', qualification: '', registrationNumber: '', registrationCouncil: '', pincode: '', city: '', district: '', state: '', locality: '', homeVisitRadiusKm: '10', bio: '', img: '',
     clinicName: '', clinicAddress: '', clinicPhone: '', clinicWebsite: '',
     holderName: '', bankName: '', accountNumber: '', ifsc: '',
   });
@@ -104,6 +93,8 @@ export default function ProfessionalOnboarding() {
   const [saving, setSaving] = useState(false);
   const [providerStatus, setProviderStatus] = useState(null);
   const updateForm = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const patchForm = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const pinLookup = usePincode(form, patchForm);
 
   // Only logged-in doctors can onboard; prefill the form if a profile already exists
   // specialities added in Admin → Specializations
@@ -120,8 +111,6 @@ export default function ProfessionalOnboarding() {
       if (!provider) return;
       setProviderStatus(provider.status);
       setProfession(provider.profession || '');
-      setSelectedState(provider.state || '');
-      setSelectedCity(provider.city || '');
       if (provider.schedule) setSchedule((prev) => ({ ...prev, ...provider.schedule }));
       setForm((f) => ({
         ...f,
@@ -137,6 +126,10 @@ export default function ProfessionalOnboarding() {
         registrationNumber: provider.registrationNumber || '',
         registrationCouncil: provider.registrationCouncil || '',
         pincode: provider.pincode || '',
+        city: provider.city || '',
+        district: provider.district || '',
+        state: provider.state || '',
+        locality: provider.locality || '',
         homeVisitRadiusKm: provider.homeVisitRadiusKm ? String(provider.homeVisitRadiusKm) : '10',
         bio: provider.bio || '',
         img: provider.img && provider.img.startsWith('data:') ? provider.img : '',
@@ -157,8 +150,9 @@ export default function ProfessionalOnboarding() {
     if (!form.qualification.trim()) return 'Please enter your highest qualification.';
     if (NEEDS_REGISTRATION.includes(profession) && !form.registrationNumber.trim()) return 'Please enter your council registration number.';
     if (form.experience === '' || Number(form.experience) < 0) return 'Please enter your years of experience.';
-    if (!selectedState || !selectedCity) return 'Please select the state and city where you work.';
-    if (!/^[1-9]\d{5}$/.test(form.pincode)) return 'Please enter a valid 6-digit PIN code.';
+    const addrErr = pincodeErrors(form, pinLookup);
+    if (addrErr.pincode) return addrErr.pincode;
+    if (addrErr.city) return 'Please enter the city where you work.';
     if (!form.homeFee && !form.onlineFee && !form.clinicFee) return 'Please enter at least one consultation fee.';
     return '';
   };
@@ -172,8 +166,10 @@ export default function ProfessionalOnboarding() {
     homeFee: form.homeFee,
     onlineFee: form.onlineFee,
     clinicFee: form.clinicFee,
-    state: selectedState,
-    city: selectedCity,
+    state: form.state.trim(),
+    city: form.city.trim(),
+    district: form.district.trim(),
+    locality: form.locality.trim(),
     gender: form.gender,
     qualification: form.qualification,
     registrationNumber: form.registrationNumber,
@@ -463,24 +459,7 @@ export default function ProfessionalOnboarding() {
 
                 <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-4 pt-6 border-t border-line-soft first-of-type:border-0 first-of-type:pt-0">Where you work</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-                  <div>
-                    <label htmlFor="ob-state" className="block text-[13px] font-semibold text-primary mb-1.5">State *</label>
-                    <select id="ob-state" aria-label="State" value={selectedState} onChange={(e) => { setSelectedState(e.target.value); setSelectedCity(''); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition">
-                      <option value="">Select State</option>
-                      {Object.keys(INDIAN_STATES_CITIES).map((st) => <option key={st} value={st}>{st}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="ob-city" className="block text-[13px] font-semibold text-primary mb-1.5">City *</label>
-                    <select id="ob-city" aria-label="City" value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} disabled={!selectedState} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition disabled:opacity-50 disabled:cursor-not-allowed">
-                      <option value="">Select City</option>
-                      {selectedState && INDIAN_STATES_CITIES[selectedState].map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="ob-pin" className="block text-[13px] font-semibold text-primary mb-1.5">PIN code *</label>
-                    <input id="ob-pin" type="text" inputMode="numeric" aria-label="PIN code" value={form.pincode} onChange={(e) => setForm((f) => ({ ...f, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))} placeholder="600040" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
-                  </div>
+                  <PincodeFields idPrefix="ob" value={form} onChange={patchForm} lookup={pinLookup} fieldCls="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" labelCls="block text-[13px] font-semibold text-primary mb-1.5" className="md:col-span-2 space-y-4" />
                   <div>
                     <label htmlFor="ob-radius" className="block text-[13px] font-semibold text-primary mb-1.5">Home visits within</label>
                     <select id="ob-radius" value={form.homeVisitRadiusKm} onChange={updateForm('homeVisitRadiusKm')} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition">
