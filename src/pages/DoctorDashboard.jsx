@@ -246,6 +246,16 @@ export default function DoctorDashboard() {
       }
     >
           <div className="max-w-7xl space-y-8">
+            {profile && profile.status !== 'ACTIVE' && (
+              <div data-testid="approval-banner" className={`rounded-2xl px-5 py-4 text-[14px] border ${profile.status === 'PENDING' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                <p className="font-semibold">{profile.status === 'PENDING' ? 'Your profile is waiting for approval' : profile.status === 'REJECTED' ? 'Your registration was not approved' : 'Your profile is paused'}</p>
+                <p className="mt-0.5 opacity-90">{profile.status === 'PENDING'
+                  ? 'The Carevaa team is reviewing your details. Your profile will appear on the website, and you can receive bookings, as soon as it is approved.'
+                  : profile.status === 'REJECTED'
+                    ? 'Please check and update your details in My Profile, then save to send it for review again, or contact the Carevaa team.'
+                    : 'Your profile is hidden from the website. Please contact the Carevaa team.'}</p>
+              </div>
+            )}
             {activeTab === 'Dashboard' && (
               <>
                 {requestBadge > 0 && (

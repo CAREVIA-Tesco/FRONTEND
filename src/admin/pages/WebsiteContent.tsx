@@ -19,6 +19,15 @@ const SECTIONS: Section[] = [
     { name: "twitter", label: "X (Twitter) link", placeholder: "https://x.com/carevaa" }, { name: "linkedin", label: "LinkedIn link", placeholder: "https://linkedin.com/company/carevaa" },
     { name: "youtube", label: "YouTube link", placeholder: "https://youtube.com/@carevaa" },
   ] },
+  { key: "offers", title: "Offers", desc: "Offer cards in the homepage \"New Offers\" section. While this list is empty the website shows automatic offers worked out from the Package pricing rules and your professionals' fees. Once you add offers here, only these are shown – set an offer to Hidden to take it off the site without deleting it.", preview: "/#offers", itemLabel: (i) => `${i.title || "New offer"}${i.show === "hide" ? " (hidden)" : ""}`, blank: { title: "", badge: "", line: "", service: "", plan: "", img: "/physio-section.png", show: "show" }, fields: [
+    { name: "show", label: "Show on website", type: "select", options: [["show", "Shown"], ["hide", "Hidden"]] },
+    { name: "badge", label: "Badge", placeholder: "e.g. 10% Off, From ₹500, New" }, { name: "title", label: "Title", placeholder: "e.g. Physiotherapy" },
+    { name: "line", label: "Offer text", type: "textarea", placeholder: "e.g. 10-session pack at ₹315 per session – save ₹350" },
+    { name: "service", label: "Service it books", placeholder: "e.g. Physiotherapy, Nurse Care, Home Doctor" },
+    { name: "plan", label: "Plan name (optional)", placeholder: "Fill for a plan – the button becomes \"Get this plan\" and opens a plan enquiry" },
+    { name: "img", label: "Image URL", placeholder: "/physio-section.png, /nurse-hero.jpg, /caretaker-hero.png, /home-hero.jpg or https://…" },
+    { name: "terms", label: "Small print (optional)", placeholder: "*T&C Apply" },
+  ] },
   { key: "faqs", title: "FAQs", desc: "Questions shown on the homepage.", preview: "/#faq", itemLabel: (i) => i.q, blank: { q: "", a: "" }, fields: [
     { name: "q", label: "Question" }, { name: "a", label: "Answer", type: "textarea" },
   ] },

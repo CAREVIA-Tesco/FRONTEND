@@ -146,7 +146,7 @@ function BookNowModal({ open, onClose, preset }) {
             <span className="h-11 w-11 rounded-xl bg-white flex items-center justify-center"><img src="/logo.png" alt="Carevaa" className="h-9 w-9 object-contain" /></span>
             <div className="leading-tight">
               <p className="text-[11px] uppercase tracking-[0.16em] text-on-deep">Carevaa</p>
-              <p className="font-serif text-[20px] font-semibold">{form.visitType === 'online' ? 'Book a consultation' : form.visitType === 'clinic' ? 'Book a clinic visit' : 'Book a home visit'}</p>
+              <p data-testid="booknow-title" className="font-serif text-[20px] font-semibold">{step === 1 ? (doctor ? 'Book an appointment' : 'Book a visit') : form.visitType === 'online' ? 'Book a consultation' : form.visitType === 'clinic' ? 'Book a clinic visit' : 'Book a home visit'}</p>
             </div>
           </div>
           {doctor ? (

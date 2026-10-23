@@ -305,7 +305,7 @@ export default function ProfessionalOnboarding() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
           <p className="eyebrow text-on-deep mb-2">Join Carevaa as a professional</p>
           <h1 className="font-serif text-[28px] sm:text-[36px] font-semibold leading-tight">Complete your professional profile</h1>
-          <p className="mt-2 text-white/75 max-w-2xl text-[15px]">It takes about 5 minutes. Patients near you can book you as soon as your profile is live.</p>
+          <p className="mt-2 text-white/75 max-w-2xl text-[15px]">It takes about 5 minutes. After you submit, the Carevaa team reviews your profile. Patients can find and book you once it is approved.</p>
           <div className="mt-6 max-w-xl">
             <div className="flex items-center justify-between text-[12px] text-white/70 mb-2">
               <span>Step {stepIndex + 1} of {visibleSteps.length}: <span className="font-semibold text-white">{visibleSteps[stepIndex]?.title}</span></span>

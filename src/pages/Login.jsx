@@ -4,14 +4,17 @@ import { ShieldCheck, Lock, Eye, EyeOff, Phone, ArrowLeft, HeartPulse, CalendarC
 import api, { saveSession } from '../services/api';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
+import ForgotPasswordForm from '../components/ForgotPasswordForm';
 
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 
 export default function Login() {
-  const [view, setView] = useState('login');
   const [role, setRole] = useState('patient'); // 'login' or 'register'
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // 'login' | 'register' | 'forgot' (forgot password opens inside this card)
+  const [view, setView] = useState(searchParams.get('forgot') ? 'forgot' : 'login');
+  const [forgotPhone, setForgotPhone] = useState(String(searchParams.get('phone') || ''));
   const [fullName, setFullName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -168,7 +171,7 @@ export default function Login() {
 
             <div className="bg-white rounded-3xl shadow-[0_24px_60px_-20px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] ring-1 ring-line-soft p-6 sm:p-8 lg:px-8 lg:py-6">
               {/* Role toggle */}
-              {!patientStep2 && (
+              {!patientStep2 && view !== 'forgot' && (
               <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-tint ring-1 ring-line-soft mb-6 lg:mb-5" role="group" aria-label="Account type">
                 {[['patient', 'Patient'], ['doctor', 'Doctor'], ['admin', 'Admin']].map(([key, label]) => (
                   <button
@@ -184,6 +187,11 @@ export default function Login() {
               </div>
               )}
 
+              {view === 'forgot' ? (
+              <div key="forgot" className="animate-[fade-in_0.35s_ease-out]">
+                <ForgotPasswordForm initialPhone={forgotPhone} onBack={() => switchView('login')} />
+              </div>
+              ) : (
               <div key={view} className="animate-[fade-in_0.35s_ease-out]">
                 <div className="mb-6 lg:mb-5">
                   {isRegister && role === 'patient' && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-1">Step {regStep} of 2</p>}
@@ -251,7 +259,7 @@ export default function Login() {
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
                       <label htmlFor="password" className="block text-[13px] font-semibold text-primary">Password</label>
-                      {!isRegister && role !== 'admin' && <Link to={`/forgot-password${/^\D*\d[\d\s+-]{8,}$/.test(identifier) ? `?phone=${identifier.replace(/\D/g, '').slice(-10)}` : ''}`} className="text-[13px] font-semibold text-secondary hover:underline">Forgot Password?</Link>}
+                      {!isRegister && role !== 'admin' && <button type="button" onClick={() => { setForgotPhone(/^\D*\d[\d\s+-]{8,}$/.test(identifier) ? identifier.replace(/\D/g, '').slice(-10) : ''); switchView('forgot'); }} className="text-[13px] font-semibold text-secondary hover:underline">Forgot Password?</button>}
                     </div>
                     <div className="relative">
                       <input id="password" type={showPassword ? 'text' : 'password'} autoComplete={isRegister ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`${inputCls} pr-12`} />
@@ -291,6 +299,7 @@ export default function Login() {
                 </p>
                 )}
               </div>
+              )}
             </div>
 
             <div className={`${patientStep2 ? 'hidden' : 'flex'} items-center justify-center gap-5 mt-4 text-xs font-medium text-primary/55`}>

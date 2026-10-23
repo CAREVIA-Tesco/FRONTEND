@@ -121,8 +121,10 @@ export default function Home() {
   const heroTiles = [...liveTiles, ...promiseTiles].slice(0, 3);
   const bandTiles = [...liveTiles, ...promiseTiles].slice(0, 3);
 
-  // offers built from the pricing rules + live fees
-  const offers = useMemo(() => {
+  // offers: the admin's own list (Admin → Website Content → Offers); while that is empty,
+  // automatic offers built from the pricing rules + live fees
+  const customOffers = useSiteContent('offers');
+  const autoOffers = useMemo(() => {
     if (!rules) return [];
     const list = [];
     const physio = packagePrices(priceFor('physiotherapy'), rules);
@@ -135,6 +137,9 @@ export default function Home() {
     return list.slice(0, 3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rules, stats, minOnlineFee]);
+  const offers = customOffers.length
+    ? customOffers.filter((o) => o && o.show !== 'hide' && o.title).map((o, i) => ({ key: `offer-${i}`, img: o.img || '/home-hero.jpg', badge: o.badge, title: o.title, line: o.line, service: o.service || o.title, plan: o.plan, terms: o.terms }))
+    : autoOffers;
 
   // cities grouped by state
   const states = useMemo(() => {
@@ -321,14 +326,14 @@ export default function Home() {
                 <Reveal key={o.key} delay={i * 100} className="w-full md:w-[calc(50%-16px)] xl:w-[calc(33.333%-22px)]">
                   <div className="h-full min-h-[240px] rounded-2xl border border-black/[0.07] overflow-hidden grid grid-cols-[1.4fr_1fr] bg-tint hover:shadow-xl transition-shadow">
                     <div className="p-5 sm:p-7 flex flex-col">
-                      <span className="self-start bg-accent text-white text-[13px] font-medium px-3 py-1 rounded-full mb-3">{o.badge}</span>
+                      {o.badge && <span className="self-start bg-accent text-white text-[13px] font-medium px-3 py-1 rounded-full mb-3">{o.badge}</span>}
                       <h3 className="font-bold text-primary text-xl lg:text-[22px] mb-2">{o.title}</h3>
                       <p className="text-gray-600 text-[14px] sm:text-[15px] leading-snug mb-5">{o.line}</p>
                       <div className="mt-auto">
-                        <button type="button" onClick={() => (o.plan ? setEnquiry({ type: 'plan', service: o.service, plan: o.plan }) : bookNow({ service: o.title }))} className="bg-secondary hover:bg-secondary-hover text-white text-[15px] px-5 py-2.5 rounded-md transition-colors">
+                        <button type="button" onClick={() => (o.plan ? setEnquiry({ type: 'plan', service: o.service, plan: o.plan }) : bookNow({ service: o.service || o.title }))} className="bg-secondary hover:bg-secondary-hover text-white text-[15px] px-5 py-2.5 rounded-md transition-colors">
                           {o.plan ? 'Get this plan' : 'Book Now'}
                         </button>
-                        <p className="text-xs text-gray-500 mt-2">*T&amp;C Apply</p>
+                        {o.terms !== '' && <p className="text-xs text-gray-500 mt-2">{o.terms || '*T&C Apply'}</p>}
                       </div>
                     </div>
                     <div className="bg-mint relative"><img src={o.img} alt={o.title} className="absolute inset-0 w-full h-full object-cover" /></div>

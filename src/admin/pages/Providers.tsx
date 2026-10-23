@@ -2,13 +2,14 @@ import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../components/ui/Button"
 import { Badge } from "../components/ui/Badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/Table"
-import { Search, Filter, Download, Plus, Users, UserCheck, AlertTriangle, ShieldCheck, Ban, Check, X } from "lucide-react"
+import { Search, Filter, Download, Plus, Users, UserCheck, AlertTriangle, ShieldCheck, Ban, Check, X, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import api from "../../services/api"
 import { downloadCsv } from "../lib/useApi"
 import { paginate, useNotice } from "../lib/forms"
 import { Pager } from "../components/ui/Pager"
 import { Notice } from "../components/ui/Notice"
+import { Modal } from "../components/ui/Modal"
 
 export function Providers() {
   const [allProviders, setAllProviders] = useState<any[]>([]);
@@ -39,6 +40,19 @@ export function Providers() {
     } catch (err: any) {
       setError(err.message);
     }
+  };
+  // remove from / put back on the website, or delete for good
+  const [confirm, setConfirm] = useState<{ kind: "hide" | "delete"; p: any } | null>(null);
+  const [working, setWorking] = useState(false);
+  const runConfirm = async () => {
+    if (!confirm) return;
+    setWorking(true); setError("");
+    try {
+      if (confirm.kind === "hide") await api.setProviderStatus(confirm.p.id, "SUSPENDED");
+      else await api.deleteProvider(confirm.p.id);
+      setConfirm(null);
+      loadDoctors();
+    } catch (err: any) { setError(err.message); setConfirm(null); } finally { setWorking(false); }
   };
   const handleApprove = (id: string) => updateStatus(id, 'ACTIVE');
   const handleReject = (id: string) => updateStatus(id, 'REJECTED');
@@ -183,7 +197,9 @@ export function Providers() {
                   <TableCell>
                      {provider.status === "PENDING" ? (
                      <Badge variant="warning" className="bg-amber-100 text-amber-700">Pending</Badge>
-                     ) : provider.status === "REJECTED" || provider.status === "SUSPENDED" ? (
+                     ) : provider.status === "SUSPENDED" ? (
+                     <Badge variant="default" className="bg-slate-200 text-slate-700">Removed</Badge>
+                     ) : provider.status === "REJECTED" ? (
                      <Badge variant="default" className="bg-red-100 text-red-700">Rejected</Badge>
                      ) : (
                      <Badge variant="success" className="bg-green-100 text-green-700">Verified</Badge>
@@ -191,9 +207,9 @@ export function Providers() {
                   </TableCell>
                   <TableCell>
                      {provider.status === "ACTIVE" || !provider.status ? (
-                     <Badge variant="success">Active</Badge>
+                     <Badge variant="success">On website</Badge>
                      ) : (
-                     <Badge variant="default">Inactive</Badge>
+                     <Badge variant="default">Hidden</Badge>
                      )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -210,6 +226,12 @@ export function Providers() {
                      <div className="flex items-center justify-end gap-1">
                        <Link to={`/admin/providers/${provider.id}`} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-brand-600 hover:bg-slate-100">View</Link>
                        <Link to={`/admin/providers/${provider.id}/edit?back=/admin/providers`} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-charcoal hover:bg-slate-100">Edit</Link>
+                       {provider.status === "ACTIVE" ? (
+                         <button type="button" onClick={() => setConfirm({ kind: "hide", p: provider })} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-amber-700 hover:bg-amber-50" title="Hide this profile from the website">Remove from website</button>
+                       ) : (
+                         <button type="button" onClick={() => updateStatus(provider.id, "ACTIVE")} className="h-8 px-2.5 inline-flex items-center rounded-md text-sm font-medium text-green-700 hover:bg-green-50" title="Show this profile on the website again">Show on website</button>
+                       )}
+                       <button type="button" onClick={() => setConfirm({ kind: "delete", p: provider })} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-red-600 hover:bg-red-50" title="Delete permanently" aria-label={`Delete ${provider.name}`}><Trash2 className="h-4 w-4" /></button>
                      </div>
                      )}
                   </TableCell>
@@ -219,6 +241,22 @@ export function Providers() {
          </Table>
          <Pager page={paged.current} pages={paged.pages} from={paged.from} to={paged.to} total={providersList.length} label="providers" onPage={setPage} />
       </div>
+
+      <Modal isOpen={!!confirm} onClose={() => !working && setConfirm(null)} title={confirm?.kind === "delete" ? "Delete professional?" : "Remove from website?"}>
+        {confirm && (
+          <div className="space-y-4">
+            <p className="text-sm text-charcoal">
+              {confirm.kind === "delete"
+                ? <><strong>{confirm.p.name}</strong> will be deleted permanently and their login will no longer have a professional profile. Past appointments keep their name. This cannot be undone.</>
+                : <><strong>{confirm.p.name}</strong> will be hidden from Find Doctors, search, the home page and booking. Their account and history stay, and you can show the profile again any time.</>}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setConfirm(null)} disabled={working}>Cancel</Button>
+              <Button onClick={runConfirm} disabled={working} className={confirm.kind === "delete" ? "bg-red-600 hover:bg-red-700 text-white" : ""}>{working ? "Please wait…" : confirm.kind === "delete" ? "Delete" : "Remove from website"}</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

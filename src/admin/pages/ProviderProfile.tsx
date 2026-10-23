@@ -143,6 +143,11 @@ export function ProviderProfile() {
                   <CheckCircle2 className="h-4 w-4 mr-2" /> {p.status === "PENDING" ? "Approve Provider" : "Reactivate Provider"}
                 </Button>
                 )}
+                {p.status === "PENDING" && (
+                <Button className="w-full text-error border-error/30 hover:bg-red-50 hover:border-error" variant="outline" onClick={() => setStatus("REJECTED")}>
+                  <Ban className="h-4 w-4 mr-2" /> Reject Registration
+                </Button>
+                )}
                 <Button className="w-full text-charcoal border-slate-200 hover:bg-slate-50" variant="outline" onClick={() => setDeleteModalOpen(true)}>
                   Delete Provider
                 </Button>
