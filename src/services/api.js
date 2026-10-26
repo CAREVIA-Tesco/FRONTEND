@@ -51,6 +51,7 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
     if (res.status === 401 && token) logout(); // expired / invalid session
     const err = new Error(data.message || `Request failed (${res.status})`);
     err.status = res.status;
+    err.data = data;
     throw err;
   }
   return data;
@@ -66,6 +67,21 @@ export const api = {
   login: (identifier, password, role) => request('/auth/login', { method: 'POST', body: { identifier, password, role }, auth: false }),
   register: (name, identifier, password, role, details = {}) => request('/auth/register', { method: 'POST', body: { ...details, name, identifier, password, role }, auth: false }),
   me: () => request('/auth/me'),
+  // patient visit management (doctor, nurse, admin)
+  clinicSummary: (params = {}) => request(`/clinic/summary${qs(params)}`),
+  clinicReport: (params = {}) => request(`/clinic/report${qs(params)}`),
+  clinicPatients: (params = {}) => request(`/clinic/patients${qs(params)}`),
+  clinicMatch: (phone) => request(`/clinic/patients/match${qs({ phone })}`),
+  clinicPatient: (id) => request(`/clinic/patients/${id}`),
+  updateClinicPatient: (id, data) => request(`/clinic/patients/${id}`, { method: 'PUT', body: data }),
+  clinicVisits: (params = {}) => request(`/clinic/visits${qs(params)}`),
+  addClinicVisit: (data) => request('/clinic/visits', { method: 'POST', body: data }),
+  updateClinicVisit: (id, data) => request(`/clinic/visits/${id}`, { method: 'PUT', body: data }),
+  deleteClinicVisit: (id) => request(`/clinic/visits/${id}`, { method: 'DELETE' }),
+  clinicStaff: (params = {}) => request(`/clinic/staff${qs(params)}`),
+  addClinicStaff: (data) => request('/clinic/staff', { method: 'POST', body: data }),
+  updateClinicStaff: (id, data) => request(`/clinic/staff/${id}`, { method: 'PATCH', body: data }),
+  adminClinicReport: (params = {}) => request(`/admin/clinic/report${qs(params)}`),
   // notifications (bell icon)
   notifications: (limit = 30) => request(`/notifications?limit=${limit}`),
   readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),

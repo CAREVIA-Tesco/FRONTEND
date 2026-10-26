@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import DoctorDashboard from './pages/DoctorDashboard.jsx';
+import NurseDashboard from './pages/NurseDashboard.jsx';
 import AdminApp from './admin/AdminApp.tsx';
 import PatientDashboard from './pages/PatientDashboard.jsx';
 import ProfessionalOnboarding from './pages/ProfessionalOnboarding.jsx';
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/patient-rights" element={<LegalPage contentKey="legal-patient-rights" fallbackTitle="Patient Rights" />} />
         <Route path="/verification" element={<Navigate to="/professional/onboarding" replace />} />
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="/nurse/dashboard" element={<NurseDashboard />} />
         <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/professional/onboarding" element={<ProfessionalOnboarding />} />
         <Route path="/patient/dashboard" element={<PatientDashboard />} />

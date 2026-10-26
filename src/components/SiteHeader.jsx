@@ -14,7 +14,7 @@ export default function SiteHeader() {
   const SERVICES = useServices();
   const sessionUser = getSessionUser();
   const accountLink = sessionUser
-    ? (sessionUser.role === 'admin' ? '/admin' : sessionUser.role === 'doctor' ? (sessionUser.providerId ? '/doctor/dashboard' : '/professional/onboarding') : '/patient/dashboard')
+    ? (sessionUser.role === 'admin' ? '/admin' : sessionUser.role === 'nurse' ? '/nurse/dashboard' : sessionUser.role === 'doctor' ? (sessionUser.providerId ? '/doctor/dashboard' : '/professional/onboarding') : '/patient/dashboard')
     : '/login';
   const accountLabel = sessionUser ? 'My Dashboard' : 'Login';
   const contact = useContact();

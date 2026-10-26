@@ -7,7 +7,7 @@ import { getSessionUser, logout } from "../../../services/api"
 const TITLES: Record<string, string> = {
   "": "Dashboard", patients: "Patients", providers: "Doctors & Providers", specializations: "Specializations",
   caretakers: "Caretakers", labs: "Lab Centres", services: "Services", enquiries: "Enquiries & Callbacks",
-  appointments: "Appointments", consultations: "Consultations", availability: "Availability",
+  appointments: "Appointments", clinic: "Patient Visits", consultations: "Consultations", availability: "Availability",
   emergency: "Emergency Requests", content: "Website Content", applications: "Job Applications",
   payments: "Payments", transactions: "Transactions", refunds: "Refunds", payouts: "Provider Payouts", settings: "My Profile",
 }

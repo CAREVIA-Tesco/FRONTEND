@@ -9,7 +9,8 @@ import api, { getSessionUser, logout } from '../services/api';
 import DoctorRequests from '../components/DoctorRequests';
 import DashboardShell from '../components/DashboardShell';
 import { AnalyticsTab, ReviewsTab, SettingsTab } from '../components/DoctorTabs';
-import { Inbox, MessageCircle, Stethoscope } from 'lucide-react';
+import { Inbox, MessageCircle, Stethoscope, ClipboardList } from 'lucide-react';
+import PatientVisits, { ClinicSummaryStrip } from '../components/PatientVisits';
 
 const STATUS_STYLE = { Waiting: 'bg-amber-100 text-amber-800', Confirmed: 'bg-blue-100 text-blue-700', Completed: 'bg-green-100 text-green-700', Cancelled: 'bg-gray-200 text-gray-700' };
 const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -219,6 +220,7 @@ export default function DoctorDashboard() {
     { key: 'My Profile', label: 'My Profile', icon: User },
     { key: 'Appointments', label: 'Appointments', icon: Calendar },
     { key: 'Care Requests', label: 'Care Requests', icon: Inbox, badge: requestBadge },
+    { key: 'Patient Visits', label: 'Patient Visits', icon: ClipboardList },
     { key: 'Analytics', label: 'Analytics', icon: BarChart3 },
     { key: 'Reviews', label: 'Reviews', icon: Star },
     { key: 'Settings', label: 'Settings', icon: Settings },
@@ -367,6 +369,9 @@ export default function DoctorDashboard() {
                 </div>
               ))}
             </div>
+
+            {/* Clinic walk-in patients (Patient Visits) */}
+            <ClinicSummaryStrip onOpen={() => setActiveTab('Patient Visits')} />
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -533,6 +538,7 @@ export default function DoctorDashboard() {
               </div>
             )}
 
+            {activeTab === 'Patient Visits' && <PatientVisits role="doctor" />}
             {activeTab === 'Analytics' && <AnalyticsTab appointments={allAppointments} profile={profile} />}
             {activeTab === 'Reviews' && <ReviewsTab providerId={profile?.id} profile={profile} />}
             {activeTab === 'Settings' && <SettingsTab profile={profile} onLogout={handleLogout} />}

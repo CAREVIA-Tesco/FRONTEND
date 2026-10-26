@@ -30,6 +30,7 @@ export default function Login() {
   const dashboardFor = (user) => {
     if (user.role === 'admin') return '/admin';
     if (user.role === 'doctor') return user.providerId ? '/doctor/dashboard' : '/professional/onboarding';
+    if (user.role === 'nurse') return '/nurse/dashboard';
     return '/patient/dashboard';
   };
 

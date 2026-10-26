@@ -6,8 +6,7 @@ import {
   HeartHandshake, FlaskConical, Stethoscope as ServicesIcon,
   CalendarDays, Video, Clock, Siren,
   CreditCard, ArrowRightLeft, Undo2, HandCoins,
-  ChevronRight, Inbox, Briefcase, FileEdit, X, ExternalLink
-} from "lucide-react"
+  ChevronRight, Inbox, Briefcase, FileEdit, X, ExternalLink, ClipboardList } from "lucide-react"
 
 const mainNav = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -25,6 +24,7 @@ const managementNav = [
 const operationsNav = [
   { title: "Enquiries & Callbacks", href: "/admin/enquiries", icon: Inbox },
   { title: "Appointments", href: "/admin/appointments", icon: CalendarDays },
+  { title: "Patient Visits", href: "/admin/clinic", icon: ClipboardList },
   { title: "Consultations", href: "/admin/consultations", icon: Video },
   { title: "Availability", href: "/admin/availability", icon: Clock },
   { title: "Emergency Requests", href: "/admin/emergency", icon: Siren },
