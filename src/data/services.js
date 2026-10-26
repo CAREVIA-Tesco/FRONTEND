@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance } from 'lucide-react';
 import { request } from '../services/api';
+import { readCache, writeCache } from '../services/persistentCache';
 
 // icon names the admin can pick for a service
 export const SERVICE_ICONS = { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance };
@@ -56,25 +57,42 @@ const fromApi = (sv) => {
     custom: !base.key,
   };
 };
+// last list received from the API (see useServices)
+{
+  const saved = readCache('services');
+  if (Array.isArray(saved) && saved.length) live = saved.map(fromApi);
+}
 export function loadServices(force = false) {
   if (loading && !force) return loading;
   loading = request('/services', { auth: false })
     .then((d) => {
-      live = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key).sort((a, b) => (a.order ?? 100) - (b.order ?? 100)).map(fromApi);
+      const raw = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+      writeCache('services', raw);
+      live = raw.map(fromApi);
       listeners.forEach((fn) => fn(live));
       return live;
     })
     .catch(() => { loading = null; return live || SERVICES; });
   return loading;
 }
+// Services shown everywhere on the website. Starts from the list received on the previous visit
+// (so menus, counts and pages don't switch from the built-in list to the admin's list after a moment),
+// and is refreshed from the API once per page load.
+let refreshed = false;
 export function useServices() {
   const [list, setList] = useState(live || SERVICES);
   useEffect(() => {
     listeners.add(setList);
-    if (live) setList(live); else loadServices();
+    if (live) setList(live);
+    if (!refreshed) { refreshed = true; loadServices(true); }
     return () => listeners.delete(setList);
   }, []);
   return list;
+}
+// { list, loaded } – loaded is false only on a first visit before the admin's service list arrives
+export function useServicesState() {
+  const list = useServices();
+  return { list, loaded: !!live && list === live };
 }
 export const findService = (list, key) => list.find((s) => s.key === key);
 

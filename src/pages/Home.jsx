@@ -14,7 +14,7 @@ import Reveal from '../components/Reveal';
 import api from '../services/api';
 import { usePublicStats, serviceStats, usePricingRules, packagePrices, inr } from '../services/usePublicStats';
 import { useSiteContent, useContact } from '../services/useSiteContent';
-import { BOOKING_TYPE, useServices } from '../data/services';
+import { BOOKING_TYPE, useServicesState } from '../data/services';
 import { postSlug } from '../utils/slug';
 
 const STEPS = [
@@ -69,7 +69,7 @@ function TestimonialCard({ t }) {
 }
 
 export default function Home() {
-  const SERVICES = useServices();
+  const { list: SERVICES, loaded: servicesLoaded } = useServicesState();
   const stats = usePublicStats();
   const rules = usePricingRules();
   const contact = useContact();
@@ -79,6 +79,7 @@ export default function Home() {
   const faqs = useSiteContent('faqs');
 
   const [providers, setProviders] = useState([]);
+  const [providersLoaded, setProvidersLoaded] = useState(false);
   const [booking, setBooking] = useState({ open: false, type: undefined });
   const [enquiry, setEnquiry] = useState(null);
   const [careChoice, setCareChoice] = useState('');
@@ -87,7 +88,7 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
-    api.getProviders().then((d) => setProviders(d.providers || [])).catch(() => {});
+    api.getProviders().then((d) => { setProviders(d.providers || []); setProvidersLoaded(true); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -118,8 +119,10 @@ export default function Home() {
     stats.rating ? { value: `${stats.rating}★`, label: `Rating · ${stats.reviews} reviews` } : null,
   ].filter((t) => t && t.value) : []), [stats]);
   const promiseTiles = [{ value: '24/7', label: 'Online booking' }, { value: '100%', label: 'Verified professionals' }, { value: `${SERVICES.length}`, label: 'Care services' }];
-  const heroTiles = [...liveTiles, ...promiseTiles].slice(0, 3);
-  const bandTiles = [...liveTiles, ...promiseTiles].slice(0, 3);
+  // hero: fixed values, so the first screen never changes while live data is loading
+  const heroTiles = [{ value: '24/7', label: 'Online booking' }, { value: '100%', label: 'Verified professionals' }, { value: servicesLoaded ? `${SERVICES.length}` : null, label: SERVICES.length === 1 ? 'Care service' : 'Care services' }];
+  // numbers band: shown once the live numbers are known (remembered from the last visit), never placeholder numbers first
+  const bandTiles = stats && servicesLoaded ? [...liveTiles, ...promiseTiles].slice(0, 3) : null;
 
   // offers: the admin's own list (Admin → Website Content → Offers); while that is empty,
   // automatic offers built from the pricing rules + live fees
@@ -132,7 +135,8 @@ export default function Home() {
   const steps = howSteps.length ? howSteps.filter((x) => x && x.title).map((x, i) => ({ ...x, icon: STEPS[i % STEPS.length].icon })) : STEPS;
   const benefits = whyPoints.length ? whyPoints.filter((x) => x && x.title).map((x, i) => ({ ...x, icon: BENEFITS[i % BENEFITS.length].icon })) : BENEFITS;
   const autoOffers = useMemo(() => {
-    if (!rules) return [];
+    // wait until every input is known, so cards don't appear one by one or change their numbers
+    if (!rules || !stats || !providersLoaded) return [];
     const list = [];
     const physio = packagePrices(priceFor('physiotherapy'), rules);
     if (physio) list.push({ key: 'physiotherapy', img: '/physio-section.png', badge: `${rules.packDiscountPct}% Off`, title: 'Physiotherapy', service: 'Physiotherapy', plan: `${physio.packSessions}-Session Pack`, line: `${physio.packSessions}-session pack at ${inr(physio.perSession)} per session – save ${inr(physio.packSaving)}` });
@@ -143,7 +147,7 @@ export default function Home() {
     if (minOnlineFee) list.push({ key: 'doctor-visit', img: '/home-hero.jpg', badge: `From ${inr(minOnlineFee)}`, title: 'Doctor Consult', line: `Consult a doctor from home – private audio consult from ${inr(minOnlineFee)}` });
     return list.slice(0, 3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rules, stats, minOnlineFee]);
+  }, [rules, stats, minOnlineFee, providersLoaded]);
   const offers = customOffers.length
     ? customOffers.filter((o) => o && o.show !== 'hide' && o.title).map((o, i) => ({ key: `offer-${i}`, img: o.img || '/home-hero.jpg', badge: o.badge, title: o.title, line: o.line, service: o.service || o.title, plan: o.plan, terms: o.terms }))
     : on('offersAuto') ? autoOffers : [];
@@ -181,7 +185,7 @@ export default function Home() {
         <div className="relative max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16 lg:min-h-[600px] flex items-center">
           <div className="relative z-10 w-full lg:w-[50%] pt-8 pb-6 lg:py-16">
             <Reveal>
-              <p className="eyebrow text-accent mb-4 lg:mb-5 !text-[11px] sm:!text-[12.5px]">Home healthcare{stats?.cities ? ` across ${stats.cities} ${stats.cities === 1 ? 'city' : 'cities'}` : ''} · verified professionals</p>
+              <p className="eyebrow text-accent mb-4 lg:mb-5 !text-[11px] sm:!text-[12.5px]">Home healthcare · verified professionals</p>
               <h1 className="font-poppins font-semibold text-primary text-[34px] sm:text-[44px] lg:text-[46px] xl:text-[54px] leading-[1.12] tracking-[-0.01em]">
                 Trusted Medical Care,
                 <span className="block italic relative w-fit pb-2">
@@ -192,8 +196,7 @@ export default function Home() {
                 </span>
               </h1>
               <p className="mt-5 lg:mt-6 text-base sm:text-lg xl:text-[19px] leading-relaxed text-gray-600 font-light max-w-[560px]">
-                Doctors, nurses, physiotherapists and caregivers who visit your home or consult online
-                {minOnlineFee ? ` – online consultations start at just ${inr(minOnlineFee)}.` : '.'}
+                Doctors, nurses, physiotherapists and caregivers who visit your home or consult online.
               </p>
 
               {/* care selector: pill on desktop, card on mobile */}
@@ -217,25 +220,16 @@ export default function Home() {
                     Book Now
                   </button>
                 </div>
-                {contact.phone && (
-                  <a href={contact.phoneHref} className="hidden sm:flex items-center gap-2.5 font-bold text-primary text-base xl:text-[17px] hover:text-accent transition-colors whitespace-nowrap">
-                    <Phone className="w-[18px] h-[18px] text-accent fill-accent" /> {contact.phone}
-                  </a>
-                )}
               </div>
 
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-                {contact.phone && (
-                  <a href={contact.phoneHref} className="sm:hidden inline-flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-sm font-bold text-primary shadow-sm">
-                    <Phone className="w-4 h-4 text-accent fill-accent" /> {contact.phone}
-                  </a>
-                )}
                 <button type="button" onClick={() => setEnquiry({ service: selected?.title })} className="inline-flex items-center gap-2 bg-white sm:bg-transparent rounded-full px-4 py-2.5 sm:p-0 shadow-sm sm:shadow-none text-sm sm:text-[15px] font-semibold text-accent sm:underline sm:underline-offset-4 sm:decoration-accent/40 hover:decoration-accent">
                   <PhoneCall className="w-4 h-4 sm:hidden" /> Talk to a care advisor
                 </button>
-                <span className="text-sm text-gray-500 flex items-center gap-2">
+                <span className="text-sm text-gray-500 flex items-center gap-2" data-testid="doctors-today">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  {doctorsToday} {doctorsToday === 1 ? 'Doctor is' : 'Doctors are'} available today
+                  {/* real count once the doctor list has loaded – never a placeholder 0 first */}
+                  {providersLoaded ? `${doctorsToday} ${doctorsToday === 1 ? 'Doctor is' : 'Doctors are'} available today` : <span className="inline-block w-44 h-3.5 rounded bg-black/[0.06] animate-pulse" aria-hidden="true" />}
                 </span>
               </div>
             </Reveal>
@@ -245,7 +239,7 @@ export default function Home() {
           <div className="hidden lg:block absolute inset-y-0 left-[51%] w-[20%] pointer-events-none">
             {heroTiles.map((t, i) => (
               <div key={t.label} style={{ top: `${[14, 42, 70][i]}%`, left: `${[16, 0, 22][i]}%` }} className={`absolute bg-white rounded-xl px-5 xl:px-6 py-4 xl:py-5 shadow-[0_14px_40px_color-mix(in_srgb,var(--color-primary)_12%,transparent)] whitespace-nowrap ${i === 1 ? 'animate-float-delayed' : 'animate-float'}`}>
-                <p className="text-[22px] xl:text-[26px] font-bold text-primary leading-none">{fmtNum(t.value)}{typeof t.value === 'number' && t.value >= 10 ? '+' : ''}</p>
+                <p className="text-[22px] xl:text-[26px] font-bold text-primary leading-none">{t.value === null ? <span className="inline-block h-6 w-8 rounded bg-black/[0.07] animate-pulse align-middle" aria-hidden="true" /> : fmtNum(t.value)}</p>
                 <p className="mt-2.5 text-[11px] xl:text-[12px] font-semibold tracking-[0.14em] uppercase text-gray-500">{t.label}</p>
               </div>
             ))}
@@ -260,7 +254,7 @@ export default function Home() {
             <div className="absolute left-3 right-3 bottom-3 grid grid-cols-3 gap-2">
               {heroTiles.map((t) => (
                 <div key={t.label} className="bg-white/95 backdrop-blur rounded-xl px-2 py-2.5 text-center">
-                  <p className="text-lg font-bold text-primary leading-none">{fmtNum(t.value)}</p>
+                  <p className="text-lg font-bold text-primary leading-none">{t.value === null ? <span className="inline-block h-4 w-6 rounded bg-black/[0.07] animate-pulse" aria-hidden="true" /> : fmtNum(t.value)}</p>
                   <p className="mt-1 text-[9px] font-semibold tracking-wider uppercase text-gray-500 leading-tight">{t.label}</p>
                 </div>
               ))}
@@ -366,10 +360,15 @@ export default function Home() {
             <p className="text-[28px] sm:text-[34px] lg:text-[42px] font-bold text-accent leading-tight">Trusted Care</p>
             <p className="mt-2 text-[11px] sm:text-[12.5px] font-bold tracking-[0.14em] uppercase text-primary">Home healthcare, done right</p>
           </div>
-          {bandTiles.map((t) => (
+          {bandTiles ? bandTiles.map((t) => (
             <div key={t.label} className="text-center px-4 py-4 lg:py-6">
               <p className="text-[28px] sm:text-[34px] lg:text-[42px] font-bold text-accent leading-tight">{fmtNum(t.value)}</p>
               <p className="mt-2 text-[11px] sm:text-[12.5px] font-bold tracking-[0.14em] uppercase text-primary">{t.label}</p>
+            </div>
+          )) : [0, 1, 2].map((i) => (
+            <div key={i} className="text-center px-4 py-4 lg:py-6" aria-hidden="true">
+              <span className="block mx-auto h-9 lg:h-11 w-16 rounded-lg bg-black/[0.06] animate-pulse" />
+              <span className="block mx-auto mt-3 h-3 w-28 rounded bg-black/[0.06] animate-pulse" />
             </div>
           ))}
         </div>
@@ -445,7 +444,7 @@ export default function Home() {
           <Reveal className="relative">
             <img src="/caretaker-section.png" alt="Carevaa caregiver with an elderly couple" className="w-full h-[260px] sm:h-[400px] object-cover rounded-2xl" />
             <div className="absolute -bottom-6 right-6 bg-white rounded-xl px-7 py-5 shadow-[0_14px_40px_color-mix(in_srgb,var(--color-primary)_12%,transparent)]">
-              <p className="text-[28px] font-bold text-primary leading-none">{SERVICES.length}</p>
+              <p className="text-[28px] font-bold text-primary leading-none">{servicesLoaded ? SERVICES.length : <span className="inline-block h-7 w-8 rounded bg-black/[0.07] animate-pulse" aria-hidden="true" />}</p>
               <p className="mt-2 text-[13px] font-semibold tracking-[0.14em] uppercase text-gray-500">Care services</p>
             </div>
           </Reveal>

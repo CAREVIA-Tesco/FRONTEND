@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { Plus, Trash2, ArrowUp, ArrowDown, Save, ExternalLink } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import api from "../../services/api"
+import { setSiteContent } from "../../services/useSiteContent"
 
 type Field = { name: string; label: string; type?: "text" | "textarea" | "number" | "paragraphs" | "select"; placeholder?: string; options?: [string, string][] }
 type Section = { key: string; title: string; desc: string; single?: boolean; preview?: string; itemLabel?: (i: any) => string; fields: Field[]; blank?: any; defaults?: any[] }
@@ -130,6 +131,7 @@ export function WebsiteContent() {
     setSaving(true)
     try {
       await api.saveContent(active, clean)
+      setSiteContent(active, clean) // the website (same browser) shows the change straight away
       if (active === "theme") applyPalette(clean[0]?.palette)
       setDirty(false)
       setMsg({ ok: true, text: "Saved. The website now shows these changes." })

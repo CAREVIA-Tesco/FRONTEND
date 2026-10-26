@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
 import { request } from './api';
+import { readCache, writeCache } from './persistentCache';
+import { useSiteContent } from './useSiteContent';
 
 // Live platform numbers (provider counts, ratings, patients served) shared by the marketing pages.
-let cache = null;
-let pending = null;
+// Fetched once per page load; the last copy is remembered so a refresh shows the same numbers
+// straight away (null only on the very first visit, until the numbers arrive).
+let cache = readCache('stats') || null;
+let fetched = false;
+const statListeners = new Set();
 
 export function usePublicStats() {
   const [stats, setStats] = useState(cache);
   useEffect(() => {
-    if (cache) return;
-    pending = pending || request('/public/stats', { auth: false }).then((d) => { cache = d.stats; return cache; });
-    pending.then(setStats).catch(() => { pending = null; });
+    statListeners.add(setStats);
+    if (cache) setStats(cache);
+    if (!fetched) {
+      fetched = true;
+      request('/public/stats', { auth: false })
+        .then((d) => { cache = d.stats || null; writeCache('stats', cache); statListeners.forEach((fn) => fn(cache)); })
+        .catch(() => { fetched = false; });
+    }
+    return () => statListeners.delete(setStats);
   }, []);
   return stats;
 }
@@ -43,15 +54,10 @@ export function serviceStats(stats, serviceType, allDoctors = false) {
   return { providers, visits, rating, minFee };
 }
 
-// Package pricing rules stored in the database (GET /api/content/pricing)
-let pricingCache = null;
+// Package pricing rules stored in the database (GET /api/content/pricing) – shared and remembered
+// like every other website section (useSiteContent)
 export function usePricingRules() {
-  const [rules, setRules] = useState(pricingCache);
-  useEffect(() => {
-    if (pricingCache) return;
-    request('/content/pricing', { auth: false }).then((d) => { pricingCache = d.items?.[0] || null; setRules(pricingCache); }).catch(() => {});
-  }, []);
-  return rules;
+  return useSiteContent('pricing')[0] || null;
 }
 
 export function packagePrices(single, rules) {

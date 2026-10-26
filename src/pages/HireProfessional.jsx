@@ -37,6 +37,7 @@ export default function HireProfessional() {
 
   // Professionals come from the backend (verified providers)
   const [providers, setProviders] = useState([]);
+  const [prosLoaded, setProsLoaded] = useState(false); // counts show only once the real list has arrived
   const [loadingPros, setLoadingPros] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [bookingService, setBookingService] = useState(null);
@@ -53,6 +54,7 @@ export default function HireProfessional() {
     api.getProviders()
       .then((d) => setProviders(d.providers || []))
       .catch(() => setProviders([]))
+      .finally(() => setProsLoaded(true))
       .finally(() => setLoadingPros(false));
   }, []);
 
@@ -143,7 +145,7 @@ export default function HireProfessional() {
             </p>
             
             <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary mb-8 sm:mb-10 bg-white/50 px-5 py-3 rounded-2xl sm:rounded-full border border-white/50 backdrop-blur-sm">
-              <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-accent"/> {initialPros.length} Verified Pros</span>
+              <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-accent"/> {prosLoaded ? initialPros.length : '…'} Verified Pros</span>
               <span className="text-gray-300">|</span>
               <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-500"/> {platform?.rating ? `${platform.rating} Rated` : 'New'}</span>
               {platform?.patientsServed > 0 && <><span className="text-gray-300">|</span>
@@ -280,7 +282,7 @@ export default function HireProfessional() {
       <section className="bg-primary py-16 mt-20 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
           <div className="flex flex-col items-center">
-            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{initialPros.length}</div>
+            <div className="text-4xl lg:text-5xl font-bold font-poppins mb-2">{prosLoaded ? initialPros.length : '...'}</div>
             <div className="text-blue-200 font-medium text-sm md:text-base uppercase tracking-wider">Verified Pros</div>
           </div>
           <div className="flex flex-col items-center">
@@ -390,7 +392,7 @@ export default function HireProfessional() {
           
           <div className="text-center mt-12">
             <button onClick={() => setShowAll(!showAll)} className="text-accent font-bold text-lg hover:underline inline-flex items-center gap-2">
-              {showAll ? 'Show Fewer' : `See All ${filteredPros.length} Professionals`} <ChevronRight className="w-5 h-5"/>
+              {showAll ? 'Show Fewer' : prosLoaded ? `See All ${filteredPros.length} Professionals` : 'See All Professionals'} <ChevronRight className="w-5 h-5"/>
             </button>
           </div>
         </div>
