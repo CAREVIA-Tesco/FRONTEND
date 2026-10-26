@@ -6,11 +6,14 @@ import { useContact } from '../services/useSiteContent';
 import { useServices } from '../data/services';
 import PincodeFields from './PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
+import { slotTo24, shortSlot } from '../services/consultation';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
-// Booking a particular doctor: useBookNow()({ doctor: { id, name, spec } }) – the request names that doctor
-// and goes to the admin team, who arrange the appointment with the doctor.
+// Booking a particular doctor: useBookNow()({ doctor: { id, name, spec } }) – step 2 shows only the consultation
+// types that doctor offers (home / clinic / online) and their free slots for the chosen type. Picking a free slot
+// books it straight away (the doctor confirms it); a doctor without published timings gets a request that the
+// care team arranges.
 const BookNowContext = createContext(() => {});
 export const useBookNow = () => useContext(BookNowContext);
 
@@ -53,7 +56,11 @@ function BookNowModal({ open, onClose, preset }) {
   const contact = useContact();
   const user = getSessionUser();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', service: '', visitType: 'home', date: '', time: '' });
+  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', address: '', service: '', visitType: 'home', date: '', time: '' });
+  // the chosen doctor's consultation types and free slots ({ offers, modes, configured, days, clinic, hours })
+  const [slotInfo, setSlotInfo] = useState(null);
+  const [slotLoading, setSlotLoading] = useState(false);
+  const [slotReload, setSlotReload] = useState(0);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -70,6 +77,7 @@ function BookNowModal({ open, onClose, preset }) {
         ? { city: preset?.city || user?.city || '', pincode: user?.pincode || '', district: user?.district || '', state: user?.state || '', locality: user?.locality || '' }
         : { city: preset.city, pincode: '', district: '', state: '', locality: '' }),
       service: preset?.service || '',
+      address: user?.address || '',
       visitType: preset?.visitType || 'home',
       date: localDate(slot),
       time: `${pad(slot.getHours())}:${pad(slot.getMinutes())}`,
@@ -81,6 +89,33 @@ function BookNowModal({ open, onClose, preset }) {
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // a doctor was chosen: load the types they offer and the slots for the selected type
+  const doctorId = open ? preset?.doctor?.id : null;
+  useEffect(() => {
+    if (!doctorId) { setSlotInfo(null); return undefined; }
+    let live = true;
+    setSlotLoading(true);
+    api.getProviderSlots(doctorId, { type: form.visitType, days: 21 })
+      .then((d) => {
+        if (!live) return;
+        setSlotInfo(d);
+        setForm((f) => {
+          const next = { ...f };
+          if (d.type && d.type !== f.visitType) next.visitType = d.type; // the doctor does not offer the previous choice
+          if (d.configured) {
+            const day = d.days.find((x) => x.date === f.date && x.slots.some((t) => t.available)) || d.days.find((x) => x.slots.some((t) => t.available));
+            next.date = day ? day.date : '';
+            const still = day?.slots.find((t) => t.available && slotTo24(t.time) === f.time);
+            next.time = still ? f.time : '';
+          }
+          return next;
+        });
+      })
+      .catch(() => { if (live) setSlotInfo({ error: true, configured: false }); })
+      .finally(() => { if (live) setSlotLoading(false); });
+    return () => { live = false; };
+  }, [doctorId, form.visitType, slotReload]);
 
   const patchForm = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrors((er) => ({ ...er, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })); };
   const pin = usePincode(form, patchForm);
@@ -98,6 +133,10 @@ function BookNowModal({ open, onClose, preset }) {
     if (!Object.keys(er).length) setStep(2);
   };
 
+  const doctor = preset?.doctor || null;
+  // the doctor has published timings for this type: only their free slots can be picked
+  const doctorSlots = !!(doctor && slotInfo?.configured && slotInfo.type === form.visitType && Array.isArray(slotInfo.days));
+
   // date & time
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(today); d.setDate(d.getDate() + i); return d; });
@@ -110,29 +149,34 @@ function BookNowModal({ open, onClose, preset }) {
 
   const submit = async () => {
     const er = {};
-    if (!form.date) er.date = 'Choose a date';
-    if (!form.time) er.time = 'Choose a time';
+    if (!form.date) er.date = doctorSlots ? 'No free slots – try another consultation type or call us' : 'Choose a date';
+    if (!form.time) er.time = doctorSlots ? 'Choose one of the free slots' : 'Choose a time';
+    if (doctor && form.visitType === 'home' && !form.address.trim()) er.address = 'Enter the house / flat number and street for the home visit';
     if (when && when.getTime() < Date.now() - 5 * 60 * 1000) er.time = 'Choose a time later than now';
     setErrors(er);
     if (Object.keys(er).length) return;
     setSaving(true); setServerError('');
     try {
       const res = await api.createEnquiry({
-        type: 'booking', providerId: doctor?.id || undefined, name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, service: form.service || undefined, visitType: form.visitType,
+        type: 'booking', providerId: doctor?.id || undefined, name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, address: form.visitType === 'home' ? form.address.trim() || undefined : undefined, service: form.service || undefined, visitType: form.visitType,
         preferredDate: form.date, preferredTime: form.time, source: location.pathname,
       });
       onClose();
       navigate(`/thank-you?code=${encodeURIComponent(res.enquiry.code)}&phone=${encodeURIComponent(res.enquiry.phone)}`, { state: res });
     } catch (err) {
       setServerError(err.message);
+      if (doctor && err.status === 409) { setVal('time', ''); setSlotReload((n) => n + 1); } // slot taken meanwhile: show fresh slots
     } finally {
       setSaving(false);
     }
   };
 
   const Err = ({ k }) => (errors[k] ? <p role="alert" className="text-[13px] text-red-600 mt-1.5">{errors[k]}</p> : null);
-  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', 'Home, online or clinic']];
-  const doctor = preset?.doctor || null;
+  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', doctor ? 'Only this doctor\'s options' : 'Home, online or clinic']];
+  const offers = doctor && slotInfo?.offers ? slotInfo.offers : null;
+  const visitTypes = offers ? VISIT_TYPES.filter(([v]) => offers[v]) : VISIT_TYPES;
+  const feeOf = (v) => slotInfo?.modes?.find((m) => m.type === v)?.fee;
+  const slotDay = doctorSlots ? slotInfo.days.find((d) => d.date === form.date) : null;
 
   return (
     <div className="theme-portea fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4 font-sans" role="dialog" aria-modal="true" aria-label="Book medical services at home">
@@ -184,7 +228,7 @@ function BookNowModal({ open, onClose, preset }) {
           <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center text-primary/60 hover:text-primary hover:bg-tint rounded-full transition"><X className="w-5 h-5" /></button>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Step {step} of 2</p>
           <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Visit type, date and time'}</h2>
-          <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : `Pick a slot that suits you. We will confirm it with ${doctor ? doctor.name : 'the professional'}.`}</p>
+          <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : doctorSlots ? `Only ${doctor.name}'s free slots are shown. The doctor confirms your booking.` : `Pick a slot that suits you. We will confirm it with ${doctor ? doctor.name : 'the professional'}.`}</p>
 
           {step === 1 ? (
             <div key="s1" className="cv-slide-in mt-6 space-y-4">
@@ -219,19 +263,101 @@ function BookNowModal({ open, onClose, preset }) {
             <div key="s2" className="cv-slide-in mt-6 space-y-5">
               <div>
                 <p className={`${labelCls} flex items-center gap-1.5`}><Stethoscope className="w-4 h-4 text-accent" /> How should we see the patient?</p>
-                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Visit type">
-                  {VISIT_TYPES.map(([v, l, sub, Icon]) => {
-                    const on = form.visitType === v;
-                    return (
-                      <button key={v} type="button" role="radio" aria-checked={on} onClick={() => setVal('visitType', v)} className={`rounded-xl border px-2 py-2.5 text-center transition ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>
-                        <Icon className={`w-5 h-5 mx-auto ${on ? 'text-white' : 'text-accent'}`} />
-                        <span className="block text-[13px] font-semibold mt-1 leading-tight">{l}</span>
-                        <span className={`block text-[11px] leading-tight mt-0.5 ${on ? 'text-white/70' : 'text-primary/50'}`}>{sub}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {doctor && !slotInfo ? (
+                  <div className="grid grid-cols-3 gap-2" aria-busy="true">{[0, 1, 2].map((i) => <span key={i} className="h-[74px] rounded-xl bg-tint animate-pulse" />)}</div>
+                ) : (
+                  <div className={`grid gap-2 ${visitTypes.length === 1 ? 'grid-cols-1 sm:grid-cols-2' : visitTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} role="radiogroup" aria-label="Visit type" data-testid="visit-types">
+                    {visitTypes.map(([v, l, sub, Icon]) => {
+                      const on = form.visitType === v;
+                      const fee = doctor ? feeOf(v) : null;
+                      return (
+                        <button key={v} type="button" role="radio" aria-checked={on} data-type={v} onClick={() => setVal('visitType', v)} className={`rounded-xl border px-2 py-2.5 text-center transition ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>
+                          <Icon className={`w-5 h-5 mx-auto ${on ? 'text-white' : 'text-accent'}`} />
+                          <span className="block text-[13px] font-semibold mt-1 leading-tight">{l}</span>
+                          <span className={`block text-[11px] leading-tight mt-0.5 ${on ? 'text-white/70' : 'text-primary/50'}`}>{fee ? `₹${Number(fee).toLocaleString('en-IN')} · ` : ''}{sub}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {doctor && offers && visitTypes.length < 3 && <p className="text-[12px] text-primary/50 mt-1.5">{doctor.name} offers {visitTypes.map(([, l]) => l.toLowerCase()).join(' and ')} only.</p>}
               </div>
+
+              {form.visitType === 'home' && (
+                <div>
+                  <label htmlFor="bn-address" className={labelCls}>House / flat no. and street{doctor ? <span className="text-secondary"> *</span> : <span className="font-normal text-primary/45"> (optional)</span>}</label>
+                  <input id="bn-address" className={fieldCls} value={form.address} onChange={set('address')} placeholder="e.g. 12B, 3rd Cross Street, near the temple" autoComplete="street-address" aria-invalid={!!errors.address} />
+                  <p className="text-[12px] text-primary/50 mt-1">{[form.locality, form.city].filter(Boolean).join(', ')}{form.pincode ? ` – ${form.pincode}` : ''}</p>
+                  <Err k="address" />
+                </div>
+              )}
+              {doctor && form.visitType === 'clinic' && slotInfo?.clinic && (
+                <div className="rounded-2xl ring-1 ring-line-soft bg-white p-4 flex items-start gap-3" data-testid="clinic-details">
+                  <span className="w-10 h-10 rounded-xl bg-mint text-accent flex items-center justify-center shrink-0"><Building2 className="w-5 h-5" /></span>
+                  <span className="text-[14px] leading-snug min-w-0">
+                    <span className="block font-semibold text-primary">{slotInfo.clinic.name || `${doctor.name}'s clinic`}</span>
+                    {slotInfo.clinic.address && <span className="block text-primary/65">{slotInfo.clinic.address}</span>}
+                    {slotInfo.hours && <span className="block text-[12.5px] text-primary/55 mt-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {slotInfo.hours}</span>}
+                    {slotInfo.clinic.phone && <span className="block text-[12.5px] text-primary/55">Clinic phone: {slotInfo.clinic.phone}</span>}
+                    {/^https?:\/\//.test(slotInfo.clinic.website || '') && <a href={slotInfo.clinic.website} target="_blank" rel="noreferrer" className="text-[12.5px] font-semibold text-secondary underline underline-offset-2">Open in maps</a>}
+                  </span>
+                </div>
+              )}
+              {doctor && form.visitType === 'online' && slotInfo?.type === 'online' && (
+                <p className="rounded-2xl ring-1 ring-line-soft bg-white p-4 text-[13.5px] text-primary/70 flex items-start gap-2.5"><Video className="w-5 h-5 text-accent shrink-0" /> <span>Video or phone call. The joining details are shared after {doctor.name} confirms.{slotInfo.hours ? <span className="block text-[12.5px] text-primary/55 mt-0.5">Timings: {slotInfo.hours}</span> : null}</span></p>
+              )}
+
+              {doctor && (slotLoading || !slotInfo) && !doctorSlots ? (
+                <div className="space-y-2" aria-busy="true"><span className="block h-16 rounded-xl bg-tint animate-pulse" /><span className="block h-20 rounded-xl bg-tint animate-pulse" /></div>
+              ) : doctorSlots ? (
+                <>
+                  <div>
+                    <p className={`${labelCls} flex items-center gap-1.5`}><CalendarDays className="w-4 h-4 text-accent" /> Date</p>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1" role="group" aria-label="Available days" data-testid="slot-days">
+                      {slotInfo.days.map((d, i) => {
+                        const free = d.slots.filter((t) => t.available).length;
+                        const on = form.date === d.date;
+                        const dt = new Date(`${d.date}T12:00:00`);
+                        return (
+                          <button key={d.date} type="button" disabled={!free} onClick={() => { setVal('date', d.date); setVal('time', ''); }} aria-pressed={on} data-date={d.date} className={`shrink-0 w-[68px] rounded-xl border px-2 py-2 text-center transition disabled:opacity-45 disabled:cursor-not-allowed ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>
+                            <span className={`block text-[11px] uppercase tracking-wide ${on ? 'text-white/70' : 'text-primary/50'}`}>{i === 0 && d.date === localDate(today) ? 'Today' : dt.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+                            <span className="block text-[18px] font-semibold leading-tight">{dt.getDate()}</span>
+                            <span className={`block text-[10.5px] ${on ? 'text-white/75' : free ? 'text-secondary' : 'text-primary/45'}`}>{free ? `${free} free` : d.slots.length ? 'Full' : 'Closed'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!slotInfo.days.some((d) => d.slots.some((t) => t.available)) && <p className="text-[13px] text-primary/60 mt-2">No free slots in the next 3 weeks for this option. Try another consultation type, or call us and we will help.</p>}
+                    <Err k="date" />
+                  </div>
+                  <div>
+                    <p className={`${labelCls} flex items-center gap-1.5`}><Clock className="w-4 h-4 text-accent" /> Time</p>
+                    <div className="space-y-2.5" data-testid="slot-times">
+                      {SLOT_GROUPS.map((g) => {
+                        const slots = (slotDay?.slots || []).filter((t) => !t.past).filter((t) => { const h = Number(slotTo24(t.time).slice(0, 2)); return g.name === 'Morning' ? h < 12 : g.name === 'Afternoon' ? h >= 12 && h < 17 : h >= 17; });
+                        if (!slots.length) return null;
+                        const Icon = g.icon;
+                        return (
+                          <div key={g.name} className="flex items-start gap-3">
+                            <span className="w-[78px] sm:w-[86px] shrink-0 pt-1.5 text-[12px] text-primary/55 flex items-center gap-1.5"><Icon className="w-3.5 h-3.5" /> {g.name}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {slots.map((t) => {
+                                const v = slotTo24(t.time); const on = form.time === v;
+                                return <button key={t.time} type="button" disabled={!t.available} title={t.available ? undefined : 'Already booked'} onClick={() => setVal('time', v)} aria-pressed={on} data-slot={t.time} className={`h-8 px-2.5 rounded-lg border text-[12.5px] transition disabled:cursor-not-allowed disabled:bg-tint disabled:text-primary/35 disabled:line-through ${on ? 'border-secondary bg-secondary text-white' : 'border-line text-primary hover:border-secondary/60'}`}>{shortSlot(t.time)}</button>;
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {slotDay && !slotDay.slots.some((t) => !t.past) && <p className="text-[13px] text-primary/60">No more slots on this day.</p>}
+                    </div>
+                    <p className="text-[12px] text-primary/45 mt-2">Crossed-out times are already booked.</p>
+                    <Err k="time" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {doctor && slotInfo && !slotInfo.error && <p className="text-[13px] text-primary/65 bg-tint rounded-xl px-4 py-3" data-testid="no-timings">{doctor.name} has not published timings for this yet. Pick a preferred time and our care team will confirm it with you.</p>}
               <div>
                 <p className={`${labelCls} flex items-center gap-1.5`}><CalendarDays className="w-4 h-4 text-accent" /> Date</p>
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1" role="group" aria-label="Upcoming days">
@@ -280,16 +406,19 @@ function BookNowModal({ open, onClose, preset }) {
                 <Err k="time" />
               </div>
 
+                </>
+              )}
+
               <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-4 text-[14px]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/50 mb-1.5">Visit summary</p>
                 {whenLabel && <p className="font-semibold text-primary" data-testid="booknow-when">{whenLabel}</p>}
-                <p className="text-primary/65 mt-0.5">{[doctor ? `${doctor.name}${doctor.spec ? ` (${doctor.spec})` : ''}` : form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], [form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
+                <p className="text-primary/65 mt-0.5">{[doctor ? `${doctor.name}${doctor.spec ? ` (${doctor.spec})` : ''}` : form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], doctor && form.visitType === 'clinic' && slotInfo?.clinic?.name ? slotInfo.clinic.name : form.visitType === 'online' ? null : [form.visitType === 'home' ? form.address.trim() : '', form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
               </div>
               {serverError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{serverError}</p>}
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep(1)} className="h-12 px-4 rounded-xl border border-line text-primary/70 hover:text-primary hover:bg-tint flex items-center gap-1.5 text-[14px] font-medium"><ArrowLeft className="w-4 h-4" /> Back</button>
                 <button type="button" onClick={submit} disabled={saving} className="flex-1 h-12 bg-secondary hover:brightness-95 disabled:opacity-70 text-white font-semibold text-[16px] rounded-xl shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition flex items-center justify-center gap-2">
-                  {saving && <Loader2 className="w-5 h-5 animate-spin" />} Confirm request
+                  {saving && <Loader2 className="w-5 h-5 animate-spin" />} {doctorSlots ? 'Book this slot' : 'Confirm request'}
                 </button>
               </div>
             </div>

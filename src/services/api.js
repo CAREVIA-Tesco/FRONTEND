@@ -78,9 +78,6 @@ export const api = {
   addClinicVisit: (data) => request('/clinic/visits', { method: 'POST', body: data }),
   updateClinicVisit: (id, data) => request(`/clinic/visits/${id}`, { method: 'PUT', body: data }),
   deleteClinicVisit: (id) => request(`/clinic/visits/${id}`, { method: 'DELETE' }),
-  clinicStaff: (params = {}) => request(`/clinic/staff${qs(params)}`),
-  addClinicStaff: (data) => request('/clinic/staff', { method: 'POST', body: data }),
-  updateClinicStaff: (id, data) => request(`/clinic/staff/${id}`, { method: 'PATCH', body: data }),
   adminClinicReport: (params = {}) => request(`/admin/clinic/report${qs(params)}`),
   // notifications (bell icon)
   notifications: (limit = 30) => request(`/notifications?limit=${limit}`),
@@ -96,6 +93,7 @@ export const api = {
   // providers
   getProviders: (params) => request(`/providers${qs(params)}`),
   getProvider: (id) => request(`/providers/${id}`),
+  getProviderSlots: (id, params) => request(`/providers/${id}/slots${qs(params)}`),
   getMyProvider: () => request('/providers/me'),
   submitOnboarding: (data) => request('/providers/onboarding', { method: 'POST', body: data }),
   createProvider: (data) => request('/providers', { method: 'POST', body: data }),

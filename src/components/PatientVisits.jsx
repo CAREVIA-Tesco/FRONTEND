@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Users, CalendarCheck, CalendarDays, Plus, Search, X, Loader2, Pencil, Trash2, UserPlus, FileDown, ClipboardList, BarChart3, ChevronRight, Phone, History } from 'lucide-react';
+import { Users, CalendarCheck, CalendarDays, Plus, Search, X, Loader2, Pencil, Trash2, FileDown, ClipboardList, BarChart3, ChevronRight, Phone, History } from 'lucide-react';
 import api from '../services/api';
 
-// Patient Visit Management – walk-in clinic patients.
-// Used in the Doctor Dashboard ("Patient Visits" tab) and on the nurse's dashboard.
-//   role = 'doctor' | 'nurse'
-// The server decides whose records are visible (a doctor sees only their own patients,
-// a nurse only the patients of the doctor they work for).
+// Patient Visit Management – walk-in clinic patients, in the Doctor Dashboard ("Patient Visits" tab).
+// The nurse uses the doctor's dashboard and types her name in "Entered by" (remembered on that
+// computer), so every visit shows who recorded it – also in the Super Admin's Patient Visits page.
+// The server only returns the signed-in doctor's own patients.
 
 const field = 'w-full h-11 px-3.5 rounded-xl border border-line bg-white text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition';
 const area = 'w-full px-3.5 py-2.5 rounded-xl border border-line bg-white text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition resize-y';
@@ -17,6 +16,8 @@ const btnGhost = 'inline-flex items-center justify-center gap-2 h-11 px-4 rounde
 
 const pad = (n) => String(n).padStart(2, '0');
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const NURSE_KEY = 'carevaa_entered_by';
+const savedNurse = () => { try { return localStorage.getItem(NURSE_KEY) || ''; } catch { return ''; } };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '—');
 const VISIT_FIELDS = [
@@ -70,6 +71,7 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
   const [p, setP] = useState({ name: initialPatient?.name || '', age: initialPatient?.age ?? '', gender: initialPatient?.gender || '' });
   const [v, setV] = useState(() => ({
     visitDate: visit ? localDay(new Date(visit.visitDate)) : localDay(),
+    recordedBy: visit ? visit.recordedBy || '' : savedNurse(),
     ...Object.fromEntries(VISIT_FIELDS.map(([k]) => [k, visit?.[k] || ''])),
   }));
   const [busy, setBusy] = useState(false);
@@ -96,6 +98,7 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
     }
     if (!VISIT_FIELDS.some(([k]) => String(v[k]).trim())) { setMsg({ ok: false, text: 'Please fill in at least the symptoms, diagnosis, treatment, prescription or notes.' }); return; }
     setBusy(true);
+    try { localStorage.setItem(NURSE_KEY, String(v.recordedBy || '').trim()); } catch { /* storage unavailable */ }
     try {
       if (editing) {
         const r = await api.updateClinicVisit(visit.id, v);
@@ -151,8 +154,12 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
 
       <fieldset className="space-y-3">
         <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Visit</legend>
-        <label className="block sm:w-1/2"><span className={label}>Visit date *</span>
-          <input id="cv-date" type="date" max={localDay()} className={field} value={v.visitDate} onChange={setVal('visitDate')} /></label>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="block"><span className={label}>Visit date *</span>
+            <input id="cv-date" type="date" max={localDay()} className={field} value={v.visitDate} onChange={setVal('visitDate')} /></label>
+          <label className="block"><span className={label}>Entered by (nurse's name)</span>
+            <input id="cv-by" className={field} value={v.recordedBy} onChange={setVal('recordedBy')} placeholder="Leave empty if the doctor enters it" /></label>
+        </div>
         {VISIT_FIELDS.map(([k, l, ph]) => (
           <label key={k} className="block"><span className={label}>{l}</span>
             <textarea id={`cv-${k}`} rows={k === 'prescription' ? 3 : 2} className={area} value={v[k]} onChange={setVal(k)} placeholder={ph} /></label>
@@ -253,46 +260,7 @@ export function PatientRecord({ patientId, canEdit = true, canDelete = false, on
   );
 }
 
-// ---------------------------------------------------------------- nurses (doctor only)
-function StaffPanel() {
-  const [list, setList] = useState(null);
-  const [f, setF] = useState({ name: '', phone: '', email: '', password: '' });
-  const [msg, setMsg] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const load = () => api.clinicStaff().then((d) => setList(d.staff || [])).catch((e) => setMsg({ ok: false, text: e.message }));
-  useEffect(() => { load(); }, []);
-  const add = async (e) => {
-    e.preventDefault(); setMsg(null); setBusy(true);
-    try { const r = await api.addClinicStaff(f); setMsg({ ok: true, text: r.message }); setF({ name: '', phone: '', email: '', password: '' }); load(); } catch (e2) { setMsg({ ok: false, text: e2.message }); } finally { setBusy(false); }
-  };
-  const toggle = async (s) => {
-    try { const r = await api.updateClinicStaff(s.id, { status: s.status === 'Active' ? 'Inactive' : 'Active' }); setMsg({ ok: true, text: r.message }); load(); } catch (e2) { setMsg({ ok: false, text: e2.message }); }
-  };
-  return (
-    <div className="space-y-5">
-      <p className="text-sm text-gray-600">Nurses sign in on the <strong>Doctor</strong> tab of the login page with their mobile number. They can add and update patient visits for you, but cannot see your appointments, earnings or settings, and cannot delete visits.</p>
-      <div className="space-y-2">
-        {list === null ? <p className="text-sm text-gray-500">Loading…</p> : !list.length ? <p className="text-sm text-gray-500">No nurses added yet.</p> : list.map((s) => (
-          <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-3">
-            <div><p className="font-semibold text-primary">{s.name}</p><p className="text-xs text-gray-500">+91 {s.phone}{s.email ? ` · ${s.email}` : ''} · {s.status === 'Active' ? 'Can sign in' : 'Access removed'}</p></div>
-            <button type="button" onClick={() => toggle(s)} className={`h-9 px-3 rounded-lg text-[13px] font-semibold ${s.status === 'Active' ? 'text-red-600 hover:bg-red-50' : 'text-emerald-700 hover:bg-emerald-50'}`}>{s.status === 'Active' ? 'Remove access' : 'Give access'}</button>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={add} className="rounded-2xl bg-tint p-4 grid sm:grid-cols-2 gap-3" noValidate>
-        <p className="sm:col-span-2 font-bold text-primary">Add a nurse</p>
-        <label className="block"><span className={label}>Name *</span><input id="st-name" className={field} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
-        <label className="block"><span className={label}>Mobile (login) *</span><input id="st-phone" inputMode="numeric" className={field} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} /></label>
-        <label className="block"><span className={label}>Email (optional)</span><input id="st-email" type="email" className={field} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
-        <label className="block"><span className={label}>Password *</span><input id="st-pass" type="text" autoComplete="off" className={field} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} placeholder="At least 6 characters" /></label>
-        <div className="sm:col-span-2 flex justify-end"><button disabled={busy} className={btn}><UserPlus className="w-4 h-4" /> Add nurse</button></div>
-      </form>
-      <Msg m={msg} />
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- report (doctor / nurse)
+// ---------------------------------------------------------------- report
 function ReportPanel() {
   const today = localDay();
   const [range, setRange] = useState({ from: `${today.slice(0, 7)}-01`, to: today });
@@ -342,7 +310,7 @@ function ReportPanel() {
 }
 
 // ---------------------------------------------------------------- main section
-export default function PatientVisits({ role = 'doctor' }) {
+export default function PatientVisits() {
   const [summary, setSummary] = useState(null);
   const [patients, setPatients] = useState(null);
   const [todayVisits, setTodayVisits] = useState([]);
@@ -377,10 +345,9 @@ export default function PatientVisits({ role = 'doctor' }) {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-primary">Patient Visits</h2>
-          <p className="text-gray-500 font-medium mt-1">Clinic patients and their visit records{role === 'nurse' ? ' for your doctor' : ''}.</p>
+          <p className="text-gray-500 font-medium mt-1">Clinic patients and their visit records. Nurses can enter visits here and add their name.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {role === 'doctor' && <button type="button" onClick={() => setModal({ kind: 'staff' })} className={btnGhost}><UserPlus className="w-4 h-4" /> Nurses</button>}
           <button type="button" onClick={() => setModal({ kind: 'new' })} className={btn}><Plus className="w-4 h-4" /> New patient visit</button>
         </div>
       </div>
@@ -460,11 +427,10 @@ export default function PatientVisits({ role = 'doctor' }) {
       )}
       {modal?.kind === 'patient' && (
         <Modal title="Patient record" onClose={() => setModal(null)} wide>
-          <PatientRecord key={modal.key || modal.id} patientId={modal.id} canDelete={role === 'doctor'} onChanged={() => { refresh(); loadPatients(); }}
+          <PatientRecord key={modal.key || modal.id} patientId={modal.id} canDelete onChanged={() => { refresh(); loadPatients(); }}
             onAddVisit={(p) => setModal({ kind: 'new', patient: p })} onEditVisit={(v, p) => setModal({ kind: 'edit', visit: v, patient: p })} />
         </Modal>
       )}
-      {modal?.kind === 'staff' && <Modal title="Nurses" onClose={() => setModal(null)}><StaffPanel /></Modal>}
     </div>
   );
 }

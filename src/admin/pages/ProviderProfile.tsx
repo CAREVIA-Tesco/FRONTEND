@@ -242,9 +242,9 @@ export function ProviderProfile() {
                         <div>
                            <h4 className="text-sm font-medium text-muted mb-1">Consultation Types</h4>
                            <div className="flex gap-2 mt-1">
-                              {p.onlineFee != null && <Badge variant="default" className="bg-slate-100"><Video className="h-3 w-3 mr-1"/> Online</Badge>}
-                              {p.clinicFee != null && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Clinic</Badge>}
-                              {p.fee != null && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home</Badge>}
+                              {p.offers?.online && <Badge variant="default" className="bg-slate-100"><Video className="h-3 w-3 mr-1"/> Online</Badge>}
+                              {p.offers?.clinic && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Clinic</Badge>}
+                              {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home</Badge>}
                            </div>
                         </div>
                      </div>
@@ -377,7 +377,17 @@ export function ProviderProfile() {
           {activeTab === 'Availability' && (
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-charcoal mb-6">Weekly Schedule</h3>
+                <h3 className="text-lg font-bold text-charcoal mb-4">Consultations and timings</h3>
+                <div className="grid sm:grid-cols-3 gap-3 mb-8" data-testid="admin-modes">
+                  {(p.modes || []).map((m: any) => (
+                    <div key={m.type} className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-sm font-semibold text-charcoal">{m.label}{m.fee != null ? ` · ${inr(m.fee)}` : ""}</p>
+                      <p className="text-xs text-muted mt-1">{m.hours || "No timings set"}</p>
+                      {m.type === "clinic" && p.clinic?.name && <p className="text-xs text-muted mt-1">{p.clinic.name}{p.clinic.address ? ` – ${p.clinic.address}` : ""}</p>}
+                    </div>
+                  ))}
+                </div>
+                <h3 className="text-lg font-bold text-charcoal mb-6">Weekly Schedule <span className="text-sm font-normal text-muted">(all consultation types)</span></h3>
                 <div className="space-y-4">
                   {[
                   ...Object.keys(DAY_NAMES).map((d) => {

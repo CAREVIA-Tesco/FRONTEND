@@ -59,7 +59,13 @@ export default function ThankYou() {
     navigator.clipboard?.writeText(enquiry.code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }).catch(() => {});
   };
 
-  const next = [
+  const booked = !!enquiry?.appointmentCode; // a free slot of the chosen doctor was booked
+  const next = booked ? [
+    { icon: ClipboardCheck, title: 'Slot booked', text: `Appointment ${enquiry.appointmentCode} – this time is now reserved for you.`, done: true },
+    { icon: UserCheck, title: 'Doctor confirms', text: `${enquiry.requestedProvider || 'The doctor'} confirms the booking. You can track it any time.` },
+    { icon: PhoneCall, title: 'We stay in touch', text: 'Our care team calls you if anything changes.' },
+    { icon: Home, title: enquiry.visitType === 'online' ? 'Consult online' : enquiry.visitType === 'clinic' ? 'Visit the clinic' : 'Doctor at your door', text: `${enquiry.preferredDateLabel || ''}${enquiry.preferredTime ? `, ${enquiry.preferredTime}` : ''}.` },
+  ] : [
     { icon: ClipboardCheck, title: 'Request received', text: 'Your details reached our care team.', done: true },
     { icon: PhoneCall, title: 'Care advisor calls you', text: 'We confirm the patient\'s needs, address and preferred time.' },
     { icon: UserCheck, title: 'Professional assigned', text: 'A verified professional near your PIN code accepts the visit.' },
@@ -85,9 +91,9 @@ export default function ThankYou() {
           </div>
 
           <div className="text-center mt-7">
-            <p className="cv-rise eyebrow text-accent" style={{ animationDelay: '.15s' }}>Request confirmed</p>
+            <p className="cv-rise eyebrow text-accent" style={{ animationDelay: '.15s' }}>{booked ? 'Appointment booked' : 'Request confirmed'}</p>
             <h1 className="cv-rise font-serif text-[36px] sm:text-[48px] font-semibold leading-tight mt-2" style={{ animationDelay: '.25s' }}>Thank you{firstName ? `, ${firstName}` : ''}!</h1>
-            <p className="cv-rise mt-3 text-[16px] sm:text-[18px] text-primary/70 max-w-xl mx-auto" style={{ animationDelay: '.35s' }}>Our care advisor will call you shortly to confirm your visit. Thank you for trusting Carevaa with your health.</p>
+            <p className="cv-rise mt-3 text-[16px] sm:text-[18px] text-primary/70 max-w-xl mx-auto" style={{ animationDelay: '.35s' }}>{booked ? `Your ${String(enquiry.visitTypeLabel || 'visit').toLowerCase()} with ${enquiry.requestedProvider} is booked and waiting for the doctor's confirmation.` : 'Our care advisor will call you shortly to confirm your visit.'} Thank you for trusting Carevaa with your health.</p>
           </div>
 
           <div className="mt-10 grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-5 lg:gap-6 items-start">
@@ -106,8 +112,8 @@ export default function ThankYou() {
                   <span className="absolute -left-3 -top-3 w-6 h-6 rounded-full bg-tint" /><span className="absolute -right-3 -top-3 w-6 h-6 rounded-full bg-tint" />
                 </div>
                 <ul className="px-6 pt-5 pb-2 space-y-3.5 text-[15px]">
-                  {enquiry.preferredDateLabel && <li className="flex items-start gap-3"><CalendarClock className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Preferred visit</span>{enquiry.preferredDateLabel}{enquiry.preferredTime ? `, ${enquiry.preferredTime}` : ''}</span></li>}
-                  {enquiry.city && <li className="flex items-start gap-3"><MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Location</span>{[enquiry.locality, enquiry.city, enquiry.state].filter(Boolean).join(', ')}{enquiry.pincode ? ` – ${enquiry.pincode}` : ''}</span></li>}
+                  {enquiry.preferredDateLabel && <li className="flex items-start gap-3"><CalendarClock className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">{booked ? `${enquiry.visitTypeLabel || 'Visit'} · ${enquiry.appointmentCode}` : 'Preferred visit'}</span>{enquiry.preferredDateLabel}{enquiry.preferredTime ? `, ${enquiry.preferredTime}` : ''}</span></li>}
+                  {enquiry.city && <li className="flex items-start gap-3"><MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Location</span>{[enquiry.visitType === 'home' ? enquiry.address : '', enquiry.locality, enquiry.city, enquiry.state].filter(Boolean).join(', ')}{enquiry.pincode ? ` – ${enquiry.pincode}` : ''}</span></li>}
                   {enquiry.requestedProvider
                     ? <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Doctor</span>{enquiry.requestedProvider}{enquiry.requestedProviderSpec ? ` · ${enquiry.requestedProviderSpec}` : ''}</span></li>
                     : <li className="flex items-start gap-3"><Stethoscope className="w-5 h-5 text-accent mt-0.5 shrink-0" /><span><span className="block text-[12px] text-primary/50">Service</span>{enquiry.service || 'Our advisor will help you choose'}</span></li>}

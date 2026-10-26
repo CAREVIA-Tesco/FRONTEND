@@ -31,11 +31,14 @@ export default function ProfessionalProfile() {
 
   const service = doc ? serviceForProvider(doc) : null;
   const langs = doc ? [].concat(doc.languages || []).filter(Boolean) : [];
+  // only the consultation types this professional offers
+  const offers = doc?.offers || { home: true, clinic: true, online: true };
   const fees = doc ? [
-    doc.fee ? { icon: House, label: doc.isDoctor ? 'Home visit' : 'Per visit / session', value: doc.fee } : null,
-    doc.clinicFee ? { icon: Building2, label: 'Clinic visit', value: doc.clinicFee } : null,
-    doc.onlineFee ? { icon: Video, label: 'Online consult', value: doc.onlineFee } : null,
+    doc.fee && offers.home ? { icon: House, label: doc.isDoctor ? 'Home visit' : 'Per visit / session', value: doc.fee } : null,
+    doc.clinicFee && offers.clinic ? { icon: Building2, label: 'Clinic visit', value: doc.clinicFee } : null,
+    doc.onlineFee && offers.online ? { icon: Video, label: 'Online consult', value: doc.onlineFee } : null,
   ].filter(Boolean) : [];
+  const MODE_ICON = { home: House, clinic: Building2, online: Video };
   const summary = reviews.summary;
 
   return (
@@ -69,8 +72,8 @@ export default function ProfessionalProfile() {
                   </div>
                   {doc.registrationNumber && <p className="mt-4 text-xs text-gray-500 flex items-center justify-center sm:justify-start gap-1.5"><ShieldCheck className="w-4 h-4" /> Registration no. {doc.registrationNumber}{doc.registrationCouncil ? ` · ${doc.registrationCouncil}` : ''}</p>}
                   {doc.bio && <p className="mt-4 text-[15px] leading-relaxed text-primary/75 max-w-2xl" data-testid="doctor-bio">{doc.bio}</p>}
-                  {doc.homeVisitRadiusKm > 0 && <p className="mt-2 text-sm text-gray-600">Home visits within {doc.homeVisitRadiusKm} km of {doc.loc}{doc.pincode ? ` ${doc.pincode}` : ''}</p>}
-                  {doc.clinic?.name && <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-primary">{doc.clinic.name}</span>{doc.clinic.address ? ` – ${doc.clinic.address}` : ''}</p>}
+                  {doc.homeVisitRadiusKm > 0 && offers.home && <p className="mt-2 text-sm text-gray-600">Home visits within {doc.homeVisitRadiusKm} km of {doc.loc}{doc.pincode ? ` ${doc.pincode}` : ''}</p>}
+                  {doc.clinic?.name && offers.clinic && <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-primary">{doc.clinic.name}</span>{doc.clinic.address ? ` – ${doc.clinic.address}` : ''}</p>}
                 </div>
               </div>
 
@@ -99,7 +102,21 @@ export default function ProfessionalProfile() {
           <div className="max-w-[1200px] mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_360px] gap-8 items-start">
             <div className="space-y-8">
               <div className="bg-white rounded-2xl p-6 sm:p-8">
-                <h2 className="font-poppins font-semibold text-2xl text-primary mb-5">Weekly availability</h2>
+                <h2 className="font-poppins font-semibold text-2xl text-primary mb-5">Consultations and timings</h2>
+                <div className="grid sm:grid-cols-2 gap-3" data-testid="profile-modes">
+                  {(doc.modes || []).map((m) => {
+                    const Icon = MODE_ICON[m.type] || Clock;
+                    return (
+                      <div key={m.type} className="rounded-xl border border-accent/20 p-4">
+                        <p className="font-semibold text-primary text-sm mb-1.5 flex items-center gap-2"><Icon className="w-4 h-4 text-accent" /> {m.label}{m.fee ? <span className="ml-auto text-primary">{inr(m.fee)}</span> : null}</p>
+                        <p className="text-xs text-gray-600 flex items-start gap-1.5"><Clock className="w-3.5 h-3.5 text-accent mt-px shrink-0" /> {m.hours || 'Timings shared at booking'}</p>
+                        {m.type === 'clinic' && doc.clinic?.name && <p className="text-xs text-gray-500 mt-1.5">{doc.clinic.name}{doc.clinic.address ? ` – ${doc.clinic.address}` : ''}</p>}
+                        {m.type === 'online' && <p className="text-xs text-gray-500 mt-1.5">Video or phone call</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <h3 className="font-poppins font-semibold text-lg text-primary mt-8 mb-4">Weekly availability</h3>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {DAYS.map((d) => {
                     const slots = doc.schedule?.[d] || [];

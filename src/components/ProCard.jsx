@@ -26,6 +26,7 @@ export default function ProCard({ p, onBook }) {
         {p.loc && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {p.loc}</span>}
         <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /> {p.rating}</span>
         {fee && <span className="font-semibold text-primary">From {inr(fee)}</span>}
+        {p.isDoctor && p.modes?.length > 0 && <span className="w-full text-[11.5px] text-primary/60" data-testid="pro-modes">{p.modes.map((m) => ({ home: 'Home visit', clinic: 'Clinic', online: 'Online' }[m.type])).join(' · ')}</span>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <Link to={`/doctors/${p.id}`} className="text-center border border-accent/40 text-accent rounded-lg py-2 text-sm font-bold hover:bg-accent hover:text-white transition-colors">View profile</Link>

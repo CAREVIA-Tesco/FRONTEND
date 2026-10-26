@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react"
 import { Modal } from "./ui/Modal"
 import { Button } from "./ui/Button"
+// @ts-ignore
+import { generateSlots } from "../../services/consultation"
 import api from "../../services/api"
 import { useApi } from "../lib/useApi"
 import { inputCls, labelCls } from "../lib/forms"
@@ -28,20 +30,24 @@ export function CreateAppointmentModal({ open, onClose, onCreated, appointments 
   const patients = ((pats.data as any)?.patients || []) as any[]
   const matches = patients.filter((p) => !patientQuery || `${p.name} ${p.phone || ""} ${p.email || ""} ${p.code}`.toLowerCase().includes(patientQuery.toLowerCase())).slice(0, 50)
   const provider = providers.find((p: any) => p.id === providerId)
-  const types = provider ? [["home", "Home visit", provider.fee], ["clinic", "Clinic visit", provider.clinicFee], ["online", "Online consultation", provider.onlineFee]].filter(([k, , fee]) => k === "home" || fee) : [["home", "Home visit"], ["clinic", "Clinic visit"], ["online", "Online consultation"]]
+  // only the consultation types this professional offers
+  const types = provider ? [["home", "Home visit", provider.fee], ["clinic", "Clinic visit", provider.clinicFee], ["online", "Online consultation", provider.onlineFee]].filter(([k, , fee]) => (provider.offers ? provider.offers[k as string] : k === "home" || fee)) : [["home", "Home visit"], ["clinic", "Clinic visit"], ["online", "Online consultation"]]
 
   const slots = useMemo(() => {
     if (!provider || !date) return []
     const d = new Date(`${date}T12:00:00`)
     const taken = appointments.filter((a) => a.providerId === provider.id && ["Waiting", "Confirmed"].includes(a.status) && toYmd(new Date(a.scheduledAt)) === date).map((a) => a.timeSlot)
     const isToday = date === toYmd(new Date())
-    return (provider.schedule?.[DAY_KEYS[d.getDay()]] || []).map((t: string) => {
+    // the timings of the chosen type when the doctor set them, else the weekly schedule
+    const h = provider.hours?.[type]
+    const list = h?.days?.length ? (h.days.includes(DAY_KEYS[d.getDay()]) ? generateSlots(h) : []) : provider.schedule?.[DAY_KEYS[d.getDay()]] || []
+    return list.map((t: string) => {
       const m = /(\d+):(\d+)\s*(AM|PM)/i.exec(t)
       let past = false
       if (isToday && m) { const h = (Number(m[1]) % 12) + (/PM/i.test(m[3]) ? 12 : 0); past = h * 60 + Number(m[2]) <= new Date().getHours() * 60 + new Date().getMinutes() }
       return { t, busy: taken.includes(t) || past }
     })
-  }, [provider, date, appointments])
+  }, [provider, date, appointments, type])
 
   const reset = () => { setWho("registered"); setPatientQuery(""); setPatientId(""); setGuest({ name: "", phone: "" }); setProviderId(""); setType("home"); setTime(""); setReason(""); setError("") }
   const close = () => { reset(); onClose() }
@@ -96,7 +102,7 @@ export function CreateAppointmentModal({ open, onClose, onCreated, appointments 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label htmlFor="ca-provider" className={labelCls}>Professional</label>
-            <select id="ca-provider" className={inputCls} value={providerId} onChange={(e) => { setProviderId(e.target.value); setTime(""); setType("home") }}>
+            <select id="ca-provider" className={inputCls} value={providerId} onChange={(e) => { const np = providers.find((x: any) => x.id === e.target.value); setProviderId(e.target.value); setTime(""); setType(np?.offers ? (["home", "clinic", "online"].find((k) => np.offers[k]) || "home") : "home") }}>
               <option value="">{pros.loading ? "Loading…" : "Select professional"}</option>
               {providers.map((p: any) => <option key={p.id} value={p.id}>{p.name} · {p.spec}{p.loc ? ` · ${p.loc}` : ""}</option>)}
             </select>

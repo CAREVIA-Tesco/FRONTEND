@@ -65,8 +65,8 @@ export function Enquiries() {
   }
 
   const exportCsv = () => downloadCsv("carevaa-enquiries.csv", [
-    ["Request ID", "Type", "Status", "Name", "Phone", "Email", "City", "PIN code", "Area", "District", "State", "Visit type", "Service", "Plan", "Preferred date", "Best time", "Message", "Professional", "Appointment", "Created"],
-    ...list.map((e) => [e.code, TYPES[e.type], e.status, e.name, e.phone, e.email, e.city, e.pincode, e.locality, e.district, e.state, e.visitTypeLabel, e.service || e.subject, e.plan, e.preferredDateLabel, e.preferredTime, e.message, e.provider, e.appointmentCode, e.createdLabel]),
+    ["Request ID", "Type", "Status", "Name", "Phone", "Email", "City", "PIN code", "Area", "District", "State", "Visit type", "Service", "Plan", "Preferred date", "Best time", "Message", "Professional", "Appointment", "Created", "Home visit address"],
+    ...list.map((e) => [e.code, TYPES[e.type], e.status, e.name, e.phone, e.email, e.city, e.pincode, e.locality, e.district, e.state, e.visitTypeLabel, e.service || e.subject, e.plan, e.preferredDateLabel, e.preferredTime, e.message, e.provider, e.appointmentCode, e.createdLabel, e.address]),
   ])
 
   return (
@@ -173,7 +173,7 @@ export function Enquiries() {
 
               <dl className="grid grid-cols-2 gap-3 text-sm bg-slate-50 rounded-xl p-4">
                 {[
-                  ["Name", selected.name], ["Phone", selected.phone], ["Email", selected.email], ["PIN code", selected.pincode], ["Area / post office", selected.locality], ["City", selected.city], ["District", selected.district], ["State", selected.state], ["Requested doctor", selected.requestedProvider ? `${selected.requestedProvider}${selected.requestedProviderSpec ? ` (${selected.requestedProviderSpec})` : ""}` : ""], ["Visit type", selected.visitTypeLabel],
+                  ["Name", selected.name], ["Phone", selected.phone], ["Email", selected.email], ["Home visit address", selected.address], ["PIN code", selected.pincode], ["Area / post office", selected.locality], ["City", selected.city], ["District", selected.district], ["State", selected.state], ["Requested doctor", selected.requestedProvider ? `${selected.requestedProvider}${selected.requestedProviderSpec ? ` (${selected.requestedProviderSpec})` : ""}` : ""], ["Visit type", selected.visitTypeLabel],
                   ["Service", selected.service], ["Care plan", selected.plan], ["Subject", selected.subject], ["Organisation", selected.organisation],
                   ["Preferred date", selected.preferredDateLabel], ["Best time", selected.preferredTime], ["Referred by", selected.referrerName ? `${selected.referrerName} (${selected.referrerPhone})` : ""], ["From page", selected.source],
                 ].filter(([, v]) => v).map(([k, v]) => (

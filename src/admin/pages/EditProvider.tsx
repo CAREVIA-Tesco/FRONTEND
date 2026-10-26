@@ -7,6 +7,10 @@ import api from "../../services/api"
 import { inputCls, areaCls, labelCls, DAYS, SLOTS, resizeImage } from "../lib/forms"
 import PincodeFields from "../../components/PincodeFields"
 import { usePincode, pincodeErrors } from "../../services/usePincode"
+// @ts-ignore – shared website component (JSX)
+import { HoursEditor } from "../../components/ConsultationSettings"
+// @ts-ignore
+import { CONSULT_TYPES, CONSULT_LABEL, offersOf, hoursForEdit, checkConsultation } from "../../services/consultation"
 
 const PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHS"]
 const SPECIALIZATIONS: Record<string, string[]> = {
@@ -47,6 +51,11 @@ export function EditProvider() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(!isNew)
   const [clinicExtra, setClinicExtra] = useState<{ phone?: string; website?: string }>({})
+  // consultation types and per-type timings (the doctor can also set these from their dashboard)
+  const [types, setTypes] = useState<Record<string, boolean>>({ home: true, clinic: true, online: true })
+  const [typesSet, setTypesSet] = useState(false)
+  const [useHours, setUseHours] = useState(false)
+  const [hours, setHours] = useState<Record<string, any>>(() => Object.fromEntries(CONSULT_TYPES.map((t: string) => [t, hoursForEdit(null, t)])))
   const set = (k: keyof typeof blank) => (e: any) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const patchForm = (patch: any) => setForm((f) => ({ ...f, ...patch }))
   const pinLookup = usePincode(form, patchForm)
@@ -54,6 +63,7 @@ export function EditProvider() {
   const isLab = form.profession === "Lab Centre"
   const isCare = form.profession === "Caretaker" || form.profession === "Nurse"
   const isDoctor = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor"].includes(form.profession)
+  const showTypes = !isLab && !isCare
   const [crumbLabel, crumbTo] = PAGE_FOR[form.profession] || ["Doctors & Providers", "/admin/providers"]
   const back = params.get("back") || (isNew ? crumbTo : `/admin/providers/${id}`)
 
@@ -73,6 +83,10 @@ export function EditProvider() {
         })
         setSchedule(Object.fromEntries(DAYS.map((d) => [d, p.schedule?.[d] || []])))
         setClinicExtra({ phone: p.clinic?.phone, website: p.clinic?.website })
+        setTypes(offersOf(p))
+        setTypesSet(!!p.consultTypes && Object.values(p.consultTypes).some((v) => typeof v === "boolean"))
+        setUseHours(CONSULT_TYPES.some((t: string) => p.hours?.[t]?.days?.length))
+        setHours(Object.fromEntries(CONSULT_TYPES.map((t: string) => [t, hoursForEdit(p, t)])))
       })
       .catch((err: Error) => { if (!cancelled) setError(err.message) })
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -97,7 +111,11 @@ export function EditProvider() {
     if (!form.city.trim()) return "City is required – patients find professionals by city"
     const addrErr = pincodeErrors(form, pinLookup, { required: false })
     if (addrErr.pincode) return addrErr.pincode
-    if (!Object.values(schedule).some((d) => d.length)) return "Choose at least one day and time when patients can book"
+    if (showTypes && useHours) {
+      const msg = checkConsultation({ types, hours, clinicName: form.clinicName, clinicAddress: form.address })
+      if (msg) return msg
+    } else if (showTypes && typesSet && !CONSULT_TYPES.some((t: string) => types[t])) return "Choose at least one consultation type"
+    else if (!Object.values(schedule).some((d) => d.length)) return "Choose at least one day and time when patients can book"
     return ""
   }
 
@@ -115,6 +133,16 @@ export function EditProvider() {
       clinic: { ...clinicExtra, name: form.clinicName.trim() || (isLab ? form.name.trim() : undefined), address: form.address },
       onlineFee: isLab || isCare ? "" : form.onlineFee, clinicFee: isCare ? "" : form.clinicFee, homeFee: form.homeFee,
       schedule, status: form.status,
+    }
+    if (showTypes && (typesSet || useHours)) {
+      body.consultTypes = types
+      if (types.clinic && !useHours && (!form.clinicName.trim() || !form.address.trim())) {
+        setSaving(false); setError("This doctor offers clinic visits – please enter the clinic name and address"); return
+      }
+    }
+    if (showTypes && useHours) {
+      body.hours = Object.fromEntries(CONSULT_TYPES.filter((t: string) => types[t]).map((t: string) => [t, hours[t]]))
+      delete body.schedule
     }
     if (form.img) body.img = form.img
     try {
@@ -278,7 +306,35 @@ export function EditProvider() {
         </CardContent>
       </Card>
 
-      <Card>
+      {showTypes && (
+        <Card>
+          <CardContent className="p-6 space-y-4" data-testid="consult-types-admin">
+            <div>
+              <h2 className="text-lg font-bold text-charcoal">Consultation types</h2>
+              <p className="text-sm text-muted">Patients only see the types ticked here when they book this professional.</p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {CONSULT_TYPES.map((t: string) => (
+                <label key={t} className="flex items-center gap-2 text-sm font-medium text-charcoal">
+                  <input type="checkbox" checked={!!types[t]} onChange={(e) => { setTypes((x) => ({ ...x, [t]: e.target.checked })); setTypesSet(true) }} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> {CONSULT_LABEL[t]}
+                </label>
+              ))}
+            </div>
+            <label className="flex items-center gap-2 text-sm text-charcoal pt-2 border-t border-slate-100">
+              <input type="checkbox" checked={useHours} onChange={(e) => setUseHours(e.target.checked)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> Separate timings for each consultation type (clinic timings, online timings …)
+            </label>
+            {useHours && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {CONSULT_TYPES.filter((t: string) => types[t]).map((t: string) => (
+                  <HoursEditor key={t} idPrefix={`pf-${t}`} title={`${CONSULT_LABEL[t]} timings`} value={hours[t]} onChange={(v: any) => setHours((h) => ({ ...h, [t]: v }))} />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!(showTypes && useHours) && <Card>
         <CardContent className="p-6 space-y-4">
           <div>
             <h2 className="text-lg font-bold text-charcoal">Weekly availability</h2>
@@ -301,7 +357,7 @@ export function EditProvider() {
             ))}
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       <Card>
         <CardContent className="p-6 space-y-3">

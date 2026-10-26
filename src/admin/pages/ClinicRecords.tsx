@@ -156,18 +156,20 @@ export function ClinicRecords() {
       {tab === "visits" && (
         <div className="bg-surface border border-slate-200 rounded-2xl overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Visit date</TableHead><TableHead>Doctor</TableHead><TableHead>Patient</TableHead><TableHead>Mobile</TableHead><TableHead>Diagnosis</TableHead><TableHead>Entered by</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Visit date</TableHead><TableHead>Doctor</TableHead><TableHead>Patient</TableHead><TableHead>Mobile</TableHead><TableHead>Symptoms</TableHead><TableHead>Diagnosis</TableHead><TableHead>Treatment</TableHead><TableHead>Prescription</TableHead><TableHead>Nurse's notes</TableHead><TableHead>Entered by</TableHead></TableRow></TableHeader>
             <TableBody>
-              {visits === null && <TableRow><TableCell colSpan={6} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
-              {visits?.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted py-8">No visits in this period.</TableCell></TableRow>}
+              {visits === null && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
+              {visits?.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">No visits in this period.</TableCell></TableRow>}
               {pagedVisits.rows.map((v: any) => (
                 <TableRow key={v.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setOpen(v.patientId)}>
                   <TableCell className="text-sm whitespace-nowrap">{fmt(v.visitDate)}</TableCell>
-                  <TableCell className="text-sm">{v.doctor}</TableCell>
-                  <TableCell><span className="font-medium">{v.patient?.name || v.patientName}</span><span className="block text-xs text-muted">{v.patient?.code}{v.patient?.age != null ? ` · ${v.patient.age}y` : ""}{v.patient?.gender ? ` · ${v.patient.gender}` : ""}</span></TableCell>
-                  <TableCell className="text-sm">{v.patient?.phone}</TableCell>
-                  <TableCell className="text-sm max-w-[260px] truncate">{v.diagnosis || v.symptoms || "-"}</TableCell>
-                  <TableCell className="text-sm">{v.enteredBy}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{v.doctor}</TableCell>
+                  <TableCell className="whitespace-nowrap"><span className="font-medium">{v.patient?.name || v.patientName}</span><span className="block text-xs text-muted">{v.patient?.code}{v.patient?.age != null ? ` · ${v.patient.age}y` : ""}{v.patient?.gender ? ` · ${v.patient.gender}` : ""}</span></TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{v.patient?.phone}</TableCell>
+                  {["symptoms", "diagnosis", "treatment", "prescription", "nurseNotes"].map((k) => (
+                    <TableCell key={k} className="text-sm align-top min-w-[160px] max-w-[260px] whitespace-pre-line">{v[k] || <span className="text-muted">-</span>}</TableCell>
+                  ))}
+                  <TableCell className="text-sm whitespace-nowrap">{v.enteredBy || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -179,17 +181,21 @@ export function ClinicRecords() {
       {tab === "patients" && (
         <div className="bg-surface border border-slate-200 rounded-2xl overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Patient</TableHead><TableHead>Doctor</TableHead><TableHead>Mobile</TableHead><TableHead className="text-right">Visits</TableHead><TableHead>Last visit</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Patient</TableHead><TableHead>Age</TableHead><TableHead>Gender</TableHead><TableHead>Doctor</TableHead><TableHead>Mobile</TableHead><TableHead className="text-right">Visits</TableHead><TableHead>First visit</TableHead><TableHead>Last visit</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
-              {patients === null && <TableRow><TableCell colSpan={5} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
-              {patients?.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted py-8">No patients found.</TableCell></TableRow>}
+              {patients === null && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
+              {patients?.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No patients found{doctorName ? ` for ${doctorName}` : ""}. Visits entered on the doctor's dashboard (Patient Visits) appear here straight away.</TableCell></TableRow>}
               {pagedPatients.rows.map((p: any) => (
                 <TableRow key={p.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setOpen(p.id)}>
-                  <TableCell><span className="font-medium">{p.name}</span><span className="block text-xs text-muted">{p.code}{p.age != null ? ` · ${p.age}y` : ""}{p.gender ? ` · ${p.gender}` : ""}</span></TableCell>
+                  <TableCell><span className="font-medium">{p.name}</span><span className="block text-xs text-muted">{p.code}</span></TableCell>
+                  <TableCell className="text-sm">{p.age ?? "-"}</TableCell>
+                  <TableCell className="text-sm">{p.gender || "-"}</TableCell>
                   <TableCell className="text-sm">{p.doctor}</TableCell>
-                  <TableCell className="text-sm">{p.phone}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{p.phone}</TableCell>
                   <TableCell className="text-right font-semibold">{p.visitCount}</TableCell>
-                  <TableCell className="text-sm">{fmt(p.lastVisitAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{fmt(p.firstVisitAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{fmt(p.lastVisitAt)}</TableCell>
+                  <TableCell className="text-right"><span className="text-sm font-medium text-brand-600">View history</span></TableCell>
                 </TableRow>
               ))}
             </TableBody>

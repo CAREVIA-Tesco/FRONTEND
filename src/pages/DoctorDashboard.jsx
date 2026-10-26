@@ -11,6 +11,9 @@ import DashboardShell from '../components/DashboardShell';
 import { AnalyticsTab, ReviewsTab, SettingsTab } from '../components/DoctorTabs';
 import { Inbox, MessageCircle, Stethoscope, ClipboardList } from 'lucide-react';
 import PatientVisits, { ClinicSummaryStrip } from '../components/PatientVisits';
+import ConsultationSettings from '../components/ConsultationSettings';
+import { generateSlots } from '../services/consultation';
+import { CalendarClock } from 'lucide-react';
 
 const STATUS_STYLE = { Waiting: 'bg-amber-100 text-amber-800', Confirmed: 'bg-blue-100 text-blue-700', Completed: 'bg-green-100 text-green-700', Cancelled: 'bg-gray-200 text-gray-700' };
 const DAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -155,7 +158,10 @@ export default function DoctorDashboard() {
   const slotsFor = (day, apt) => {
     if (!day) return [];
     const taken = allAppointments.filter((a) => a.id !== apt?.id && (a.status === 'Waiting' || a.status === 'Confirmed') && isSameDay(new Date(a.scheduledAt), day.date)).map((a) => a.timeSlot);
-    const mine = profile?.schedule?.[DAY_KEYS[day.date.getDay()]] || [];
+    // the timings of this appointment's type (clinic / online / home) when set, else the weekly schedule
+    const dayKey = DAY_KEYS[day.date.getDay()];
+    const typeHours = profile?.hours?.[apt?.consultationType];
+    const mine = typeHours?.days?.length ? (typeHours.days.includes(dayKey) ? generateSlots(typeHours) : []) : profile?.schedule?.[dayKey] || [];
     return mine.filter((t) => !taken.includes(t));
   };
   const startVisit = (apt) => { setActiveCallAppointment(apt); setActionError(''); setVisitNotes({ symptoms: '', prescription: '' }); setVisitVitals({ bloodPressure: '', weight: '' }); setIsVideoCallOpen(true); };
@@ -219,6 +225,7 @@ export default function DoctorDashboard() {
     { key: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'My Profile', label: 'My Profile', icon: User },
     { key: 'Appointments', label: 'Appointments', icon: Calendar },
+    { key: 'Availability', label: 'Availability', icon: CalendarClock },
     { key: 'Care Requests', label: 'Care Requests', icon: Inbox, badge: requestBadge },
     { key: 'Patient Visits', label: 'Patient Visits', icon: ClipboardList },
     { key: 'Analytics', label: 'Analytics', icon: BarChart3 },
@@ -476,20 +483,20 @@ export default function DoctorDashboard() {
                   <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Consultation Fees */}
                     <div>
-                      <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2"><Activity className="w-5 h-5" /> Consultation Fees</h3>
-                      <div className="bg-gray-50 rounded-xl p-5 space-y-4 border border-gray-100">
-                        <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                          <span className="text-sm font-bold text-gray-500">Home Consultation</span>
-                          <span className="font-bold text-gray-900">{profile?.fee != null ? `₹${profile.fee}` : '-'}</span>
-                        </div>
-                        <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                          <span className="text-sm font-bold text-gray-500">Online Consultation</span>
-                          <span className="font-bold text-gray-900">{profile?.onlineFee != null ? `₹${profile.onlineFee}` : '-'}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-gray-500">Clinic Consultation</span>
-                          <span className="font-bold text-gray-900">{profile?.clinicFee != null ? `₹${profile.clinicFee}` : '-'}</span>
-                        </div>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Activity className="w-5 h-5" /> Consultations &amp; Fees</h3>
+                        <button onClick={() => setActiveTab('Availability')} className="text-sm font-bold text-secondary hover:underline">Edit timings</button>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-5 space-y-4 border border-gray-100" data-testid="profile-modes">
+                        {(profile?.modes || []).map((m, i, arr) => (
+                          <div key={m.type} className={`flex justify-between items-start gap-4 ${i < arr.length - 1 ? 'pb-3 border-b border-gray-200' : ''}`}>
+                            <span>
+                              <span className="block text-sm font-bold text-gray-500">{m.label}</span>
+                              <span className="block text-xs text-gray-400 mt-0.5">{m.hours || 'No timings set yet'}</span>
+                            </span>
+                            <span className="font-bold text-gray-900">{m.fee != null ? `₹${m.fee}` : '-'}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -538,7 +545,8 @@ export default function DoctorDashboard() {
               </div>
             )}
 
-            {activeTab === 'Patient Visits' && <PatientVisits role="doctor" />}
+            {activeTab === 'Patient Visits' && <PatientVisits />}
+            {activeTab === 'Availability' && <ConsultationSettings profile={profile} onSaved={setProfile} />}
             {activeTab === 'Analytics' && <AnalyticsTab appointments={allAppointments} profile={profile} />}
             {activeTab === 'Reviews' && <ReviewsTab providerId={profile?.id} profile={profile} />}
             {activeTab === 'Settings' && <SettingsTab profile={profile} onLogout={handleLogout} />}
@@ -778,7 +786,7 @@ export default function DoctorDashboard() {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Available Time Slots</label>
                     <div className="grid grid-cols-3 gap-3">
-                      {slotsFor(rescheduleDates.find((d) => d.label === selectedRescheduleDate), activeAppointment).length === 0 && <p className="col-span-3 text-sm text-gray-500">No open slots on this day – pick another date, or add slots in Settings → Edit profile and availability.</p>}
+                      {slotsFor(rescheduleDates.find((d) => d.label === selectedRescheduleDate), activeAppointment).length === 0 && <p className="col-span-3 text-sm text-gray-500">No open slots on this day – pick another date, or change your timings under Availability.</p>}
                       {slotsFor(rescheduleDates.find((d) => d.label === selectedRescheduleDate), activeAppointment).map(time => (
                         <button 
                           key={time}

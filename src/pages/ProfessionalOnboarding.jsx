@@ -5,6 +5,8 @@ import api, { getSessionUser } from '../services/api';
 import { CheckCircle, Upload, Camera, Building, FileText, Calendar, Clock, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
+import { ConsultTypePicker, HoursEditor } from '../components/ConsultationSettings';
+import { CONSULT_TYPES, CONSULT_LABEL, offersOf, hoursForEdit, checkConsultation } from '../services/consultation';
 
 
 const specializationOptions = {
@@ -83,6 +85,10 @@ export default function ProfessionalOnboarding() {
     Wed: [], Thu: [], Fri: [], Sat: [], Sun: []
   });
   const navigate = useNavigate();
+  // consultation types offered and the timings for each (clinic timings on the Clinic step, the rest on Availability)
+  const [types, setTypes] = useState({ home: true, clinic: true, online: true });
+  const [hours, setHours] = useState(() => Object.fromEntries(CONSULT_TYPES.map((t) => [t, hoursForEdit(null, t)])));
+  const setHoursFor = (t) => (v) => setHours((h) => ({ ...h, [t]: v }));
   const [form, setForm] = useState({
     name: '', specialization: '', experience: '', languages: '', homeFee: '', onlineFee: '', clinicFee: '',
     gender: '', qualification: '', registrationNumber: '', registrationCouncil: '', pincode: '', city: '', district: '', state: '', locality: '', homeVisitRadiusKm: '10', bio: '', img: '',
@@ -112,6 +118,8 @@ export default function ProfessionalOnboarding() {
       setProviderStatus(provider.status);
       setProfession(provider.profession || '');
       if (provider.schedule) setSchedule((prev) => ({ ...prev, ...provider.schedule }));
+      setTypes(offersOf(provider));
+      setHours(Object.fromEntries(CONSULT_TYPES.map((t) => [t, hoursForEdit(provider, t)])));
       setForm((f) => ({
         ...f,
         name: provider.name || f.name,
@@ -153,9 +161,13 @@ export default function ProfessionalOnboarding() {
     const addrErr = pincodeErrors(form, pinLookup);
     if (addrErr.pincode) return addrErr.pincode;
     if (addrErr.city) return 'Please enter the city where you work.';
-    if (!form.homeFee && !form.onlineFee && !form.clinicFee) return 'Please enter at least one consultation fee.';
+    if (!offered.some((t) => types[t])) return 'Please choose at least one type of consultation you offer.';
+    const feeKey = { home: 'homeFee', clinic: 'clinicFee', online: 'onlineFee' };
+    if (!offered.some((t) => types[t] && form[feeKey[t]] !== '' && form[feeKey[t]] != null)) return 'Please enter at least one consultation fee.';
     return '';
   };
+  const validateClinic = () => (types.clinic && !skipClinic && (!form.clinicName.trim() || !form.clinicAddress.trim()) ? 'Please enter your clinic name and address.' : '');
+  const validateTimings = () => checkConsultation({ types: activeTypes, hours, clinicName: form.clinicName, clinicAddress: form.clinicAddress });
 
   const buildPayload = () => ({
     name: form.name.trim(),
@@ -163,9 +175,11 @@ export default function ProfessionalOnboarding() {
     specialization: form.specialization && !form.specialization.startsWith('Select') ? form.specialization : '',
     experience: form.experience,
     languages: form.languages,
-    homeFee: form.homeFee,
-    onlineFee: form.onlineFee,
-    clinicFee: form.clinicFee,
+    homeFee: activeTypes.home ? form.homeFee : '',
+    onlineFee: activeTypes.online ? form.onlineFee : '',
+    clinicFee: activeTypes.clinic ? form.clinicFee : '',
+    consultTypes: activeTypes,
+    hours: Object.fromEntries(CONSULT_TYPES.filter((t) => activeTypes[t]).map((t) => [t, hours[t]])),
     state: form.state.trim(),
     city: form.city.trim(),
     district: form.district.trim(),
@@ -179,20 +193,26 @@ export default function ProfessionalOnboarding() {
     bio: form.bio,
     ...(form.img ? { img: form.img } : {}),
     phone: form.clinicPhone,
-    clinic: skipClinic ? undefined : { name: form.clinicName, address: form.clinicAddress, phone: form.clinicPhone, website: form.clinicWebsite },
+    clinic: activeTypes.clinic ? { name: form.clinicName, address: form.clinicAddress, phone: form.clinicPhone, website: form.clinicWebsite } : undefined,
     bank: { holderName: form.holderName, bankName: form.bankName, accountNumber: form.accountNumber, ifsc: form.ifsc },
-    schedule,
   });
 
   const goFromProfile = () => {
     const msg = validateProfile();
     setFormError(msg);
-    if (!msg) setStep(skipClinic ? 4 : 3);
+    if (!msg) setStep(noClinicStep ? 4 : 3);
+  };
+  const goFromClinic = () => {
+    const msg = validateClinic() || (activeTypes.clinic ? checkConsultation({ types: { clinic: true }, hours, clinicName: form.clinicName, clinicAddress: form.clinicAddress }) : '');
+    setFormError(msg);
+    if (!msg) setStep(4);
   };
 
   const handleSubmitVerification = async () => {
     const msg = validateProfile();
     if (msg) { setFormError(msg); setStep(2); return; }
+    const clinicMsg = validateClinic();
+    if (clinicMsg) { setFormError(clinicMsg); setStep(3); return; }
     if (!form.holderName.trim() || !form.bankName.trim() || !form.ifsc.trim() || (!form.accountNumber.trim() && !providerStatus)) {
       setFormError('Please fill in all bank details.');
       return;
@@ -213,6 +233,8 @@ export default function ProfessionalOnboarding() {
   };
 
   const handleComplete = async () => {
+    const msg = validateTimings();
+    if (msg) { setFormError(msg); return; }
     setSaving(true);
     setFormError('');
     try {
@@ -251,6 +273,10 @@ export default function ProfessionalOnboarding() {
     });
   };
   const skipClinic = profession === "Nurse" || profession === "Caretaker"; // 1 is Account (done in login)
+  // nurses and caretakers only do home visits
+  const offered = skipClinic ? ['home'] : CONSULT_TYPES;
+  const activeTypes = skipClinic ? { home: true, clinic: false, online: false } : types;
+  const noClinicStep = skipClinic || !types.clinic;
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -258,13 +284,13 @@ export default function ProfessionalOnboarding() {
 
   const baseSteps = [
     { id: 1, title: 'Account', sub: 'Sign-in details' },
-    { id: 2, title: 'Profile', sub: 'Qualifications, location, fees' },
-    { id: 3, title: 'Clinic', sub: 'Where patients visit you' },
+    { id: 2, title: 'Profile', sub: 'Qualifications, consultations, fees' },
+    { id: 3, title: 'Clinic', sub: 'Clinic address and timings' },
     { id: 4, title: 'Verification', sub: 'Documents and payouts' },
-    { id: 5, title: 'Availability', sub: 'Your weekly time slots' },
+    { id: 5, title: 'Availability', sub: 'Online and home visit timings' },
   ];
 
-  const visibleSteps = baseSteps.filter(s => !(skipClinic && s.id === 3));
+  const visibleSteps = baseSteps.filter(s => !(noClinicStep && s.id === 3));
   
   const steps = visibleSteps.map((s, index) => {
     const seqNum = index + 1;
@@ -460,28 +486,20 @@ export default function ProfessionalOnboarding() {
                 <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-4 pt-6 border-t border-line-soft first-of-type:border-0 first-of-type:pt-0">Where you work</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
                   <PincodeFields idPrefix="ob" value={form} onChange={patchForm} lookup={pinLookup} fieldCls="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" labelCls="block text-[13px] font-semibold text-primary mb-1.5" className="md:col-span-2 space-y-4" />
-                  <div>
+                  {activeTypes.home && <div>
                     <label htmlFor="ob-radius" className="block text-[13px] font-semibold text-primary mb-1.5">Home visits within</label>
                     <select id="ob-radius" value={form.homeVisitRadiusKm} onChange={updateForm('homeVisitRadiusKm')} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition">
-                      <option value="0">I don't do home visits</option><option value="5">5 km</option><option value="10">10 km</option><option value="15">15 km</option><option value="25">25 km</option>
+                      <option value="5">5 km</option><option value="10">10 km</option><option value="15">15 km</option><option value="25">25 km</option>
                     </select>
-                  </div>
+                  </div>}
                 </div>
 
-                <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-4 pt-6 border-t border-line-soft first-of-type:border-0 first-of-type:pt-0">Fees (at least one)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                  <div>
-                    <label htmlFor="ob-fee-home" className="block text-[13px] font-semibold text-primary mb-1.5">Home visit (₹)</label>
-                    <input id="ob-fee-home" type="number" min="0" value={form.homeFee} onChange={updateForm('homeFee')} placeholder="800" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
-                  </div>
-                  <div>
-                    <label htmlFor="ob-fee-online" className="block text-[13px] font-semibold text-primary mb-1.5">Online (₹)</label>
-                    <input id="ob-fee-online" type="number" min="0" value={form.onlineFee} onChange={updateForm('onlineFee')} placeholder="500" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
-                  </div>
-                  <div>
-                    <label htmlFor="ob-fee-clinic" className="block text-[13px] font-semibold text-primary mb-1.5">Clinic (₹)</label>
-                    <input id="ob-fee-clinic" type="number" min="0" value={form.clinicFee} onChange={updateForm('clinicFee')} placeholder="600" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
-                  </div>
+                <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-1 pt-6 border-t border-line-soft first-of-type:border-0 first-of-type:pt-0">Consultations you offer</h3>
+                <p className="text-[13px] text-primary/55 mb-4">Tick every option you provide and enter its fee. Patients will only see these options when they book you.</p>
+                <div className="mb-8">
+                  <ConsultTypePicker idPrefix="ob" allowed={offered} types={activeTypes} onToggle={(t, on) => setTypes((x) => ({ ...x, [t]: on }))}
+                    fees={{ home: form.homeFee, clinic: form.clinicFee, online: form.onlineFee }}
+                    onFee={(t, v) => setForm((f) => ({ ...f, [{ home: 'homeFee', clinic: 'clinicFee', online: 'onlineFee' }[t]]: v }))} />
                 </div>
 
                 {formError && <p role="alert" className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{formError}</p>}
@@ -524,6 +542,10 @@ export default function ProfessionalOnboarding() {
                 </div>
 
                 <div className="mb-8">
+                  <HoursEditor idPrefix="ob-clinic" title="Clinic working days and timings" value={hours.clinic} onChange={setHoursFor('clinic')} />
+                </div>
+
+                <div className="mb-8">
                   <label className="block text-[13px] font-semibold text-primary mb-2">Clinic Photos</label>
                   <div className="flex gap-4 overflow-x-auto pb-2">
                     <div className="w-32 h-24 shrink-0 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition">
@@ -533,8 +555,9 @@ export default function ProfessionalOnboarding() {
                   </div>
                 </div>
 
+                {formError && <p role="alert" className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{formError}</p>}
                 <div className="flex gap-4 border-t border-gray-100 pt-6">
-                  <button onClick={() => setStep(4)} className="bg-secondary hover:brightness-95 text-white px-8 py-3.5 rounded-xl font-semibold transition-all shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)]">
+                  <button onClick={goFromClinic} className="bg-secondary hover:brightness-95 text-white px-8 py-3.5 rounded-xl font-semibold transition-all shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)]">
                     Save & Continue
                   </button>
                   <button onClick={() => setStep(2)} className="bg-white border border-line text-primary/70 hover:text-primary hover:bg-tint px-8 py-3.5 rounded-xl font-semibold transition-all">
@@ -600,7 +623,7 @@ export default function ProfessionalOnboarding() {
                   <button onClick={handleSubmitVerification} disabled={saving} className="bg-secondary hover:brightness-95 text-white px-8 py-3.5 rounded-xl font-semibold transition-all shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] disabled:opacity-70">
                     {saving ? 'Submitting...' : 'Submit for Verification'}
                   </button>
-                  <button onClick={() => setStep(skipClinic ? 2 : 3)} className="bg-white border border-line text-primary/70 hover:text-primary hover:bg-tint px-8 py-3.5 rounded-xl font-semibold transition-all">
+                  <button onClick={() => setStep(noClinicStep ? 2 : 3)} className="bg-white border border-line text-primary/70 hover:text-primary hover:bg-tint px-8 py-3.5 rounded-xl font-semibold transition-all">
                     Back
                   </button>
                 </div>
@@ -628,73 +651,13 @@ export default function ProfessionalOnboarding() {
                   <div className="mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
                     <div>
                       <h2 className="font-serif text-[22px] font-semibold text-primary mb-1">Available Slots</h2>
-                      <p className="text-sm text-gray-500">Configure your weekly working hours.</p>
+                      <p className="text-sm text-gray-500">Set the days and timings for each consultation you offer. Patients can only book your free slots.</p>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 mb-8">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                      const count = schedule[day].length;
-                      return (
-                        <button 
-                          key={day} 
-                          onClick={() => setSelectedDay(day)}
-                          className={`px-4 py-2 rounded-lg text-sm font-bold border-2 transition flex items-center gap-1.5 ${selectedDay === day ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-gray-500 border-gray-200 hover:border-primary/50'}`}
-                        >
-                          {day}
-                          {count > 0 && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedDay === day ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
-                    <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-secondary" /> 
-                      {selectedDay === 'Thu' ? 'Thursday' : selectedDay === 'Tue' ? 'Tuesday' : selectedDay === 'Wed' ? 'Wednesday' : selectedDay === 'Fri' ? 'Friday' : selectedDay === 'Sat' ? 'Saturday' : selectedDay === 'Sun' ? 'Sunday' : 'Monday'} Time Slots
-                    </h4>
-                    
-                    <div className="flex flex-wrap gap-3 items-center">
-                      {schedule[selectedDay].length === 0 && !isAddingSlot && (
-                        <p className="text-sm text-gray-400 font-medium italic w-full mb-2">No slots added for this day.</p>
-                      )}
-                      
-                      {schedule[selectedDay].map(time => (
-                        <div key={time} className="bg-white border border-gray-200 pl-4 pr-1 py-1.5 rounded-lg text-sm font-bold text-gray-700 flex items-center gap-2 group transition">
-                          {time}
-                          <button onClick={() => removeSlot(time)} className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-1 rounded transition">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </div>
-                      ))}
-                      
-                      {!isAddingSlot ? (
-                        <button 
-                          onClick={() => setIsAddingSlot(true)}
-                          className="border-2 border-dashed border-gray-300 px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-white hover:border-gray-400 hover:text-primary transition"
-                        >
-                          + Add Slot
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="time" 
-                            value={newSlot}
-                            onChange={(e) => setNewSlot(e.target.value)}
-                            className="bg-white border-2 border-primary text-primary px-3 py-1.5 rounded-lg text-sm font-bold outline-none"
-                            autoFocus
-                          />
-                          <button onClick={handleAddSlot} className="bg-primary hover:bg-primary-hover text-white px-3 py-2 rounded-lg text-sm font-bold shadow-sm transition">
-                            Save
-                          </button>
-                          <button onClick={() => setIsAddingSlot(false)} className="text-gray-400 hover:text-gray-600 font-medium text-sm px-2">
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                  <div className="space-y-5 mb-8">
+                    {['online', 'home', 'clinic'].filter((t) => activeTypes[t]).map((t) => (
+                      <HoursEditor key={t} idPrefix={`ob5-${t}`} title={`${CONSULT_LABEL[t]} timings`} value={hours[t]} onChange={setHoursFor(t)} />
+                    ))}
                   </div>
 
                   {formError && <p className="text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{formError}</p>}
