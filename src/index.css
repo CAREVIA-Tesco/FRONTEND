@@ -198,8 +198,9 @@ html[data-palette="blue"] {
   --color-brand-600: var(--color-strong);
   --color-brand-700: var(--cv-deep-3);
   --color-background: color-mix(in srgb, var(--cv-primary) 3%, white);
-  --color-charcoal: var(--cv-primary);
-  --color-muted: color-mix(in srgb, var(--cv-primary) 62%, white);
+  /* text: dark, neutral ink tinted with the brand colour (crisper than the pale brand blue) */
+  --color-charcoal: color-mix(in srgb, var(--cv-primary) 45%, #0b1020);
+  --color-muted: color-mix(in srgb, var(--cv-primary) 22%, #4b5567);
   --color-info: var(--cv-accent);
   --color-slate-50: color-mix(in srgb, var(--cv-primary) 3%, white);
   --color-slate-100: color-mix(in srgb, var(--cv-primary) 6%, white);
@@ -207,6 +208,7 @@ html[data-palette="blue"] {
   --color-slate-300: color-mix(in srgb, var(--cv-primary) 19%, white);
   --font-sans: 'Poppins', sans-serif;
   font-family: 'Poppins', sans-serif;
+  color: var(--color-charcoal);
 }
 .theme-admin ::selection { background: var(--color-secondary-soft); }
 .theme-admin input[type="checkbox"], .theme-admin input[type="radio"] { accent-color: var(--color-strong); }
@@ -219,12 +221,13 @@ html[data-palette="blue"] {
   --color-gray-100: color-mix(in srgb, var(--cv-primary) 6%, white);
   --color-gray-200: color-mix(in srgb, var(--cv-primary) 11%, white);
   --color-gray-300: color-mix(in srgb, var(--cv-primary) 19%, white);
-  --color-gray-400: color-mix(in srgb, var(--cv-primary) 40%, white);
-  --color-gray-500: color-mix(in srgb, var(--cv-primary) 58%, white);
-  --color-gray-600: color-mix(in srgb, var(--cv-primary) 72%, white);
-  --color-gray-700: color-mix(in srgb, var(--cv-primary) 84%, white);
-  --color-gray-800: color-mix(in srgb, var(--cv-primary) 92%, white);
-  --color-gray-900: var(--cv-primary);
+  /* text greys: neutral slate tinted with the brand colour, dark enough to read easily */
+  --color-gray-400: color-mix(in srgb, var(--cv-primary) 15%, #7c8597);
+  --color-gray-500: color-mix(in srgb, var(--cv-primary) 18%, #5b6475);
+  --color-gray-600: color-mix(in srgb, var(--cv-primary) 22%, #454e5f);
+  --color-gray-700: color-mix(in srgb, var(--cv-primary) 28%, #323a4a);
+  --color-gray-800: color-mix(in srgb, var(--cv-primary) 35%, #1f2533);
+  --color-gray-900: color-mix(in srgb, var(--cv-primary) 45%, #0b1020);
   --color-blue-50: color-mix(in srgb, var(--cv-accent) 7%, white);
   --color-blue-100: color-mix(in srgb, var(--cv-accent) 14%, white);
   --color-blue-200: color-mix(in srgb, var(--cv-accent) 26%, white);
@@ -236,6 +239,12 @@ html[data-palette="blue"] {
   --color-indigo-500: var(--cv-accent);
 }
 .theme-dash .font-bold { font-weight: 600; }
+/* faded brand-colour text (text-primary/50 … /70) is lifted so labels stay readable */
+.theme-dash .text-primary\/40, .theme-admin .text-primary\/40 { color: color-mix(in srgb, var(--color-primary) 62%, transparent); }
+.theme-dash .text-primary\/45, .theme-dash .text-primary\/50, .theme-admin .text-primary\/50 { color: color-mix(in srgb, var(--color-primary) 70%, transparent); }
+.theme-dash .text-primary\/55, .theme-dash .text-primary\/60, .theme-admin .text-primary\/60 { color: color-mix(in srgb, var(--color-primary) 78%, transparent); }
+.theme-dash .text-primary\/65, .theme-dash .text-primary\/70, .theme-dash .text-primary\/75 { color: color-mix(in srgb, var(--color-primary) 86%, transparent); }
+.theme-dash, .theme-admin { text-rendering: optimizeLegibility; }
 .theme-dash ::selection { background: var(--color-secondary-soft); }
 
 /* Motion used by Book Now and the thank-you page (respects reduced motion) */

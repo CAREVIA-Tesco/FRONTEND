@@ -39,7 +39,7 @@ export function ProviderProfile() {
   const [notice, setNotice] = useNotice();
   const p = provider || {};
   const initials = (p.name || "").replace(/^Dr\.?\s*/, "").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
-  const code = `DOC-${String(p.id || "").slice(-4).toUpperCase()}`;
+  const code = p.code || `DOC-${String(p.id || "").slice(-4).toUpperCase()}`;
   const count = (st: string[]) => appointments.filter((a) => st.includes(a.status)).length;
   const apptStats = { total: appointments.length, completed: count(["Completed"]), upcoming: count(["Waiting", "Confirmed"]), cancelled: count(["Cancelled"]) };
   const earnings = payments.filter((t) => t.type === "Payment" && t.status === "Success");

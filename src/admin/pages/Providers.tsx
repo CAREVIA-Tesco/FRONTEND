@@ -58,7 +58,7 @@ export function Providers() {
   const handleReject = (id: string) => updateStatus(id, 'REJECTED');
 
   const providersList = allProviders.filter((p: any) => {
-    if (search && !`${p.name} ${p.id} ${p.phone || ""} ${p.spec}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !`${p.name} ${p.id} ${p.code || ""} ${p.phone || ""} ${p.spec}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (specFilter && p.spec !== specFilter) return false;
     if (typeFilter && (typeFilter === "Doctor") !== !!p.isDoctor) return false;
     if (statusFilter && p.status !== statusFilter) return false;
@@ -188,7 +188,7 @@ export function Providers() {
                         <span className="font-medium text-charcoal">{provider.name}</span>
                      </div>
                   </TableCell>
-                  <TableCell className="text-muted text-sm">DOC-{provider.id.toString().slice(-4)}</TableCell>
+                  <TableCell className="text-muted text-sm whitespace-nowrap">{provider.code || `DOC-${provider.id.toString().slice(-4)}`}</TableCell>
                   <TableCell className="text-sm">{provider.isDoctor ? 'Doctor' : 'Care Professional'}</TableCell>
                   <TableCell className="text-sm">{provider.spec}</TableCell>
                   <TableCell className="text-sm">{provider.exp}</TableCell>

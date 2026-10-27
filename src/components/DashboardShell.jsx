@@ -26,7 +26,7 @@ export default function DashboardShell({ roleLabel, nav, active, onSelect, onLog
             <span className="h-10 w-10 rounded-xl bg-white flex items-center justify-center overflow-hidden"><img src="/logo.png" alt="Carevaa Logo" className="h-8 w-8 object-contain" /></span>
             <span className="leading-tight">
               <span className="block text-[17px] font-semibold tracking-tight">Carevaa</span>
-              <span className="block text-[11px] text-white/50">{roleLabel}</span>
+              <span className="block text-[11px] text-white/70">{roleLabel}</span>
             </span>
           </Link>
           <button type="button" onClick={() => setOpen(false)} className="lg:hidden p-2 -mr-2 rounded-lg text-white/70 hover:bg-white/10" aria-label="Close menu"><X className="h-5 w-5" /></button>
@@ -42,17 +42,17 @@ export default function DashboardShell({ roleLabel, nav, active, onSelect, onLog
                 type="button"
                 onClick={() => { onSelect(item.key); setOpen(false); }}
                 aria-current={isActive ? 'page' : undefined}
-                className={`relative w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium transition-colors ${isActive ? 'bg-white/[0.12] text-white' : 'text-white/65 hover:bg-white/[0.06] hover:text-white'}`}
+                className={`relative w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium transition-colors ${isActive ? 'bg-white/[0.12] text-white' : 'text-white/[0.88] hover:bg-white/[0.06] hover:text-white'}`}
               >
                 {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-secondary-bright" aria-hidden="true" />}
-                <Icon className={`h-[18px] w-[18px] ${isActive ? 'text-secondary-soft' : 'text-white/55'}`} />
+                <Icon className={`h-[18px] w-[18px] ${isActive ? 'text-secondary-soft' : 'text-white/75'}`} />
                 {item.label}
                 {item.badge > 0 && <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-secondary text-white text-[11px] font-semibold flex items-center justify-center">{item.badge}</span>}
               </button>
             );
           })}
-          <Link to="/" className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium text-white/65 hover:bg-white/[0.06] hover:text-white">
-            <ExternalLink className="h-[18px] w-[18px] text-white/55" /> Back to website
+          <Link to="/" className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium text-white/[0.88] hover:bg-white/[0.06] hover:text-white">
+            <ExternalLink className="h-[18px] w-[18px] text-white/75" /> Back to website
           </Link>
         </nav>
 
@@ -61,9 +61,9 @@ export default function DashboardShell({ roleLabel, nav, active, onSelect, onLog
             <Avatar src={user?.img} initials={initials} className="h-10 w-10 rounded-full text-sm ring-2 ring-white/20" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.name}</p>
-              <p className="truncate text-xs text-white/50">{user?.sub}</p>
+              <p className="truncate text-xs text-white/70">{user?.sub}</p>
             </div>
-            <button type="button" onClick={onLogout} className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
+            <button type="button" onClick={onLogout} className="p-2 rounded-lg text-white/75 hover:text-white hover:bg-white/10" aria-label="Logout" title="Logout"><LogOut className="h-4 w-4" /></button>
           </div>
         </div>
       </aside>

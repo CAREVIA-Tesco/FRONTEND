@@ -50,7 +50,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
 
   const NavGroup = ({ title, items }: { title: string, items: any[] }) => (
     <div className="mb-5">
-      <h4 className="mb-1.5 px-6 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/40">
+      <h4 className="mb-1.5 px-6 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/75">
         {title}
       </h4>
       <nav className="space-y-0.5 px-3">
@@ -67,11 +67,11 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
                 "relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium transition-colors",
                 isActive
                   ? "bg-white/[0.12] text-white"
-                  : "text-white/65 hover:bg-white/[0.06] hover:text-white"
+                  : "text-white/[0.88] hover:bg-white/[0.06] hover:text-white"
               )}
             >
               {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-secondary-bright" aria-hidden="true" />}
-              <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-secondary-soft" : "text-white/55")} />
+              <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-secondary-soft" : "text-white/75")} />
               {item.title}
             </Link>
           )
@@ -101,7 +101,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
             </span>
             <span className="leading-tight">
               <span className="block text-[17px] font-semibold tracking-tight">Carevaa</span>
-              <span className="block text-[11px] text-white/50">Admin console</span>
+              <span className="block text-[11px] text-white/70">Admin console</span>
             </span>
           </Link>
           <button type="button" onClick={onClose} className="lg:hidden p-2 -mr-2 rounded-lg text-white/70 hover:bg-white/10" aria-label="Close menu">
@@ -115,8 +115,8 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
           <NavGroup title="Website" items={websiteNav} />
           <NavGroup title="Finance" items={financeNav} />
           <div className="px-3">
-            <a href="/" target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium text-white/65 hover:bg-white/[0.06] hover:text-white">
-              <ExternalLink className="h-[18px] w-[18px] text-white/55" /> View website
+            <a href="/" target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-medium text-white/[0.88] hover:bg-white/[0.06] hover:text-white">
+              <ExternalLink className="h-[18px] w-[18px] text-white/75" /> View website
             </a>
           </div>
         </div>
@@ -128,10 +128,10 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">{name}</p>
-                <p className="truncate text-xs text-white/50">{user?.email || ""}</p>
+                <p className="truncate text-xs text-white/70">{user?.email || ""}</p>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-white/40 group-hover:text-white" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-white/75 group-hover:text-white" />
           </Link>
         </div>
       </aside>
