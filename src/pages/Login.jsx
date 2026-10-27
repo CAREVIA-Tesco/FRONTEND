@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Lock, Eye, EyeOff, Phone, ArrowLeft, HeartPulse, CalendarCheck, FileText, Inbox, Star, LayoutDashboard, BarChart3, UserCheck, AlertCircle } from 'lucide-react';
+import { setPendingSignup } from '../services/pendingSignup';
 import api, { saveSession } from '../services/api';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
@@ -75,6 +76,19 @@ export default function Login() {
       if (addrErr.city) { setError('Please enter your city.'); return; }
     }
     setLoading(true);
+    if (role === 'doctor') {
+      // the account is created only after the professional form is filled in and submitted
+      try {
+        await api.registerCheck(fullName.trim(), identifier.trim(), password, role);
+        setPendingSignup({ name: fullName.trim(), identifier: identifier.trim(), password });
+        navigate('/professional/onboarding');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     try {
       const data = await api.register(fullName.trim(), identifier.trim(), password, role, role === 'patient' ? details : {});
       saveSession(data);
@@ -200,7 +214,7 @@ export default function Login() {
                     {patientStep2
                       ? 'Helps our care team and doctors prepare for the visit.'
                       : isRegister
-                      ? `Sign up as a ${role === 'doctor' ? 'healthcare professional' : 'patient'}.`
+                      ? (role === 'doctor' ? 'Sign up as a healthcare professional. Your account is created once you complete and submit your professional details.' : 'Sign up as a patient.')
                       : `Sign in to your ${role === 'doctor' ? 'professional dashboard' : role === 'admin' ? 'admin console' : 'account'}.`}
                   </p>
                 </div>
@@ -285,7 +299,7 @@ export default function Login() {
                     disabled={loading}
                     className="flex-1 h-12 lg:h-11 rounded-xl bg-secondary hover:brightness-95 text-white font-semibold text-[15px] shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-secondary)_70%,transparent)] transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
                   >
-                    {loading ? 'Please wait...' : isRegister && role === 'patient' && regStep === 1 ? 'Continue' : isRegister ? 'Create Account' : 'Login'}
+                    {loading ? 'Please wait...' : isRegister && role === 'patient' && regStep === 1 ? 'Continue' : isRegister && role === 'doctor' ? 'Continue to professional details' : isRegister ? 'Create Account' : 'Login'}
                   </button>
                   </div>
                 </form>

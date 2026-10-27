@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getDoctors, saveDoctors, saveCurrentUser } from '../utils/storage';
-import api, { getSessionUser } from '../services/api';
+import api, { getSessionUser, saveSession } from '../services/api';
+import { getPendingSignup, clearPendingSignup } from '../services/pendingSignup';
 import { CheckCircle, Upload, Camera, Building, FileText, Calendar, Clock, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
@@ -108,6 +109,12 @@ export default function ProfessionalOnboarding() {
   useEffect(() => { api.getSpecializations().then((d) => setCatalogSpecs((d.specializations || []).filter((x) => x.status === 'Active').map((x) => x.name))).catch(() => {}); }, []);
   useEffect(() => {
     const user = getSessionUser();
+    const signup = getPendingSignup();
+    if ((!user || user.role !== 'doctor') && signup) {
+      // new doctor: no account yet – it is created when this form is submitted
+      setForm((f) => ({ ...f, name: f.name || signup.name, holderName: f.holderName || signup.name }));
+      return;
+    }
     if (!user || user.role !== 'doctor') {
       navigate('/login?redirect=/professional/onboarding');
       return;
@@ -220,6 +227,16 @@ export default function ProfessionalOnboarding() {
     setSaving(true);
     setFormError('');
     try {
+      const signup = getPendingSignup();
+      if (signup && !getSessionUser()) {
+        // create the account and the professional profile together
+        const data = await api.register(signup.name, signup.identifier, signup.password, 'doctor', { profile: buildPayload() });
+        saveSession(data);
+        clearPendingSignup();
+        setProviderStatus(data.provider.status);
+        setStep(5);
+        return;
+      }
       const { provider } = await api.submitOnboarding(buildPayload());
       setProviderStatus(provider.status);
       const user = getSessionUser();
@@ -309,7 +326,11 @@ export default function ProfessionalOnboarding() {
 
   const stepIndex = Math.max(0, visibleSteps.findIndex((v) => v.id === step));
   const progress = Math.round(((stepIndex + (step === 5 ? 1 : 0)) / (visibleSteps.length - 1 || 1)) * 100);
-  const handleSaveExit = () => navigate(providerStatus ? '/doctor/dashboard' : '/');
+  const signingUp = !!getPendingSignup() && !getSessionUser();
+  const handleSaveExit = () => {
+    if (signingUp) { clearPendingSignup(); navigate('/login'); return; } // nothing was saved – no account yet
+    navigate(providerStatus ? '/doctor/dashboard' : '/');
+  };
 
   return (
     <div className="theme-portea min-h-screen bg-tint font-sans text-primary">
@@ -319,7 +340,7 @@ export default function ProfessionalOnboarding() {
           <Link to="/" aria-label="Carevaa home"><img src="/logo.png" alt="Carevaa Logo" className="h-10 w-auto object-contain mix-blend-multiply" /></Link>
           <div className="flex items-center gap-3 sm:gap-5 text-sm">
             <span className="hidden md:inline text-primary/60">Questions? <a href="/contact" className="font-semibold text-primary hover:text-secondary">Contact our team</a></span>
-            <button type="button" onClick={handleSaveExit} className="h-9 px-4 rounded-xl border border-line font-semibold text-primary/80 hover:text-primary hover:bg-tint transition">Save & exit</button>
+            <button type="button" onClick={handleSaveExit} className="h-9 px-4 rounded-xl border border-line font-semibold text-primary/80 hover:text-primary hover:bg-tint transition">{signingUp ? 'Cancel sign-up' : 'Save & exit'}</button>
           </div>
         </div>
       </header>
@@ -332,6 +353,7 @@ export default function ProfessionalOnboarding() {
           <p className="eyebrow text-on-deep mb-2">Join Carevaa as a professional</p>
           <h1 className="font-serif text-[28px] sm:text-[36px] font-semibold leading-tight">Complete your professional profile</h1>
           <p className="mt-2 text-white/75 max-w-2xl text-[15px]">It takes about 5 minutes. After you submit, the Carevaa team reviews your profile. Patients can find and book you once it is approved.</p>
+          {signingUp && <p data-testid="signup-pending" className="mt-3 inline-block text-[13.5px] bg-white/10 ring-1 ring-white/20 rounded-xl px-3.5 py-2">Your account is created only when you submit this form (Submit for Verification). Please don't refresh the page until then.</p>}
           <div className="mt-6 max-w-xl">
             <div className="flex items-center justify-between text-[12px] text-white/70 mb-2">
               <span>Step {stepIndex + 1} of {visibleSteps.length}: <span className="font-semibold text-white">{visibleSteps[stepIndex]?.title}</span></span>

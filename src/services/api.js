@@ -65,6 +65,7 @@ const qs = (params = {}) => {
 export const api = {
   // auth
   login: (identifier, password, role) => request('/auth/login', { method: 'POST', body: { identifier, password, role }, auth: false }),
+  registerCheck: (name, identifier, password, role) => request('/auth/register-check', { method: 'POST', body: { name, identifier, password, role }, auth: false }),
   register: (name, identifier, password, role, details = {}) => request('/auth/register', { method: 'POST', body: { ...details, name, identifier, password, role }, auth: false }),
   me: () => request('/auth/me'),
   // patient visit management (doctor, nurse, admin)
