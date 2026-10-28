@@ -250,6 +250,30 @@ export function ProviderProfile() {
                      </div>
                   </CardContent>
                </Card>
+
+               <Card>
+                  <CardContent className="p-6" data-testid="admin-aadhaar">
+                     <h3 className="text-lg font-bold text-charcoal mb-1">Aadhaar (ID proof)</h3>
+                     <p className="text-xs text-muted mb-4">Visible to the admin team only – check the number against the card before approving.</p>
+                     {p.aadhaar?.number || p.aadhaar?.photo ? (
+                        <div className="grid sm:grid-cols-[220px_1fr] gap-6 items-start">
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Aadhaar Number</h4>
+                              <p className="text-lg font-semibold tracking-wider text-charcoal" data-testid="admin-aadhaar-number">{String(p.aadhaar.number || "").replace(/(\d{4})(?=\d)/g, "$1 ") || "-"}</p>
+                              {p.aadhaar.updatedAt && <p className="text-xs text-muted mt-1">Added {new Date(p.aadhaar.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Aadhaar card photo</h4>
+                              {p.aadhaar.photo ? (
+                                 <a href={p.aadhaar.photo} target="_blank" rel="noreferrer" title="Open full size" onClick={(e) => { e.preventDefault(); const w = window.open(); if (w) { w.document.title = "Aadhaar – " + p.name; w.document.body.style.margin = "0"; const img = w.document.createElement("img"); img.src = p.aadhaar.photo; img.style.maxWidth = "100%"; w.document.body.appendChild(img) } }}>
+                                    <img src={p.aadhaar.photo} alt={`Aadhaar card of ${p.name}`} className="max-h-56 rounded-lg ring-1 ring-slate-200 hover:ring-brand-500 transition" data-testid="admin-aadhaar-photo" />
+                                 </a>
+                              ) : <p className="text-sm text-muted">Not uploaded</p>}
+                           </div>
+                        </div>
+                     ) : <p className="text-sm text-muted">Not provided yet.</p>}
+                  </CardContent>
+               </Card>
                
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>

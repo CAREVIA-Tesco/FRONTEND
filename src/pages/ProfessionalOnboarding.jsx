@@ -54,6 +54,29 @@ const specializationOptions = {
 
 
 
+const LISTED_PROFESSIONS = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor', 'Physiotherapist', 'Nurse', 'Caretaker', 'Lab Centre', 'BHS'];
+const OTHER = '__other__';
+
+// Aadhaar photo: keep it readable but small (longest side 1400px, JPEG)
+function resizeDocument(file) {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { reject(new Error('Please choose a JPG, PNG or WebP photo of your Aadhaar card.')); return; }
+    if (file.size > 10 * 1024 * 1024) { reject(new Error('Please choose an image under 10 MB.')); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1400 / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read.')); };
+    img.src = url;
+  });
+}
+
 const NEEDS_REGISTRATION = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor', 'Physiotherapist', 'Nurse'];
 
 // Shrink a chosen photo to a 320px square JPEG (keeps uploads small)
@@ -79,6 +102,11 @@ function resizePhoto(file) {
 export default function ProfessionalOnboarding() {
   const [step, setStep] = useState(2);
   const [profession, setProfession] = useState("");
+  const [otherProfession, setOtherProfession] = useState(''); // typed in when "Other" is chosen
+  const [specIsOther, setSpecIsOther] = useState(false);
+  const [aadhaar, setAadhaar] = useState({ number: '', photo: '' });
+  const [aadhaarOnFile, setAadhaarOnFile] = useState(null); // { last4, photoUploaded } for a saved profile
+  const professionValue = profession === 'Other' ? otherProfession.trim() : profession;
   const [selectedDay, setSelectedDay] = useState('Mon');
   const [schedule, setSchedule] = useState({
     Mon: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM', '05:00 PM'],
@@ -123,7 +151,9 @@ export default function ProfessionalOnboarding() {
     api.getMyProvider().then(({ provider }) => {
       if (!provider) return;
       setProviderStatus(provider.status);
-      setProfession(provider.profession || '');
+      if (provider.profession && !LISTED_PROFESSIONS.includes(provider.profession)) { setProfession('Other'); setOtherProfession(provider.profession); }
+      else setProfession(provider.profession || '');
+      if (provider.aadhaar) setAadhaarOnFile(provider.aadhaar);
       if (provider.schedule) setSchedule((prev) => ({ ...prev, ...provider.schedule }));
       setTypes(offersOf(provider));
       setHours(Object.fromEntries(CONSULT_TYPES.map((t) => [t, hoursForEdit(provider, t)])));
@@ -162,6 +192,7 @@ export default function ProfessionalOnboarding() {
   const validateProfile = () => {
     if (!form.name.trim()) return 'Please enter your full name.';
     if (!profession || profession === 'Select Profession') return 'Please select your profession.';
+    if (profession === 'Other' && !otherProfession.trim()) return 'Please type your profession.';
     if (!form.qualification.trim()) return 'Please enter your highest qualification.';
     if (NEEDS_REGISTRATION.includes(profession) && !form.registrationNumber.trim()) return 'Please enter your council registration number.';
     if (form.experience === '' || Number(form.experience) < 0) return 'Please enter your years of experience.';
@@ -178,7 +209,7 @@ export default function ProfessionalOnboarding() {
 
   const buildPayload = () => ({
     name: form.name.trim(),
-    profession,
+    profession: professionValue,
     specialization: form.specialization && !form.specialization.startsWith('Select') ? form.specialization : '',
     experience: form.experience,
     languages: form.languages,
@@ -201,6 +232,7 @@ export default function ProfessionalOnboarding() {
     ...(form.img ? { img: form.img } : {}),
     phone: form.clinicPhone,
     clinic: activeTypes.clinic ? { name: form.clinicName, address: form.clinicAddress, phone: form.clinicPhone, website: form.clinicWebsite } : undefined,
+    ...(aadhaar.number.trim() || aadhaar.photo ? { aadhaar: { number: aadhaar.number.replace(/\s/g, ''), photo: aadhaar.photo || undefined } } : {}),
     bank: { holderName: form.holderName, bankName: form.bankName, accountNumber: form.accountNumber, ifsc: form.ifsc },
   });
 
@@ -220,6 +252,10 @@ export default function ProfessionalOnboarding() {
     if (msg) { setFormError(msg); setStep(2); return; }
     const clinicMsg = validateClinic();
     if (clinicMsg) { setFormError(clinicMsg); setStep(3); return; }
+    const aadhaarDigits = aadhaar.number.replace(/\s/g, '');
+    if (!aadhaarDigits && !aadhaarOnFile?.last4) { setFormError('Please enter your 12-digit Aadhaar number.'); return; }
+    if (aadhaarDigits && !/^[2-9]\d{11}$/.test(aadhaarDigits)) { setFormError('Please enter a valid 12-digit Aadhaar number.'); return; }
+    if (!aadhaar.photo && !aadhaarOnFile?.photoUploaded) { setFormError('Please upload a photo of your Aadhaar card.'); return; }
     if (!form.holderName.trim() || !form.bankName.trim() || !form.ifsc.trim() || (!form.accountNumber.trim() && !providerStatus)) {
       setFormError('Please fill in all bank details.');
       return;
@@ -289,6 +325,8 @@ export default function ProfessionalOnboarding() {
       [selectedDay]: schedule[selectedDay].filter(s => s !== slot)
     });
   };
+  const specOptions = [...new Set([...(specializationOptions[profession] || []), ...(profession === 'MBBS Doctor' ? catalogSpecs : [])])];
+  const specOther = specIsOther || (!!form.specialization && !specOptions.includes(form.specialization));
   const skipClinic = profession === "Nurse" || profession === "Caretaker"; // 1 is Account (done in login)
   // nurses and caretakers only do home visits
   const offered = skipClinic ? ['home'] : CONSULT_TYPES;
@@ -448,7 +486,7 @@ export default function ProfessionalOnboarding() {
                   </div>
                   <div>
                     <label htmlFor="ob-profession" className="block text-[13px] font-semibold text-primary mb-1.5">Profession *</label>
-                    <select id="ob-profession" value={profession} onChange={(e) => setProfession(e.target.value)} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition text-gray-600">
+                    <select id="ob-profession" value={profession} onChange={(e) => { setProfession(e.target.value); setSpecIsOther(false); setForm((f) => ({ ...f, specialization: '' })); }} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition text-gray-600">
                       <option>Select Profession</option>
                       <option>MBBS Doctor</option>
                       <option>Homeopathy Doctor</option>
@@ -458,20 +496,28 @@ export default function ProfessionalOnboarding() {
                       <option>Caretaker</option>
                       <option>Lab Centre</option>
                       <option>BHS</option>
+                      <option value="Other">Other</option>
                     </select>
+                    {profession === 'Other' && (
+                      <input id="ob-profession-other" aria-label="Your profession" value={otherProfession} onChange={(e) => setOtherProfession(e.target.value.slice(0, 60))} placeholder="Type your profession, e.g. Dentist" className="mt-2 w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
+                    )}
                   </div>
                   <div>
                     <label htmlFor="ob-spec" className="block text-[13px] font-semibold text-primary mb-1.5">
                       {profession === 'Lab Centre' ? 'Laboratory Services / Test Categories' : 'Specialization'}
                     </label>
-                    {profession && profession !== 'Select Profession' ? (
-                      <select id="ob-spec" value={form.specialization} onChange={updateForm('specialization')} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition text-gray-600">
+                    {profession === 'Other' ? (
+                      <input id="ob-spec" value={form.specialization} onChange={updateForm('specialization')} placeholder="Type your specialization (optional)" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
+                    ) : profession && profession !== 'Select Profession' ? (<>
+                      <select id="ob-spec" value={specOther ? OTHER : form.specialization} onChange={(e) => { if (e.target.value === OTHER) { setSpecIsOther(true); setForm((f) => ({ ...f, specialization: '' })); } else { setSpecIsOther(false); setForm((f) => ({ ...f, specialization: e.target.value })); } }} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition text-gray-600">
                         <option value="">Select {profession === 'Lab Centre' ? 'Service' : 'Specialization'}</option>
-                        {[...new Set([...(specializationOptions[profession] || []), ...(profession === 'MBBS Doctor' ? catalogSpecs : [])])].map(opt => (
+                        {specOptions.map(opt => (
                           <option key={opt}>{opt}</option>
                         ))}
+                        <option value={OTHER}>Other</option>
                       </select>
-                    ) : (
+                      {specOther && <input id="ob-spec-other" aria-label="Your specialization" value={form.specialization} onChange={updateForm('specialization')} placeholder="Type your specialization" className="mt-2 w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />}
+                    </>) : (
                       <input id="ob-spec" type="text" placeholder="Select a profession first" disabled className="w-full bg-tint border border-line rounded-xl px-4 py-3 text-[14px] text-primary/40 cursor-not-allowed" />
                     )}
                   </div>
@@ -600,13 +646,38 @@ export default function ProfessionalOnboarding() {
                 <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-5 mb-8">
                   <p className="text-[14px] text-primary/75">Keep these ready. After you submit, our verification team will contact you to collect them securely.</p>
                   <ul className="mt-4 grid sm:grid-cols-3 gap-3">
-                    {[['Registration certificate', 'From your council'], ['Qualification certificate', 'Highest degree'], ['ID proof', 'Aadhaar or PAN']].map(([t, sub]) => (
+                    {[['Registration certificate', 'From your council'], ['Qualification certificate', 'Highest degree'], ['ID proof', 'Aadhaar – add it below']].map(([t, sub]) => (
                       <li key={t} className="bg-white rounded-xl ring-1 ring-line-soft p-4 flex items-start gap-3">
                         <span className="w-9 h-9 rounded-lg bg-mint text-accent flex items-center justify-center shrink-0"><FileText className="w-[18px] h-[18px]" /></span>
                         <span className="leading-tight"><span className="block text-[14px] font-semibold">{t}</span><span className="block text-[12px] text-primary/55 mt-0.5">{sub}</span></span>
                       </li>
                     ))}
                   </ul>
+                </div>
+
+                <div className="mb-6 pb-4 border-b border-gray-100 mt-10">
+                  <h2 className="font-serif text-[22px] font-semibold text-primary mb-1">Aadhaar (ID proof)</h2>
+                  <p className="text-sm text-gray-500">Only the Carevaa verification team can see this. It is never shown on your public profile.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" data-testid="aadhaar-section">
+                  <div>
+                    <label htmlFor="ob-aadhaar" className="block text-[13px] font-semibold text-primary mb-1.5">Aadhaar Number {aadhaarOnFile?.last4 ? '' : '*'}</label>
+                    <input id="ob-aadhaar" inputMode="numeric" autoComplete="off" value={aadhaar.number} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 12); setAadhaar((a) => ({ ...a, number: d.replace(/(\d{4})(?=\d)/g, '$1 ') })); }} placeholder={aadhaarOnFile?.last4 ? `On file: •••• •••• ${aadhaarOnFile.last4} (type to change)` : '1234 5678 9012'} className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition tracking-wider" />
+                  </div>
+                  <div>
+                    <p className="block text-[13px] font-semibold text-primary mb-1.5">Aadhaar card photo {aadhaarOnFile?.photoUploaded ? '' : '*'}</p>
+                    <label className="flex items-center gap-3 cursor-pointer rounded-xl border-2 border-dashed border-line hover:border-secondary/60 bg-white px-4 py-3 transition">
+                      <input id="ob-aadhaar-photo" type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={async (e) => {
+                        const file = e.target.files?.[0]; e.target.value = '';
+                        if (!file) return;
+                        try { const photo = await resizeDocument(file); setAadhaar((a) => ({ ...a, photo })); setFormError(''); } catch (err) { setFormError(err.message); }
+                      }} />
+                      {aadhaar.photo
+                        ? <img src={aadhaar.photo} alt="Aadhaar card" className="h-12 w-20 object-cover rounded-md ring-1 ring-line" />
+                        : <Upload className="w-5 h-5 text-accent shrink-0" />}
+                      <span className="text-[13px] text-primary/75">{aadhaar.photo ? 'Photo added – click to change' : aadhaarOnFile?.photoUploaded ? 'Photo on file – click to replace' : 'Upload a clear photo of the front of your Aadhaar card (JPG / PNG)'}</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="mb-6 pb-4 border-b border-gray-100 mt-10">

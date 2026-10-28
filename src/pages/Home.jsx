@@ -44,6 +44,13 @@ function Heading({ eyebrow, title, desc, light = false, className = '' }) {
   );
 }
 
+// homepage numbers band – used until the admin sets their own in Website Content → Homepage numbers
+const HOME_NUMBERS = [
+  { value: '500+', label: 'Verified professionals' },
+  { value: '10,000+', label: 'Patients served' },
+  { value: '100+', label: 'Hospital partners' },
+];
+
 function TestimonialCard({ t }) {
   const [open, setOpen] = useState(false);
   const long = String(t.quote || '').length > 190;
@@ -102,27 +109,18 @@ export default function Home() {
   const selected = SERVICES.find((s) => s.key === careChoice);
 
   // ---- live numbers -------------------------------------------------------
-  const todayKey = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()];
   const doctors = providers.filter((p) => p.isDoctor);
-  const doctorsToday = doctors.filter((p) => (p.schedule?.[todayKey] || []).length).length;
   const onlineFees = doctors.map((p) => p.onlineFee).filter(Boolean);
   const minOnlineFee = onlineFees.length ? Math.min(...onlineFees) : null;
   const experts = [...doctors].sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0) || (b.experience || 0) - (a.experience || 0)).slice(0, 4);
   const priceFor = (key) => (key === 'doctor-visit' ? serviceStats(stats, key, true)?.minFee : serviceStats(stats, key)?.minFee);
 
-  // hero floating cards and stats band: only real, non-zero numbers – padded with service promises
-  const liveTiles = useMemo(() => (stats ? [
-    { value: stats.providers, label: stats.providers === 1 ? 'Verified professional' : 'Verified professionals' },
-    { value: stats.patientsServed, label: stats.patientsServed === 1 ? 'Patient served' : 'Patients served' },
-    { value: stats.completedVisits, label: stats.completedVisits === 1 ? 'Home visit completed' : 'Home visits completed' },
-    { value: stats.cities, label: stats.cities === 1 ? 'City served' : 'Cities served' },
-    stats.rating ? { value: `${stats.rating}★`, label: `Rating · ${stats.reviews} reviews` } : null,
-  ].filter((t) => t && t.value) : []), [stats]);
-  const promiseTiles = [{ value: '24/7', label: 'Online booking' }, { value: '100%', label: 'Verified professionals' }, { value: `${SERVICES.length}`, label: 'Care services' }];
   // hero: fixed values, so the first screen never changes while live data is loading
   const heroTiles = [{ value: '24/7', label: 'Online booking' }, { value: '100%', label: 'Verified professionals' }, { value: servicesLoaded ? `${SERVICES.length}` : null, label: SERVICES.length === 1 ? 'Care service' : 'Care services' }];
-  // numbers band: shown once the live numbers are known (remembered from the last visit), never placeholder numbers first
-  const bandTiles = stats && servicesLoaded ? [...liveTiles, ...promiseTiles].slice(0, 3) : null;
+  // numbers band: Admin → Website Content → Homepage numbers (defaults below)
+  const numberItems = useSiteContent('home-numbers').filter((x) => x && x.value && x.label && x.show !== 'hide');
+  const bandTiles = (numberItems.length ? numberItems : HOME_NUMBERS).slice(0, 3);
+  const servedTile = bandTiles.find((t) => /serv/i.test(t.label));
 
   // offers: the admin's own list (Admin → Website Content → Offers); while that is empty,
   // automatic offers built from the pricing rules + live fees
@@ -226,11 +224,6 @@ export default function Home() {
                 <button type="button" onClick={() => setEnquiry({ service: selected?.title })} className="inline-flex items-center gap-2 bg-white sm:bg-transparent rounded-full px-4 py-2.5 sm:p-0 shadow-sm sm:shadow-none text-sm sm:text-[15px] font-semibold text-accent sm:underline sm:underline-offset-4 sm:decoration-accent/40 hover:decoration-accent">
                   <PhoneCall className="w-4 h-4 sm:hidden" /> Talk to a care advisor
                 </button>
-                <span className="text-sm text-gray-500 flex items-center gap-2" data-testid="doctors-today">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  {/* real count once the doctor list has loaded – never a placeholder 0 first */}
-                  {providersLoaded ? `${doctorsToday} ${doctorsToday === 1 ? 'Doctor is' : 'Doctors are'} available today` : <span className="inline-block w-44 h-3.5 rounded bg-black/[0.06] animate-pulse" aria-hidden="true" />}
-                </span>
               </div>
             </Reveal>
           </div>
@@ -267,10 +260,9 @@ export default function Home() {
       {on('services') && (<>
       <section id="services" className="py-14 lg:py-24 bg-cream">
         <div className="max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-12">
-          <Heading eyebrow="What we do" title="Healthcare Services at Your Doorstep" desc="Carevaa brings a full range of medical and care services to patients at home, including:" />
+          <Heading eyebrow="What we do" title="Healthcare Services at Your Doorstep" desc="From doctor visits and nursing to physiotherapy, elder care and lab tests – verified professionals bring complete, compassionate care to your home." />
           <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-5">
             {SERVICES.map((s, i) => {
-              const price = priceFor(s.key);
               return (
                 <Reveal key={s.key} delay={(i % 3) * 70}>
                   <div className="group h-full bg-white rounded-xl border border-black/[0.07] p-3 sm:px-5 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 hover:shadow-[0_12px_32px_color-mix(in_srgb,var(--color-primary)_10%,transparent)] hover:border-accent/30 transition-all duration-300">
@@ -282,7 +274,7 @@ export default function Home() {
                         <span className="font-bold text-primary text-[15px] sm:text-[17px] xl:text-[19px] leading-tight group-hover:text-accent transition-colors">{s.title}</span>
                         <ArrowRight className="hidden sm:block w-4 h-4 text-gray-400 shrink-0 group-hover:translate-x-1 group-hover:text-accent transition-all" />
                       </span>
-                      <span className="block text-[13px] text-gray-500 mt-0.5">{price ? `From ${inr(price)}` : s.price ? `From ${s.price}` : s.short}</span>
+                      {s.short && <span className="block text-[13px] text-gray-500 mt-0.5">{s.short}</span>}
                     </Link>
                     <button type="button" onClick={() => bookNow({ service: s.title })} className="shrink-0 w-full sm:w-auto border border-accent/40 text-accent hover:bg-accent hover:text-white rounded-full px-3 sm:px-4 py-2 text-[13px] sm:text-[14px] font-bold transition-colors">
                       Book Now
@@ -360,7 +352,7 @@ export default function Home() {
             <p className="text-[28px] sm:text-[34px] lg:text-[42px] font-bold text-accent leading-tight">Trusted Care</p>
             <p className="mt-2 text-[11px] sm:text-[12.5px] font-bold tracking-[0.14em] uppercase text-primary">Home healthcare, done right</p>
           </div>
-          {bandTiles ? bandTiles.map((t) => (
+          {bandTiles.length ? bandTiles.map((t) => (
             <div key={t.label} className="text-center px-4 py-4 lg:py-6">
               <p className="text-[28px] sm:text-[34px] lg:text-[42px] font-bold text-accent leading-tight">{fmtNum(t.value)}</p>
               <p className="mt-2 text-[11px] sm:text-[12.5px] font-bold tracking-[0.14em] uppercase text-primary">{t.label}</p>
@@ -380,7 +372,7 @@ export default function Home() {
       {testimonials.length > 0 && (
         <section id="testimonials" className="py-14 lg:py-24 bg-white">
           <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
-            <Heading eyebrow="Patient stories" title="Happy Customers" desc={stats?.patientsServed ? `${stats.patientsServed.toLocaleString('en-IN')} ${stats.patientsServed === 1 ? 'family has' : 'families have'} trusted Carevaa with their care. Here is what they say.` : 'Take it from the families we care for – here is what they say about Carevaa.'} />
+            <Heading eyebrow="Patient stories" title="Happy Customers" desc={servedTile ? `${servedTile.value} families have trusted Carevaa with their care. Here is what they say.` : 'Take it from the families we care for – here is what they say about Carevaa.'} />
             <div className="relative">
               <div className="overflow-hidden -mx-3">
                 <div className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(-${(slide * 100) / perView}%)` }}>

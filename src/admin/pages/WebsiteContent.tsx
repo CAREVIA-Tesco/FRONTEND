@@ -63,6 +63,13 @@ const SECTIONS: Section[] = [
   ], fields: [
     { name: "title", label: "Title" }, { name: "desc", label: "Description", type: "textarea" },
   ] },
+  { key: "home-numbers", title: "Homepage numbers", desc: "The numbers in the homepage band next to \"Trusted Care\" (up to 3), e.g. 500+ Verified professionals. The \"Patients served\" number is also used in the Happy Customers heading.", preview: "/#about", itemLabel: (i) => `${i.value || ""} ${i.label || "New number"}${i.show === "hide" ? " (hidden)" : ""}`, blank: { value: "", label: "", show: "show" }, defaults: [
+    { value: "500+", label: "Verified professionals", show: "show" },
+    { value: "10,000+", label: "Patients served", show: "show" },
+    { value: "100+", label: "Hospital partners", show: "show" },
+  ], fields: [
+    { name: "value", label: "Number (e.g. 500+)" }, { name: "label", label: "Label" }, { name: "show", label: "Show on website", type: "select", options: SHOW },
+  ] },
   { key: "faqs", title: "FAQs", desc: "Questions shown on the homepage.", preview: "/#faq", itemLabel: (i) => i.q, blank: { q: "", a: "" }, fields: [
     { name: "q", label: "Question" }, { name: "a", label: "Answer", type: "textarea" },
   ] },

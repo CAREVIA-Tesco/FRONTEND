@@ -202,6 +202,7 @@ export function EditProvider() {
               <label htmlFor="pf-profession" className={labelCls}>Type</label>
               <select id="pf-profession" className={inputCls} value={form.profession} onChange={(e) => setForm((f) => ({ ...f, profession: e.target.value, specialization: "" }))}>
                 {PROFESSIONS.map((p) => <option key={p}>{p}</option>)}
+                {form.profession && !PROFESSIONS.includes(form.profession) && <option>{form.profession}</option>}
               </select>
             </div>
             <div>
