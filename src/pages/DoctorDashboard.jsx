@@ -72,7 +72,25 @@ export default function DoctorDashboard() {
     loadAppointments();
   }, []);
 
-  const matchesSearch = (app) => !dashboardSearch || `${app.patient} ${app.title} ${app.phone} ${app.code}`.toLowerCase().includes(dashboardSearch.toLowerCase());
+  const matchesSearch = (app) => {
+    if (!dashboardSearch) return true;
+    const q = dashboardSearch.toLowerCase().trim();
+    const apptNum = String(app.appointmentNumber || app.dailySequence || '').toLowerCase();
+    const code = String(app.code || '').toLowerCase();
+    const patient = String(app.patient || app.patientName || '').toLowerCase();
+    const phone = String(app.phone || '').toLowerCase();
+    const title = String(app.title || '').toLowerCase();
+    const num = parseInt(q.replace(/\D/g, ''), 10);
+    const padded = !isNaN(num) ? String(num).padStart(3, '0') : '';
+    return (
+      patient.includes(q) ||
+      phone.includes(q) ||
+      title.includes(q) ||
+      code.includes(q) ||
+      apptNum.includes(q) ||
+      (Boolean(padded) && (apptNum.includes(padded) || code.includes(padded)))
+    );
+  };
   const upcomingAppointments = allAppointments
     .filter((a) => a.status === 'Waiting' || a.status === 'Confirmed')
     .filter(matchesSearch)

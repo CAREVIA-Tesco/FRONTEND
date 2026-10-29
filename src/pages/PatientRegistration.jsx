@@ -249,8 +249,20 @@ export default function PatientRegistration() {
             <Sparkles className="w-3.5 h-3.5" /> Registration Confirmed
           </span>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">You're All Set!</h1>
-          <p className="text-sm text-slate-600 mt-1.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">Registration Successful!</h1>
+          <div className="mt-3.5 py-3 px-6 rounded-2xl bg-emerald-50 border border-emerald-200 inline-block shadow-sm">
+            <p className="text-xs sm:text-sm font-semibold text-emerald-800">Your Appointment Number is</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-secondary font-mono tracking-wider mt-0.5">
+              {result.appointmentNumber || result.visit?.appointmentNumber || result.visit?.code || '001'}
+            </p>
+            {(result.appointmentDate || result.visit?.appointmentDate) && (
+              <p className="text-[11.5px] text-emerald-700 font-medium mt-1">
+                Valid for: {new Date((result.appointmentDate || result.visit?.appointmentDate) + 'T00:00:00+05:30').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            )}
+          </div>
+
+          <p className="text-sm text-slate-600 mt-3">
             Your details have been successfully transmitted to the doctor's desk.
           </p>
 
@@ -262,8 +274,11 @@ export default function PatientRegistration() {
                 <p className="text-lg font-bold text-primary mt-0.5">{result.patient?.name}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs uppercase font-bold text-slate-400">Patient ID</p>
-                <p className="text-base font-extrabold text-secondary mt-0.5">{result.patient?.code}</p>
+                <p className="text-xs uppercase font-bold text-slate-400">Appointment No.</p>
+                <p className="text-lg font-extrabold text-secondary mt-0.5 font-mono">
+                  {result.appointmentNumber || result.visit?.appointmentNumber || result.visit?.code || result.patient?.code}
+                </p>
+                <span className="text-[11px] text-slate-400">ID: {result.patient?.code}</span>
               </div>
             </div>
 
@@ -293,7 +308,7 @@ export default function PatientRegistration() {
               <FileCheck2 className="w-4 h-4" /> Next Steps at the Clinic
             </p>
             <p className="leading-relaxed">
-              When you arrive for your visit, inform the nurse or receptionist that you pre-filled the online registration. Quote your <strong className="font-bold">Patient ID: {result.patient?.code}</strong> or mobile number.
+              When you arrive for your visit, inform the nurse or receptionist that you pre-filled the online registration. Quote your <strong className="font-bold">Appointment No. {result.appointmentNumber || result.visit?.appointmentNumber || '001'}</strong> or <strong className="font-bold">Patient ID: {result.patient?.code}</strong>.
             </p>
           </div>
 

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Users, CalendarCheck, CalendarDays, Plus, Search, X, Loader2, Pencil, Trash2,
-  FileDown, ClipboardList, BarChart3, ChevronRight, Phone, History,
-  Share2, Link2, Copy, Check, MessageCircle, ExternalLink, RefreshCw,
-  UserPlus, Clock, CheckCircle2, ShieldCheck, AlertCircle
+  FileDown, ClipboardList, BarChart3, ChevronRight, ChevronLeft, Calendar as CalendarIcon, Phone, History,
+  Share2, Link2, Copy, Check, MessageCircle, ExternalLink,
+  UserPlus, Clock, CheckCircle2
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -44,9 +44,11 @@ export function downloadCsv(filename, rows) {
 }
 
 export const visitCsvRows = (visits, withDoctor = false) => [
-  [...(withDoctor ? ['Doctor'] : []), 'Visit date', 'Patient ID', 'Patient', 'Age', 'Gender', 'Mobile', 'Source', 'Symptoms', 'Diagnosis', 'Treatment', 'Prescription', "Nurse's notes", 'Entered by'],
+  [...(withDoctor ? ['Doctor'] : []), 'Appointment No.', 'Appointment Date', 'Visit Time', 'Patient ID', 'Patient', 'Age', 'Gender', 'Mobile', 'Source', 'Symptoms', 'Diagnosis', 'Treatment', 'Prescription', "Nurse's notes", 'Entered by'],
   ...visits.map((v) => [
     ...(withDoctor ? [v.doctor] : []),
+    v.appointmentNumber || (v.dailySequence ? String(v.dailySequence).padStart(3, '0') : '') || v.code || '',
+    v.appointmentDate || (v.visitDate ? String(v.visitDate).slice(0, 10) : ''),
     fmtDateTime(v.visitDate),
     v.patient?.code,
     v.patient?.name || v.patientName,
@@ -436,10 +438,17 @@ function ShareLinkModal({ onLinkCreated, onClose, onOpenPatient }) {
 
           {/* Record Ready CTA */}
           {status === 'Submitted' && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="text-[13.5px] font-bold text-emerald-900">Record Ready in Patient Visits</p>
-                <p className="text-xs text-emerald-700">Patient: {submittedData?.patient?.name || createdLink.patientName || 'Patient'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[13.5px] font-bold text-emerald-900">Record Ready in Patient Visits</p>
+                  {(submittedData?.appointmentNumber || submittedData?.visit?.appointmentNumber || createdLink?.appointmentNumber) && (
+                    <span className="font-mono text-xs font-extrabold bg-emerald-200/80 text-emerald-950 px-2 py-0.5 rounded-lg border border-emerald-300">
+                      {submittedData?.appointmentNumber || submittedData?.visit?.appointmentNumber || createdLink?.appointmentNumber}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-emerald-700 mt-0.5">Patient: {submittedData?.patient?.name || createdLink.patientName || 'Patient'}</p>
               </div>
               {submittedData?.patientId && (
                 <button
@@ -448,7 +457,7 @@ function ShareLinkModal({ onLinkCreated, onClose, onOpenPatient }) {
                     onClose();
                     onOpenPatient?.(submittedData.patientId);
                   }}
-                  className="h-10 px-4 rounded-xl bg-emerald-700 text-white font-semibold text-xs hover:bg-emerald-800 transition"
+                  className="h-10 px-4 rounded-xl bg-emerald-700 text-white font-semibold text-xs hover:bg-emerald-800 transition shrink-0"
                 >
                   View Patient Record →
                 </button>
@@ -579,10 +588,15 @@ function RegistrationLinksPanel({ onOpenPatient, onNewLink }) {
           {links.map((link) => (
             <div key={link.id} className="py-3.5 px-2 hover:bg-gray-50/80 rounded-xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="font-bold text-primary text-sm">
                     {link.patientName || link.patient?.name || 'Walk-in Patient'}
                   </span>
+                  {(link.appointmentNumber || link.visit?.appointmentNumber) && (
+                    <span className="text-xs font-mono font-bold text-secondary bg-tint px-2 py-0.5 rounded border border-secondary/20">
+                      {link.appointmentNumber || link.visit?.appointmentNumber}
+                    </span>
+                  )}
                   <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                     {link.code}
                   </span>
@@ -709,7 +723,12 @@ export function PatientRecord({ patientId, canEdit = true, canDelete = false, on
           {visits.map((v) => (
             <li key={v.id} className="rounded-2xl border border-gray-100 p-4" data-testid="visit-item">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(v.appointmentNumber || v.code) && (
+                    <span className="font-mono font-bold text-xs bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-lg border border-brand-200">
+                      {v.appointmentNumber || v.code}
+                    </span>
+                  )}
                   <p className="font-semibold text-primary">{fmtDateTime(v.visitDate)}</p>
                   {v.source === 'shared_link' && (
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -746,7 +765,7 @@ export function PatientRecord({ patientId, canEdit = true, canDelete = false, on
 }
 
 // ---------------------------------------------------------------- report
-function ReportPanel() {
+function ReportPanel({ onSelectDate }) {
   const today = localDay();
   const [range, setRange] = useState({ from: `${today.slice(0, 7)}-01`, to: today });
   const [rep, setRep] = useState(null);
@@ -758,7 +777,7 @@ function ReportPanel() {
   };
   const max = Math.max(1, ...(rep?.daily || []).map((d) => d.visits));
   return (
-    <div className="space-y-5" data-testid="visit-report">
+    <div className="space-y-6" data-testid="visit-report">
       <div className="flex flex-wrap items-end gap-3">
         <label className="block"><span className={label}>From</span><input id="rp-from" type="date" className={field} value={range.from} max={range.to} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
         <label className="block"><span className={label}>To</span><input id="rp-to" type="date" className={field} value={range.to} min={range.from} max={today} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
@@ -772,18 +791,70 @@ function ReportPanel() {
               <div key={l} className="rounded-2xl bg-tint p-4"><p className="text-2xl font-bold text-primary">{n}</p><p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-1">{l}</p></div>
             ))}
           </div>
+
           <div>
-            <p className="font-bold text-primary mb-2">Daily visits</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-primary">Daily Appointments Graph</p>
+              <span className="text-xs text-gray-400">Appointments reset to 1 daily at 12:00 AM</span>
+            </div>
             <div className="overflow-x-auto"><div className="flex items-end gap-1 h-40 min-w-full" style={{ width: Math.max(rep.daily.length * 22, 300) }}>
               {rep.daily.map((d) => (
-                <div key={d.date} className="flex-1 min-w-[16px] flex flex-col items-center justify-end gap-1 h-full" title={`${d.date}: ${d.visits}`}>
-                  {d.visits > 0 && <span className="text-[10px] text-gray-500">{d.visits}</span>}
-                  <span className="w-full rounded-t bg-secondary/80" style={{ height: `${(d.visits / max) * 100}%`, minHeight: d.visits ? 4 : 1 }} />
+                <div key={d.date} className="flex-1 min-w-[16px] flex flex-col items-center justify-end gap-1 h-full cursor-pointer hover:opacity-80 transition" onClick={() => onSelectDate?.(d.date)} title={`${d.date}: ${d.visits} appointments`}>
+                  {d.visits > 0 && <span className="text-[10px] text-gray-500 font-bold">{d.visits}</span>}
+                  <span className="w-full rounded-t bg-secondary/80 hover:bg-secondary transition" style={{ height: `${(d.visits / max) * 100}%`, minHeight: d.visits ? 4 : 1 }} />
                   <span className="text-[9px] text-gray-400">{d.date.slice(8)}</span>
                 </div>
               ))}
             </div></div>
           </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="font-bold text-primary">Date-Wise Appointment Counts</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Separate daily appointment sequences for each calendar date</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Total Appointments</th>
+                    <th className="py-3 px-4">Unique Patients</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {rep.daily.slice().reverse().map((d) => (
+                    <tr key={d.date} className="hover:bg-gray-50/60 transition">
+                      <td className="py-3 px-4 font-semibold text-primary">
+                        {fmtDate(d.date)} {d.date === today && <span className="ml-1.5 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase">Today</span>}
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-secondary text-base">
+                        {d.visits}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        {d.patients ?? d.visits}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        {onSelectDate && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectDate(d.date)}
+                            className="h-8 px-3 rounded-lg text-xs font-semibold text-secondary hover:bg-tint transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            View Visits →
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {rep.monthly.length > 1 && (
             <div><p className="font-bold text-primary mb-2">Monthly visits</p>
               <div className="flex flex-wrap gap-2">{rep.monthly.map((m) => <span key={m.month} className="px-3 py-1.5 rounded-lg bg-tint text-sm"><strong>{m.visits}</strong> in {new Date(`${m.month}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>)}</div></div>
@@ -798,28 +869,44 @@ function ReportPanel() {
 export default function PatientVisits() {
   const [summary, setSummary] = useState(null);
   const [patients, setPatients] = useState(null);
-  const [todayVisits, setTodayVisits] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(localDay());
+  const [dateVisits, setDateVisits] = useState([]);
+  const [loadingDateVisits, setLoadingDateVisits] = useState(false);
   const [pendingLinksCount, setPendingLinksCount] = useState(0);
   const [search, setSearch] = useState('');
   const [view, setView] = useState('patients'); // patients | today | links | report
   const [modal, setModal] = useState(null); // {kind:'new'|'share-link'|'edit'|'patient', ...}
   const [notice, setNotice] = useState('');
 
+  const loadDateVisits = useCallback(() => {
+    setLoadingDateVisits(true);
+    api.clinicVisits({ from: selectedDate, to: selectedDate })
+      .then((d) => setDateVisits(d.visits || []))
+      .catch(() => setDateVisits([]))
+      .finally(() => setLoadingDateVisits(false));
+  }, [selectedDate]);
+
   const refresh = useCallback(() => {
     api.clinicSummary().then((d) => setSummary(d.summary)).catch(() => {});
-    const t = localDay();
-    api.clinicVisits({ from: t, to: t }).then((d) => setTodayVisits(d.visits || [])).catch(() => {});
+    loadDateVisits();
     api.getRegistrationLinks({ status: 'Pending', limit: 100 })
       .then((d) => setPendingLinksCount((d.links || []).length))
       .catch(() => {});
-  }, []);
+  }, [loadDateVisits]);
 
   const loadPatients = useCallback(() => {
     api.clinicPatients({ search }).then((d) => setPatients(d.patients || [])).catch(() => setPatients([]));
   }, [search]);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { loadDateVisits(); }, [loadDateVisits]);
   useEffect(() => { const t = setTimeout(loadPatients, 250); return () => clearTimeout(t); }, [loadPatients]);
+
+  const shiftDate = (delta) => {
+    const cur = new Date(selectedDate + 'T00:00:00');
+    cur.setDate(cur.getDate() + delta);
+    setSelectedDate(localDay(cur));
+  };
 
   const afterSave = (r, text) => {
     setModal(r.patient ? { kind: 'patient', id: r.patient.id || r.visit?.patientId, key: Date.now() } : null);
@@ -830,10 +917,33 @@ export default function PatientVisits() {
 
   const cards = [
     ['Total patients', summary?.totalPatients, Users],
-    ["Today's visits", summary?.todayVisits, CalendarCheck],
+    [selectedDate === localDay() ? "Today's visits" : `Visits (${fmtDate(selectedDate)})`, dateVisits.length, CalendarCheck],
     ['Pending Links', pendingLinksCount, Clock],
     ['This month', summary?.monthVisits, CalendarDays],
   ];
+
+  // Filter date visits locally by search term (patient name, mobile, appointment number, code, diagnosis)
+  const filteredDateVisits = dateVisits.filter((v) => {
+    if (!search) return true;
+    const q = search.toLowerCase().trim();
+    const apptNum = String(v.appointmentNumber || v.dailySequence || '').toLowerCase();
+    const code = String(v.code || '').toLowerCase();
+    const name = String(v.patient?.name || v.patientName || '').toLowerCase();
+    const phone = String(v.patient?.phone || '').toLowerCase();
+    const diag = String(v.diagnosis || '').toLowerCase();
+    const symp = String(v.symptoms || '').toLowerCase();
+    const num = parseInt(q.replace(/\D/g, ''), 10);
+    const padded = !isNaN(num) ? String(num).padStart(3, '0') : '';
+    return (
+      name.includes(q) ||
+      phone.includes(q) ||
+      apptNum.includes(q) ||
+      code.includes(q) ||
+      diag.includes(q) ||
+      symp.includes(q) ||
+      (Boolean(padded) && (apptNum.includes(padded) || code.includes(padded)))
+    );
+  });
 
   return (
     <div className="space-y-6" data-testid="patient-visits">
@@ -841,7 +951,7 @@ export default function PatientVisits() {
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-primary">Patient Visits</h2>
           <p className="text-gray-500 font-medium mt-1">
-            Clinic patients and visit records. Register patients manually or share a registration link for patients to fill out on their phone.
+            Clinic patients and visit records. Daily appointment counts start at 1 every day at 12:00 AM (Asia/Kolkata).
           </p>
         </div>
 
@@ -894,9 +1004,9 @@ export default function PatientVisits() {
           <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-tint w-fit" role="tablist">
             {[
               ['patients', 'Patients', ClipboardList],
-              ['today', `Today (${todayVisits.length})`, CalendarCheck],
+              ['today', selectedDate === localDay() ? `Today (${dateVisits.length})` : `${fmtDate(selectedDate)} (${dateVisits.length})`, CalendarCheck],
               ['links', `Shared Links (${pendingLinksCount ? `${pendingLinksCount} pending` : 'All'})`, Link2],
-              ['report', 'Reports', BarChart3],
+              ['report', 'Date-Wise Reports', BarChart3],
             ].map(([k, l, Icon]) => (
               <button
                 key={k}
@@ -911,14 +1021,14 @@ export default function PatientVisits() {
             ))}
           </div>
 
-          {view === 'patients' && (
+          {(view === 'patients' || view === 'today') && (
             <div className="relative w-full lg:w-80">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 aria-label="Search patients"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, mobile or patient ID"
+                placeholder="Search patient name, mobile or appointment no."
                 className={`${field} pl-10`}
               />
             </div>
@@ -957,25 +1067,104 @@ export default function PatientVisits() {
             )
         )}
 
-        {/* View 2: Today's visits */}
+        {/* View 2: Date visits with Date Filter Navigation */}
         {view === 'today' && (
-          !todayVisits.length ? <p className="text-sm text-gray-500 py-8 text-center">No visits recorded today.</p> : (
-            <div className="divide-y divide-gray-100">
-              {todayVisits.map((v) => (
-                <button key={v.id} type="button" onClick={() => setModal({ kind: 'patient', id: v.patientId })} className="w-full text-left flex items-center gap-4 py-3.5 hover:bg-gray-50 rounded-xl px-2">
-                  <span className="text-sm font-semibold text-primary w-20 shrink-0">{new Date(v.visitDate).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block font-semibold text-primary truncate">
-                      {v.patient?.name || v.patientName}
-                      {v.source === 'shared_link' && <span className="ml-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Online Link</span>}
-                    </span>
-                    <span className="block text-xs text-gray-500 truncate">{v.diagnosis || v.symptoms || '—'}</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
+          <div className="space-y-4">
+            {/* Date-Wise Filter Navigation Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-tint/60 border border-gray-100">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => shiftDate(-1)}
+                  className="h-9 px-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-primary hover:bg-gray-50 transition inline-flex items-center gap-1 cursor-pointer"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Prev Day
                 </button>
-              ))}
+                <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-2.5 h-9">
+                  <CalendarIcon className="w-3.5 h-3.5 text-secondary" />
+                  <input
+                    type="date"
+                    aria-label="Select appointment date"
+                    value={selectedDate}
+                    max={localDay()}
+                    onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                    className="text-xs font-semibold text-primary bg-transparent outline-none cursor-pointer"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(localDay())}
+                  className={`h-9 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${selectedDate === localDay() ? 'bg-secondary text-white shadow-sm' : 'border border-gray-200 bg-white text-primary hover:bg-gray-50'}`}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedDate >= localDay()}
+                  onClick={() => shiftDate(1)}
+                  className="h-9 px-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-primary hover:bg-gray-50 transition inline-flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Next Day"
+                >
+                  Next Day <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs">
+                <span className="font-semibold text-gray-700">
+                  Appointments on {fmtDate(selectedDate)}: <strong className="text-secondary font-mono font-bold text-sm">{dateVisits.length}</strong>
+                </span>
+                {dateVisits.length > 0 && (
+                  <span className="text-gray-400">· Unique Patients: <strong className="text-primary font-bold">{new Set(dateVisits.map((v) => v.patient?.code || v.patientName)).size}</strong></span>
+                )}
+              </div>
             </div>
-          )
+
+            {loadingDateVisits ? (
+              <p className="text-sm text-gray-500 py-8 text-center flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-secondary" /> Loading appointments…
+              </p>
+            ) : !filteredDateVisits.length ? (
+              <div className="py-10 text-center text-gray-500 space-y-2">
+                <p>{search ? `No appointments matching "${search}" on ${fmtDate(selectedDate)}.` : `No visits recorded for ${selectedDate === localDay() ? 'today' : fmtDate(selectedDate)}.`}</p>
+                {selectedDate === localDay() && (
+                  <div className="flex justify-center gap-3 pt-2">
+                    <button type="button" onClick={() => setModal({ kind: 'share-link' })} className={`${btnGhost} text-xs`}>
+                      <Share2 className="w-3.5 h-3.5 text-secondary" /> Share Registration Link
+                    </button>
+                    <button type="button" onClick={() => setModal({ kind: 'new' })} className={`${btn} text-xs`}>
+                      <UserPlus className="w-3.5 h-3.5" /> Add Patient Manually
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredDateVisits.map((v) => (
+                  <button key={v.id} type="button" onClick={() => setModal({ kind: 'patient', id: v.patientId })} className="w-full text-left flex items-center gap-3 sm:gap-4 py-3.5 hover:bg-gray-50 rounded-xl px-2 transition">
+                    {/* Daily Appointment Number Badge */}
+                    <div className="flex flex-col items-center justify-center min-w-[62px] px-2 py-1 rounded-xl bg-tint border border-secondary/25 shrink-0">
+                      <span className="text-[9.5px] uppercase font-bold text-secondary tracking-wider leading-none">Appt</span>
+                      <span className="font-mono text-base font-extrabold text-secondary leading-tight mt-0.5">
+                        {v.appointmentNumber || (v.dailySequence ? String(v.dailySequence).padStart(3, '0') : '') || v.code}
+                      </span>
+                    </div>
+
+                    <span className="text-sm font-semibold text-primary w-20 shrink-0">{new Date(v.visitDate).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-semibold text-primary truncate">
+                        {v.patient?.name || v.patientName}
+                        {v.source === 'shared_link' && <span className="ml-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Online Link</span>}
+                        {v.patient?.phone && <span className="ml-2 text-xs text-gray-400 font-normal">+91 {v.patient.phone}</span>}
+                      </span>
+                      <span className="block text-xs text-gray-500 truncate">{v.diagnosis || v.symptoms || '—'}</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* View 3: Registration Links list */}
@@ -987,7 +1176,9 @@ export default function PatientVisits() {
         )}
 
         {/* View 4: Reports */}
-        {view === 'report' && <ReportPanel />}
+        {view === 'report' && (
+          <ReportPanel onSelectDate={(d) => { setSelectedDate(d); setView('today'); }} />
+        )}
       </div>
 
       {/* Modals */}

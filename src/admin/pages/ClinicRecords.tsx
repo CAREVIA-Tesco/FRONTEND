@@ -95,14 +95,15 @@ export function ClinicRecords() {
       <Card><CardContent className="p-4 flex flex-wrap items-end gap-3">
         <label className="text-xs text-muted">From<input aria-label="From date" type="date" className={`${inputCls} block mt-1`} value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="text-xs text-muted">To<input aria-label="To date" type="date" className={`${inputCls} block mt-1`} value={to} min={from} max={today} onChange={(e) => setTo(e.target.value)} /></label>
+        <Button variant="outline" size="sm" className="h-10 text-xs font-semibold" onClick={() => { setFrom(today); setTo(today); }}>Today</Button>
         <label className="text-xs text-muted">Doctor
           <select aria-label="Doctor" className={`${inputCls} block mt-1 min-w-[200px]`} value={doctor} onChange={(e) => setDoctor(e.target.value)}>
             <option value="">All doctors</option>
             {doctorsList.map((d) => <option key={d.providerId} value={d.providerId}>{d.doctor}</option>)}
           </select>
         </label>
-        <label className="text-xs text-muted flex-1 min-w-[200px]">Search patient
-          <span className="relative block mt-1"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input aria-label="Search patient" className={`${inputCls} w-full pl-9`} placeholder="Name, mobile, patient ID or diagnosis" value={search} onChange={(e) => setSearch(e.target.value)} /></span>
+        <label className="text-xs text-muted flex-1 min-w-[200px]">Search patient / appointment
+          <span className="relative block mt-1"><Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input aria-label="Search patient" className={`${inputCls} w-full pl-9`} placeholder="Name, mobile, appointment no. (e.g. 001) or diagnosis" value={search} onChange={(e) => setSearch(e.target.value)} /></span>
         </label>
       </CardContent></Card>
 
@@ -117,7 +118,7 @@ export function ClinicRecords() {
         {tab === "report" && <Button variant="outline" onClick={exportReport}><Download className="h-4 w-4 mr-2" /> Export report</Button>}
         {tab === "visits" && <Button variant="outline" onClick={() => downloadCsv(`patient-visits-${from}-to-${to}.csv`, visitCsvRows(visits || [], true))}><Download className="h-4 w-4 mr-2" /> Export visits</Button>}
         {tab === "patients" && <Button variant="outline" onClick={() => downloadCsv("clinic-patients.csv", [["Patient ID", "Name", "Age", "Gender", "Mobile", "Doctor", "Visits", "First visit", "Last visit"], ...(patients || []).map((p: any) => [p.code, p.name, p.age, p.gender, p.phone, p.doctor, p.visitCount, fmt(p.firstVisitAt), fmt(p.lastVisitAt)])])}><Download className="h-4 w-4 mr-2" /> Export patients</Button>}
-        {tab === "links" && <Button variant="outline" onClick={() => downloadCsv("registration-links.csv", [["Code", "Doctor", "Patient", "Mobile", "Status", "Nurse", "Created at", "Submitted at"], ...(links || []).map((l: any) => [l.code, l.doctor, l.patientName || l.patient?.name || "-", l.patientPhone || l.patient?.phone || "-", l.status, l.recordedBy || "-", fmt(l.createdAt), fmt(l.submittedAt)])])}><Download className="h-4 w-4 mr-2" /> Export links</Button>}
+        {tab === "links" && <Button variant="outline" onClick={() => downloadCsv("registration-links.csv", [["Code", "Appt No.", "Doctor", "Patient", "Mobile", "Status", "Nurse", "Created at", "Submitted at"], ...(links || []).map((l: any) => [l.code, l.appointmentNumber || l.visit?.appointmentNumber || "-", l.doctor, l.patientName || l.patient?.name || "-", l.patientPhone || l.patient?.phone || "-", l.status, l.recordedBy || "-", fmt(l.createdAt), fmt(l.submittedAt)])])}><Download className="h-4 w-4 mr-2" /> Export links</Button>}
       </div>
 
       {tab === "report" && (
@@ -144,17 +145,58 @@ export function ClinicRecords() {
             </Table>
           </div>
           {report && (
-            <Card><CardContent className="p-5">
-              <p className="font-semibold text-charcoal mb-3">Daily visits {doctorName ? `– ${doctorName}` : "– all doctors"}</p>
-              <div className="overflow-x-auto"><div className="flex items-end gap-1 h-44" style={{ minWidth: Math.max(report.daily.length * 22, 300) }}>
-                {report.daily.map((d: any) => (
-                  <div key={d.date} className="flex-1 min-w-[16px] h-full flex flex-col items-center justify-end gap-1" title={`${d.date}: ${d.visits} visits`}>
-                    {d.visits > 0 && <span className="text-[10px] text-muted">{d.visits}</span>}
-                    <span className="w-full rounded-t bg-brand-500" style={{ height: `${(d.visits / max) * 100}%`, minHeight: d.visits ? 4 : 1 }} />
-                    <span className="text-[9px] text-muted">{d.date.slice(5)}</span>
+            <Card><CardContent className="p-5 space-y-5">
+              <div>
+                <p className="font-semibold text-charcoal mb-3">Daily visits {doctorName ? `– ${doctorName}` : "– all doctors"}</p>
+                <div className="overflow-x-auto"><div className="flex items-end gap-1 h-44" style={{ minWidth: Math.max(report.daily.length * 22, 300) }}>
+                  {report.daily.map((d: any) => (
+                    <div key={d.date} className="flex-1 min-w-[16px] h-full flex flex-col items-center justify-end gap-1 cursor-pointer" title={`${d.date}: ${d.visits} visits`} onClick={() => { setFrom(d.date); setTo(d.date); setTab("visits"); }}>
+                      {d.visits > 0 && <span className="text-[10px] text-muted font-bold">{d.visits}</span>}
+                      <span className="w-full rounded-t bg-brand-500 hover:bg-brand-600 transition" style={{ height: `${(d.visits / max) * 100}%`, minHeight: d.visits ? 4 : 1 }} />
+                      <span className="text-[9px] text-muted">{d.date.slice(5)}</span>
+                    </div>
+                  ))}
+                </div></div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-charcoal">Date-Wise Appointment Counts</h3>
+                    <p className="text-xs text-muted">Daily appointment counts reset to 1 at 12:00 AM (Asia/Kolkata)</p>
                   </div>
-                ))}
-              </div></div>
+                </div>
+                <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Total Appointments</TableHead>
+                        <TableHead className="text-right">Unique Patients</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.daily.slice().reverse().map((d: any) => (
+                        <TableRow key={d.date} className="hover:bg-slate-50">
+                          <TableCell className="font-semibold text-charcoal whitespace-nowrap">
+                            {new Date(d.date + "T00:00:00+05:30").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            {d.date === today && <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase">Today</span>}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-bold text-brand-600 text-base">{d.visits}</TableCell>
+                          <TableCell className="text-right text-muted">{d.patients ?? d.visits}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" className="h-8 text-brand-600 text-xs" onClick={() => { setFrom(d.date); setTo(d.date); setTab("visits"); }}>
+                              View visits →
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
               {report.monthly.length > 0 && <div className="flex flex-wrap gap-2 mt-4">{report.monthly.map((m: any) => <span key={m.month} className="px-3 py-1.5 rounded-lg bg-slate-100 text-sm"><strong>{m.visits}</strong> visits in {new Date(`${m.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>)}</div>}
             </CardContent></Card>
           )}
@@ -164,12 +206,13 @@ export function ClinicRecords() {
       {tab === "visits" && (
         <div className="bg-surface border border-slate-200 rounded-2xl overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Visit date</TableHead><TableHead>Doctor</TableHead><TableHead>Patient</TableHead><TableHead>Mobile</TableHead><TableHead>Symptoms</TableHead><TableHead>Diagnosis</TableHead><TableHead>Treatment</TableHead><TableHead>Prescription</TableHead><TableHead>Nurse's notes</TableHead><TableHead>Entered by</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Appt No.</TableHead><TableHead>Visit date</TableHead><TableHead>Doctor</TableHead><TableHead>Patient</TableHead><TableHead>Mobile</TableHead><TableHead>Symptoms</TableHead><TableHead>Diagnosis</TableHead><TableHead>Treatment</TableHead><TableHead>Prescription</TableHead><TableHead>Nurse's notes</TableHead><TableHead>Entered by</TableHead></TableRow></TableHeader>
             <TableBody>
-              {visits === null && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
-              {visits?.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">No visits in this period.</TableCell></TableRow>}
+              {visits === null && <TableRow><TableCell colSpan={11} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
+              {visits?.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-muted py-8">No visits in this period.</TableCell></TableRow>}
               {pagedVisits.rows.map((v: any) => (
                 <TableRow key={v.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setOpen(v.patientId)}>
+                  <TableCell className="text-sm font-mono font-bold text-brand-600 whitespace-nowrap">{v.appointmentNumber || v.code || "-"}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">{fmt(v.visitDate)}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">{v.doctor}</TableCell>
                   <TableCell className="whitespace-nowrap"><span className="font-medium">{v.patient?.name || v.patientName}</span><span className="block text-xs text-muted">{v.patient?.code}{v.patient?.age != null ? ` · ${v.patient.age}y` : ""}{v.patient?.gender ? ` · ${v.patient.gender}` : ""}</span></TableCell>
@@ -217,6 +260,7 @@ export function ClinicRecords() {
           <Table>
             <TableHeader><TableRow>
               <TableHead>Code</TableHead>
+              <TableHead>Appt No.</TableHead>
               <TableHead>Doctor</TableHead>
               <TableHead>Target Patient</TableHead>
               <TableHead>Mobile</TableHead>
@@ -227,11 +271,14 @@ export function ClinicRecords() {
               <TableHead className="text-right">Action</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {links === null && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
-              {links?.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No registration links found{doctorName ? ` for ${doctorName}` : ""}.</TableCell></TableRow>}
+              {links === null && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
+              {links?.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted py-8">No registration links found{doctorName ? ` for ${doctorName}` : ""}.</TableCell></TableRow>}
               {pagedLinks.rows.map((l: any) => (
                 <TableRow key={l.id} className="hover:bg-slate-50">
                   <TableCell className="font-mono text-xs font-semibold">{l.code}</TableCell>
+                  <TableCell className="font-mono text-xs font-bold text-brand-600 whitespace-nowrap">
+                    {l.appointmentNumber || l.visit?.appointmentNumber || "-"}
+                  </TableCell>
                   <TableCell className="text-sm font-medium">{l.doctor}</TableCell>
                   <TableCell>
                     <span className="font-medium text-charcoal">{l.patientName || l.patient?.name || "Walk-in Patient"}</span>
