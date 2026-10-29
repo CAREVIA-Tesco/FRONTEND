@@ -60,20 +60,60 @@ export default function ProfessionalProfile() {
                   {doc.img && <img src={doc.img} alt={doc.name} onError={(e) => { e.currentTarget.style.display = 'none'; }} className="relative w-full h-full object-cover" />}
                 </div>
                 <div className="flex-1 text-center sm:text-left">
-                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 rounded-full px-3 py-1 mb-3"><BadgeCheck className="w-4 h-4" /> Verified by Carevaa</p>
+                  <p className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 rounded-full px-3 py-1 mb-3">
+                    <BadgeCheck className="w-4 h-4" /> {doc.profession === 'Lab Centre' ? 'Verified Diagnostic Centre' : 'Verified by Carevaa'}
+                  </p>
                   <h1 className="font-poppins font-semibold text-3xl sm:text-4xl text-primary">{doc.name}</h1>
-                  <p className="mt-2 eyebrow !text-[12.5px] text-accent">{doc.spec}{doc.specialization && !doc.spec.toLowerCase().includes(String(doc.specialization).toLowerCase().slice(0, 5)) ? ` · ${doc.specialization}` : ''}</p>
+                  <p className="mt-2 eyebrow !text-[12.5px] text-accent">
+                    {doc.profession === 'Lab Centre'
+                      ? (doc.centreType || doc.spec || 'Diagnostic Centre')
+                      : doc.profession === 'Caretaker'
+                        ? `Care Specialist · ${doc.specialization || 'Home Care'}`
+                        : `${doc.spec}${doc.specialization && !doc.spec.toLowerCase().includes(String(doc.specialization).toLowerCase().slice(0, 5)) ? ` · ${doc.specialization}` : ''}`}
+                  </p>
                   <div className="mt-5 flex flex-wrap justify-center sm:justify-start gap-x-5 gap-y-2 text-sm text-gray-600">
-                    <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-accent" /> {doc.exp} experience</span>
+                    <span className="flex items-center gap-1.5">
+                      <Briefcase className="w-4 h-4 text-accent" /> {doc.exp} {doc.profession === 'Lab Centre' ? 'in operation' : 'experience'}
+                    </span>
                     {doc.qualification && <span className="flex items-center gap-1.5"><GraduationCap className="w-4 h-4 text-accent" /> {doc.qualification}</span>}
+                    {doc.accreditation && <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> {doc.accreditation}</span>}
+                    {doc.trainingCertificates && <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> {doc.trainingCertificates}</span>}
                     {doc.loc && <Link to={`/cities/${citySlug(doc.loc)}`} className="flex items-center gap-1.5 hover:text-accent"><MapPin className="w-4 h-4 text-accent" /> {doc.loc}{doc.state ? `, ${doc.state}` : ''}</Link>}
                     {langs.length > 0 && <span className="flex items-center gap-1.5"><Languages className="w-4 h-4 text-accent" /> {langs.join(', ')}</span>}
                     <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {doc.rating === 'New' ? 'New on Carevaa' : `${doc.rating} (${doc.reviews} ${doc.reviews === 1 ? 'review' : 'reviews'})`}</span>
                   </div>
-                  {doc.registrationNumber && <p className="mt-4 text-xs text-gray-500 flex items-center justify-center sm:justify-start gap-1.5"><ShieldCheck className="w-4 h-4" /> Registration no. {doc.registrationNumber}{doc.registrationCouncil ? ` · ${doc.registrationCouncil}` : ''}</p>}
+                  {doc.servicesOffered && doc.servicesOffered.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center sm:justify-start">
+                      <span className="text-xs font-semibold text-primary/60 mr-1">Tests & Services:</span>
+                      {doc.servicesOffered.map((svc) => (
+                        <span key={svc} className="text-xs bg-secondary/10 text-secondary font-medium px-2.5 py-1 rounded-full">{svc}</span>
+                      ))}
+                    </div>
+                  )}
+                  {doc.careTypes && doc.careTypes.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center sm:justify-start">
+                      <span className="text-xs font-semibold text-primary/60 mr-1">Care Provided:</span>
+                      {doc.careTypes.map((c) => (
+                        <span key={c} className="text-xs bg-secondary/10 text-secondary font-medium px-2.5 py-1 rounded-full">{c}</span>
+                      ))}
+                    </div>
+                  )}
+                  {doc.registrationNumber && (
+                    <p className="mt-4 text-xs text-gray-500 flex items-center justify-center sm:justify-start gap-1.5">
+                      <ShieldCheck className="w-4 h-4" /> {doc.profession === 'Lab Centre' ? 'Licence no. ' : 'Registration no. '}{doc.registrationNumber}{doc.registrationCouncil ? ` · ${doc.registrationCouncil}` : ''}
+                    </p>
+                  )}
                   {doc.bio && <p className="mt-4 text-[15px] leading-relaxed text-primary/75 max-w-2xl" data-testid="doctor-bio">{doc.bio}</p>}
-                  {doc.homeVisitRadiusKm > 0 && offers.home && <p className="mt-2 text-sm text-gray-600">Home visits within {doc.homeVisitRadiusKm} km of {doc.loc}{doc.pincode ? ` ${doc.pincode}` : ''}</p>}
-                  {doc.clinic?.name && offers.clinic && <p className="mt-2 text-sm text-gray-600"><span className="font-semibold text-primary">{doc.clinic.name}</span>{doc.clinic.address ? ` – ${doc.clinic.address}` : ''}</p>}
+                  {doc.homeVisitRadiusKm > 0 && offers.home && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {doc.profession === 'Lab Centre' ? 'Home sample collection' : 'Home visits'} within {doc.homeVisitRadiusKm} km of {doc.loc}{doc.pincode ? ` ${doc.pincode}` : ''}
+                    </p>
+                  )}
+                  {doc.clinic?.name && offers.clinic && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      <span className="font-semibold text-primary">{doc.clinic.name}</span>{doc.clinic.address ? ` – ${doc.clinic.address}` : ''}
+                    </p>
+                  )}
                 </div>
               </div>
 

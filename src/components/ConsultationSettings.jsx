@@ -13,19 +13,21 @@ const inputCls = 'w-full bg-white border border-line rounded-xl px-4 py-3 text-[
 const timeCls = 'h-10 bg-white border border-line rounded-lg px-2.5 text-[14px] text-primary focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition';
 
 // "Which consultations do you offer?" – three cards with a checkbox and a fee each
-export function ConsultTypePicker({ types, onToggle, fees, onFee, allowed = CONSULT_TYPES, idPrefix = 'ct' }) {
+export function ConsultTypePicker({ types, onToggle, fees, onFee, allowed = CONSULT_TYPES, idPrefix = 'ct', labels = {}, subLabels = {} }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="consult-types">
       {allowed.map((t) => {
         const Icon = TYPE_ICON[t];
         const on = !!types[t];
+        const title = labels[t] || CONSULT_LABEL[t];
+        const sub = subLabels[t] || TYPE_SUB[t];
         return (
           <div key={t} className={`rounded-2xl border-2 p-4 transition ${on ? 'border-secondary bg-secondary/5' : 'border-line bg-white'}`}>
             <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={on} onChange={(e) => onToggle(t, e.target.checked)} aria-label={`I offer ${CONSULT_LABEL[t].toLowerCase()}s`} className="mt-1 w-4 h-4 accent-[var(--color-secondary)]" />
+              <input type="checkbox" checked={on} onChange={(e) => onToggle(t, e.target.checked)} aria-label={`I offer ${title.toLowerCase()}`} className="mt-1 w-4 h-4 accent-[var(--color-secondary)]" />
               <span className="leading-tight">
-                <span className="flex items-center gap-1.5 text-[15px] font-semibold text-primary"><Icon className="w-4 h-4 text-accent" /> {CONSULT_LABEL[t]}</span>
-                <span className="block text-[12.5px] text-primary/55 mt-0.5">{TYPE_SUB[t]}</span>
+                <span className="flex items-center gap-1.5 text-[15px] font-semibold text-primary"><Icon className="w-4 h-4 text-accent" /> {title}</span>
+                <span className="block text-[12.5px] text-primary/55 mt-0.5">{sub}</span>
               </span>
             </label>
             {on && onFee && (

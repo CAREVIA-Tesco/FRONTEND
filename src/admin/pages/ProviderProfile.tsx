@@ -217,56 +217,165 @@ export function ProviderProfile() {
                
                <Card>
                   <CardContent className="p-6">
-                     <h3 className="text-lg font-bold text-charcoal mb-4">Professional Information</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Full Name</h4>
-                           <p className="text-sm font-medium">{p.name}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Provider Type</h4>
-                           <p className="text-sm font-medium">{p.profession}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Specialization</h4>
-                           <p className="text-sm font-medium">{p.specialization || p.spec}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Qualification</h4>
-                           <p className="text-sm font-medium">{p.qualification || "-"}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Registration Number</h4>
-                           <p className="text-sm font-medium">{p.registrationNumber || "-"}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-medium text-muted mb-1">Consultation Types</h4>
-                           <div className="flex gap-2 mt-1">
-                              {p.offers?.online && <Badge variant="default" className="bg-slate-100"><Video className="h-3 w-3 mr-1"/> Online</Badge>}
-                              {p.offers?.clinic && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Clinic</Badge>}
-                              {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home</Badge>}
+                     <h3 className="text-lg font-bold text-charcoal mb-4">
+                        {p.profession === "Lab Centre" ? "Laboratory Information" : "Professional Information"}
+                     </h3>
+                     {p.profession === "Lab Centre" ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Lab Centre Name</h4>
+                              <p className="text-sm font-medium">{p.name}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Owner / Contact Person</h4>
+                              <p className="text-sm font-medium">{p.contactPerson || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Centre Type</h4>
+                              <p className="text-sm font-medium">{p.centreType || "Diagnostic Lab"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Licence / Registration Number</h4>
+                              <p className="text-sm font-medium">{p.registrationNumber || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Registered With</h4>
+                              <p className="text-sm font-medium">{p.registrationCouncil || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Accreditation</h4>
+                              <p className="text-sm font-medium">{p.accreditation || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Years in Operation</h4>
+                              <p className="text-sm font-medium">{p.experience != null ? `${p.experience} years` : "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Services / Tests Available</h4>
+                              <p className="text-sm font-medium">{(p.servicesOffered && p.servicesOffered.length > 0 ? p.servicesOffered.join(", ") : p.specialization) || "-"}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                              <h4 className="text-sm font-medium text-muted mb-1">Service Modes</h4>
+                              <div className="flex gap-2 mt-1">
+                                 {p.offers?.clinic && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Visit Lab Centre (Walk-in)</Badge>}
+                                 {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home Sample Collection</Badge>}
+                              </div>
                            </div>
                         </div>
-                     </div>
+                     ) : p.profession === "Caretaker" ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Full Name</h4>
+                              <p className="text-sm font-medium">{p.name}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Gender</h4>
+                              <p className="text-sm font-medium">{p.gender || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Provider Type</h4>
+                              <p className="text-sm font-medium">Caretaker</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Years of Experience</h4>
+                              <p className="text-sm font-medium">{p.experience != null ? `${p.experience} years` : "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Types of Care Provided</h4>
+                              <p className="text-sm font-medium">{(p.careTypes && p.careTypes.length > 0 ? p.careTypes.join(", ") : p.specialization) || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Highest Qualification</h4>
+                              <p className="text-sm font-medium">{p.qualification || "Not specified (optional)"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Relevant Training / Certifications</h4>
+                              <p className="text-sm font-medium">{p.trainingCertificates || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Languages Spoken</h4>
+                              <p className="text-sm font-medium">{(p.languages || []).join(", ") || "-"}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                              <h4 className="text-sm font-medium text-muted mb-1">Consultation Types</h4>
+                              <div className="flex gap-2 mt-1">
+                                 {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home Care Visit</Badge>}
+                              </div>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Full Name</h4>
+                              <p className="text-sm font-medium">{p.name}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Gender</h4>
+                              <p className="text-sm font-medium">{p.gender || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Provider Type</h4>
+                              <p className="text-sm font-medium">{p.profession}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">{p.profession === "Nurse" ? "Nursing Role" : "Specialization"}</h4>
+                              <p className="text-sm font-medium">{p.specialization || p.spec}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">{p.profession === "Nurse" ? "Nursing Qualification" : p.profession === "Physiotherapist" ? "Qualification (BPT/MPT)" : "Highest Qualification"}</h4>
+                              <p className="text-sm font-medium">{p.qualification || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">{p.profession === "Nurse" ? "Nursing Council Reg No." : p.profession === "Physiotherapist" ? "Registration Number (Optional)" : "Registration Number"}</h4>
+                              <p className="text-sm font-medium">{p.registrationNumber || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Registered With</h4>
+                              <p className="text-sm font-medium">{p.registrationCouncil || "-"}</p>
+                           </div>
+                           <div>
+                              <h4 className="text-sm font-medium text-muted mb-1">Years of Experience</h4>
+                              <p className="text-sm font-medium">{p.experience != null ? `${p.experience} years` : "-"}</p>
+                           </div>
+                           <div className="md:col-span-2">
+                              <h4 className="text-sm font-medium text-muted mb-1">Consultation Types</h4>
+                              <div className="flex gap-2 mt-1">
+                                 {p.offers?.online && <Badge variant="default" className="bg-slate-100"><Video className="h-3 w-3 mr-1"/> Online</Badge>}
+                                 {p.offers?.clinic && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Clinic</Badge>}
+                                 {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home</Badge>}
+                              </div>
+                           </div>
+                        </div>
+                     )}
                   </CardContent>
                </Card>
 
                <Card>
                   <CardContent className="p-6" data-testid="admin-aadhaar">
-                     <h3 className="text-lg font-bold text-charcoal mb-1">Aadhaar (ID proof)</h3>
-                     <p className="text-xs text-muted mb-4">Visible to the admin team only – check the number against the card before approving.</p>
+                     <h3 className="text-lg font-bold text-charcoal mb-1">
+                        {p.profession === "Lab Centre" ? "Owner / Signatory ID Proof" : "Aadhaar (ID proof)"}
+                     </h3>
+                     <p className="text-xs text-muted mb-4">
+                        {p.profession === "Lab Centre"
+                          ? "Visible to the admin team only – check the owner or authorized signatory ID before approving."
+                          : "Visible to the admin team only – check the number against the card before approving."}
+                     </p>
                      {p.aadhaar?.number || p.aadhaar?.photo ? (
                         <div className="grid sm:grid-cols-[220px_1fr] gap-6 items-start">
                            <div>
-                              <h4 className="text-sm font-medium text-muted mb-1">Aadhaar Number</h4>
+                              <h4 className="text-sm font-medium text-muted mb-1">
+                                 {p.profession === "Lab Centre" ? "Owner / Signatory ID Number" : "Aadhaar Number"}
+                              </h4>
                               <p className="text-lg font-semibold tracking-wider text-charcoal" data-testid="admin-aadhaar-number">{String(p.aadhaar.number || "").replace(/(\d{4})(?=\d)/g, "$1 ") || "-"}</p>
                               {p.aadhaar.updatedAt && <p className="text-xs text-muted mt-1">Added {new Date(p.aadhaar.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
                            </div>
                            <div>
-                              <h4 className="text-sm font-medium text-muted mb-1">Aadhaar card photo</h4>
+                              <h4 className="text-sm font-medium text-muted mb-1">
+                                 {p.profession === "Lab Centre" ? "Owner / Signatory ID Card Photo" : "Aadhaar card photo"}
+                              </h4>
                               {p.aadhaar.photo ? (
-                                 <a href={p.aadhaar.photo} target="_blank" rel="noreferrer" title="Open full size" onClick={(e) => { e.preventDefault(); const w = window.open(); if (w) { w.document.title = "Aadhaar – " + p.name; w.document.body.style.margin = "0"; const img = w.document.createElement("img"); img.src = p.aadhaar.photo; img.style.maxWidth = "100%"; w.document.body.appendChild(img) } }}>
-                                    <img src={p.aadhaar.photo} alt={`Aadhaar card of ${p.name}`} className="max-h-56 rounded-lg ring-1 ring-slate-200 hover:ring-brand-500 transition" data-testid="admin-aadhaar-photo" />
+                                 <a href={p.aadhaar.photo} target="_blank" rel="noreferrer" title="Open full size" onClick={(e) => { e.preventDefault(); const w = window.open(); if (w) { w.document.title = (p.profession === "Lab Centre" ? "Signatory ID – " : "Aadhaar – ") + p.name; w.document.body.style.margin = "0"; const img = w.document.createElement("img"); img.src = p.aadhaar.photo; img.style.maxWidth = "100%"; w.document.body.appendChild(img) } }}>
+                                    <img src={p.aadhaar.photo} alt={`ID card of ${p.name}`} className="max-h-56 rounded-lg ring-1 ring-slate-200 hover:ring-brand-500 transition" data-testid="admin-aadhaar-photo" />
                                  </a>
                               ) : <p className="text-sm text-muted">Not uploaded</p>}
                            </div>
@@ -325,12 +434,37 @@ export function ProviderProfile() {
                 <h3 className="text-lg font-bold text-charcoal mb-1">Verification details</h3>
                 <p className="text-sm text-muted mb-4">What the professional entered during onboarding. Check the originals (registration certificate, ID) before approving – document upload is not part of the app yet.</p>
                 <div className="space-y-3">
-                  {[
-                    { name: p.profession === "Lab Centre" ? "Licence number" : "Medical registration", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "" },
-                    { name: p.profession === "Lab Centre" ? "Accreditation" : "Qualification", value: p.qualification || "" },
+                  {(p.profession === "Lab Centre" ? [
+                    { name: "Laboratory licence number", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "" },
+                    { name: "Accreditation", value: p.accreditation || "" },
+                    { name: "Centre type & contact", value: [p.centreType, p.contactPerson, p.phone, p.email].filter(Boolean).join(" · ") },
+                    { name: "Owner / Signatory ID (Aadhaar)", value: p.aadhaar?.number ? `Aadhaar ending in ${String(p.aadhaar.number).slice(-4)}` : (p.aadhaar?.last4 ? `Aadhaar ending in ${p.aadhaar.last4}` : "") },
+                    { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
+                  ] : p.profession === "Caretaker" ? [
+                    { name: "ID Proof (Aadhaar)", value: p.aadhaar?.number ? `Aadhaar ending in ${String(p.aadhaar.number).slice(-4)}` : (p.aadhaar?.last4 ? `Aadhaar ending in ${p.aadhaar.last4}` : "") },
+                    { name: "Types of care provided", value: (p.careTypes || []).join(", ") || p.specialization || "" },
+                    { name: "Training / Experience", value: [p.trainingCertificates, p.qualification, p.experience != null ? `${p.experience} yrs exp` : ""].filter(Boolean).join(" · ") },
                     { name: "Contact", value: [p.phone, p.email].filter(Boolean).join(" · ") },
                     { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
-                  ].map((doc) => (
+                  ] : p.profession === "Nurse" ? [
+                    { name: "Nursing council registration", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "" },
+                    { name: "Nursing qualification", value: p.qualification || "" },
+                    { name: "ID Proof (Aadhaar)", value: p.aadhaar?.number ? `Aadhaar ending in ${String(p.aadhaar.number).slice(-4)}` : (p.aadhaar?.last4 ? `Aadhaar ending in ${p.aadhaar.last4}` : "") },
+                    { name: "Contact", value: [p.phone, p.email].filter(Boolean).join(" · ") },
+                    { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
+                  ] : p.profession === "Physiotherapist" ? [
+                    { name: "Physiotherapy qualification", value: p.qualification || "" },
+                    { name: "Registration / IAP certificate", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "Not provided (optional)" },
+                    { name: "ID Proof (Aadhaar)", value: p.aadhaar?.number ? `Aadhaar ending in ${String(p.aadhaar.number).slice(-4)}` : (p.aadhaar?.last4 ? `Aadhaar ending in ${p.aadhaar.last4}` : "") },
+                    { name: "Contact", value: [p.phone, p.email].filter(Boolean).join(" · ") },
+                    { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
+                  ] : [
+                    { name: "Medical registration", value: p.registrationNumber ? `${p.registrationNumber}${p.registrationCouncil ? ` · ${p.registrationCouncil}` : ""}` : "" },
+                    { name: "Qualification", value: p.qualification || "" },
+                    { name: "ID Proof (Aadhaar)", value: p.aadhaar?.number ? `Aadhaar ending in ${String(p.aadhaar.number).slice(-4)}` : (p.aadhaar?.last4 ? `Aadhaar ending in ${p.aadhaar.last4}` : "") },
+                    { name: "Contact", value: [p.phone, p.email].filter(Boolean).join(" · ") },
+                    { name: "Bank account", value: p.bank?.accountLast4 ? `${p.bank.bankName || "Bank"} ·· ${p.bank.accountLast4}${p.bank.ifsc ? ` · ${p.bank.ifsc}` : ""}` : "" },
+                  ]).map((doc) => (
                     <div key={doc.name} className="flex items-center justify-between gap-4 p-4 border border-slate-200 rounded-xl">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">

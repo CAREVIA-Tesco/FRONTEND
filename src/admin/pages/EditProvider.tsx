@@ -36,6 +36,7 @@ const blank = {
   profession: "MBBS Doctor", specialization: "", qualification: "", experience: "", registrationNumber: "", registrationCouncil: "", languages: "English", bio: "",
   city: "", state: "", district: "", locality: "", pincode: "", clinicName: "", address: "", homeVisitRadiusKm: "",
   onlineFee: "", clinicFee: "", homeFee: "", status: "ACTIVE",
+  contactPerson: "", centreType: "", accreditation: "", trainingCertificates: "",
 }
 
 // Add or edit a professional (doctor, nurse, caretaker, lab centre ...). Saved professionals with status
@@ -80,6 +81,7 @@ export function EditProvider() {
           languages: (p.languages || []).join(", "), bio: p.bio || "",
           city: p.city || "", state: p.state || "", district: p.district || "", locality: p.locality || "", pincode: p.pincode || "", clinicName: p.clinic?.name || "", address: p.clinic?.address || "", homeVisitRadiusKm: p.homeVisitRadiusKm ?? "",
           onlineFee: p.onlineFee ?? "", clinicFee: p.clinicFee ?? "", homeFee: p.fee ?? "", status: p.status || "ACTIVE",
+          contactPerson: p.contactPerson || "", centreType: p.centreType || "", accreditation: p.accreditation || "", trainingCertificates: p.trainingCertificates || "",
         })
         setSchedule(Object.fromEntries(DAYS.map((d) => [d, p.schedule?.[d] || []])))
         setClinicExtra({ phone: p.clinic?.phone, website: p.clinic?.website })
@@ -133,6 +135,7 @@ export function EditProvider() {
       clinic: { ...clinicExtra, name: form.clinicName.trim() || (isLab ? form.name.trim() : undefined), address: form.address },
       onlineFee: isLab || isCare ? "" : form.onlineFee, clinicFee: isCare ? "" : form.clinicFee, homeFee: form.homeFee,
       schedule, status: form.status,
+      contactPerson: form.contactPerson, centreType: form.centreType, accreditation: form.accreditation, trainingCertificates: form.trainingCertificates,
     }
     if (showTypes && (typesSet || useHours)) {
       body.consultTypes = types
@@ -232,14 +235,34 @@ export function EditProvider() {
               <label htmlFor="pf-email" className={labelCls}>Email</label>
               <input id="pf-email" type="email" className={inputCls} value={form.email} onChange={set("email")} />
             </div>
+            {isLab && (
+              <>
+                <div>
+                  <label htmlFor="pf-contact" className={labelCls}>Contact Person</label>
+                  <input id="pf-contact" className={inputCls} placeholder="e.g. Dr. Ramesh Kumar" value={form.contactPerson} onChange={set("contactPerson")} />
+                </div>
+                <div>
+                  <label htmlFor="pf-centre-type" className={labelCls}>Centre Type</label>
+                  <input id="pf-centre-type" className={inputCls} placeholder="e.g. Diagnostic Lab" value={form.centreType} onChange={set("centreType")} />
+                </div>
+              </>
+            )}
             <div>
-              <label htmlFor="pf-qual" className={labelCls}>{isLab ? "Accreditation" : "Qualification"}</label>
-              <input id="pf-qual" className={inputCls} placeholder={isLab ? "e.g. NABL accredited" : isCare ? "e.g. GNM, Certified caregiver" : "e.g. MBBS, MD"} value={form.qualification} onChange={set("qualification")} />
+              <label htmlFor="pf-qual" className={labelCls}>{isLab ? "Accreditation" : form.profession === "Caretaker" ? "Qualification (Optional)" : "Qualification"}</label>
+              <input id="pf-qual" className={inputCls} placeholder={isLab ? "e.g. NABL accredited" : isCare ? "e.g. GNM, Certified caregiver (optional)" : "e.g. MBBS, MD"} value={form.qualification} onChange={set("qualification")} />
             </div>
-            <div>
-              <label htmlFor="pf-reg" className={labelCls}>{isLab ? "Licence number" : "Registration number"}</label>
-              <input id="pf-reg" className={inputCls} value={form.registrationNumber} onChange={set("registrationNumber")} />
-            </div>
+            {form.profession !== "Caretaker" && (
+              <div>
+                <label htmlFor="pf-reg" className={labelCls}>{isLab ? "Licence number" : "Registration number"}</label>
+                <input id="pf-reg" className={inputCls} value={form.registrationNumber} onChange={set("registrationNumber")} />
+              </div>
+            )}
+            {form.profession === "Caretaker" && (
+              <div>
+                <label htmlFor="pf-train" className={labelCls}>Training / Certifications (Optional)</label>
+                <input id="pf-train" className={inputCls} placeholder="e.g. First Aid, Geriatric Care" value={form.trainingCertificates} onChange={set("trainingCertificates")} />
+              </div>
+            )}
             {isDoctor && (
               <div>
                 <label htmlFor="pf-council" className={labelCls}>Registration council</label>
