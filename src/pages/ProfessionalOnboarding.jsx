@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { saveCurrentUser } from '../utils/storage';
 import api, { getSessionUser, saveSession } from '../services/api';
 import { getPendingSignup, clearPendingSignup } from '../services/pendingSignup';
-import { CheckCircle, Upload, Camera, FileText, Calendar, ShieldCheck, Check } from 'lucide-react';
+import { CheckCircle, Upload, Camera, FileText, Calendar, ShieldCheck, Check, Sparkles } from 'lucide-react';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { ConsultTypePicker, HoursEditor } from '../components/ConsultationSettings';
@@ -146,7 +146,7 @@ export default function ProfessionalOnboarding() {
     gender: '', qualification: '', registrationNumber: '', registrationCouncil: '', pincode: '', city: '', district: '', state: '', locality: '', homeVisitRadiusKm: '10', bio: '', img: '',
     clinicName: '', clinicAddress: '', clinicPhone: '', clinicWebsite: '',
     holderName: '', bankName: '', accountNumber: '', ifsc: '',
-    contactPerson: '', centreType: 'Diagnostic Lab', servicesOffered: ['Blood Tests', 'General Diagnostic Tests'], accreditation: 'NABL Accredited (ISO 15189)',
+    contactPerson: '', centreType: 'Diagnostic Lab', servicesOffered: ['Blood Tests', 'General Diagnostic Tests'], servicesDetails: {}, accreditation: 'NABL Accredited (ISO 15189)',
     careTypes: ['Elderly Care', 'Patient Care'], trainingCertificates: '', email: '', phone: '',
   });
 
@@ -173,14 +173,61 @@ export default function ProfessionalOnboarding() {
       : types;
   const noClinicStep = skipClinic || !activeTypes.clinic;
 
+  // Live services loaded dynamically from Carevaa Admin Panel
+  const [catalogServices, setCatalogServices] = useState([]);
+  useEffect(() => {
+    api.getServices()
+      .then((d) => setCatalogServices((d.services || []).filter((s) => s.status === 'Active')))
+      .catch(() => {});
+  }, []);
+
+  const professionServices = useMemo(() => {
+    if (!professionValue) return [];
+    return catalogServices.filter((s) => {
+      if (s.professions && Array.isArray(s.professions) && s.professions.length > 0) {
+        return s.professions.includes(professionValue);
+      }
+      if (s.matches && Array.isArray(s.matches) && s.matches.includes(professionValue)) {
+        return true;
+      }
+      if (professionValue === 'MBBS Doctor' && ['doctor-visit', 'home-doctor', 'baby-care'].includes(s.key)) return true;
+      if (professionValue === 'Physiotherapist' && s.key === 'physiotherapy') return true;
+      if (professionValue === 'Nurse' && ['nurse-care', 'baby-care'].includes(s.key)) return true;
+      if (professionValue === 'Caretaker' && s.key === 'care-taker') return true;
+      if (professionValue === 'Lab Centre' && s.key === 'lab-tests') return true;
+      if (professionValue === 'Ayurveda Doctor' && s.key === 'ayurveda') return true;
+      if (professionValue === 'Homeopathy Doctor' && (s.key === 'homeopathy' || s.name === 'Homeopathy')) return true;
+      if (professionValue === 'BHS' && s.key === 'bhs') return true;
+      return false;
+    });
+  }, [catalogServices, professionValue]);
+
   // Handle clean profession switching
   const handleProfessionChange = (newProfession) => {
     setProfession(newProfession);
     setSpecIsOther(false);
     setFormError('');
 
+    const relevantForNew = catalogServices.filter((s) => {
+      if (s.professions && Array.isArray(s.professions) && s.professions.length > 0) {
+        return s.professions.includes(newProfession);
+      }
+      if (s.matches && Array.isArray(s.matches) && s.matches.includes(newProfession)) {
+        return true;
+      }
+      if (newProfession === 'MBBS Doctor' && ['doctor-visit', 'home-doctor', 'baby-care'].includes(s.key)) return true;
+      if (newProfession === 'Physiotherapist' && s.key === 'physiotherapy') return true;
+      if (newProfession === 'Nurse' && ['nurse-care', 'baby-care'].includes(s.key)) return true;
+      if (newProfession === 'Caretaker' && s.key === 'care-taker') return true;
+      if (newProfession === 'Lab Centre' && s.key === 'lab-tests') return true;
+      if (newProfession === 'Ayurveda Doctor' && s.key === 'ayurveda') return true;
+      if (newProfession === 'Homeopathy Doctor' && (s.key === 'homeopathy' || s.name === 'Homeopathy')) return true;
+      if (newProfession === 'BHS' && s.key === 'bhs') return true;
+      return false;
+    }).map((s) => s.name);
+
     setForm((f) => {
-      const next = { ...f, specialization: '' };
+      const next = { ...f, specialization: '', servicesOffered: relevantForNew, servicesDetails: {} };
 
       if (newProfession === 'Lab Centre') {
         // Clear inappropriate individual doctor fields
@@ -191,17 +238,14 @@ export default function ProfessionalOnboarding() {
         next.trainingCertificates = '';
         if (!next.centreType) next.centreType = 'Diagnostic Lab';
         if (!next.accreditation) next.accreditation = 'NABL Accredited (ISO 15189)';
-        if (!next.servicesOffered || next.servicesOffered.length === 0) {
-          next.servicesOffered = ['Blood Tests', 'General Diagnostic Tests'];
-          next.specialization = 'General Diagnostic Tests';
-        }
+        next.servicesOffered = [...new Set([...relevantForNew, 'Blood Tests', 'General Diagnostic Tests'])];
+        next.specialization = next.servicesOffered[0] || 'General Diagnostic Tests';
       } else if (newProfession === 'Caretaker') {
         // Clear council registration numbers not suitable for caretaker
         next.registrationNumber = '';
         next.registrationCouncil = '';
         next.contactPerson = '';
         next.centreType = '';
-        next.servicesOffered = [];
         next.accreditation = '';
         if (!next.careTypes || next.careTypes.length === 0) {
           next.careTypes = ['Elderly Care', 'Patient Care'];
@@ -211,13 +255,9 @@ export default function ProfessionalOnboarding() {
         // Individual medical/nursing/health professionals
         next.contactPerson = '';
         next.centreType = '';
-        next.servicesOffered = [];
         next.accreditation = '';
         next.careTypes = [];
         next.trainingCertificates = '';
-        if (newProfession === 'Physiotherapist') {
-          // registration is optional
-        }
       }
       return next;
     });
@@ -229,6 +269,46 @@ export default function ProfessionalOnboarding() {
     } else {
       setTypes({ home: true, clinic: true, online: true });
     }
+  };
+
+  // Toggle Services (All Professions)
+  const toggleService = (svc) => {
+    const svcName = typeof svc === 'string' ? svc : svc.name;
+    const isObj = typeof svc === 'object';
+    setForm((f) => {
+      const cur = f.servicesOffered || [];
+      const isSelected = cur.includes(svcName);
+      const updated = isSelected ? cur.filter((x) => x !== svcName) : [...cur, svcName];
+      const curDetails = { ...(f.servicesDetails || {}) };
+      if (!isSelected && !curDetails[svcName]) {
+        curDetails[svcName] = {
+          serviceKey: isObj ? svc.key : undefined,
+          price: isObj && svc.price ? String(svc.price).replace(/[^\d]/g, '') : (f.homeFee || f.clinicFee || f.onlineFee || ''),
+          description: isObj ? (svc.short || svc.desc || '') : '',
+          homeAvailable: Boolean(activeTypes.home),
+          onlineAvailable: Boolean(activeTypes.online),
+          clinicAvailable: Boolean(activeTypes.clinic),
+        };
+      }
+      return {
+        ...f,
+        servicesOffered: updated,
+        servicesDetails: curDetails,
+      };
+    });
+  };
+
+  const updateServiceDetail = (svcName, key, value) => {
+    setForm((f) => ({
+      ...f,
+      servicesDetails: {
+        ...(f.servicesDetails || {}),
+        [svcName]: {
+          ...((f.servicesDetails || {})[svcName] || {}),
+          [key]: value,
+        },
+      },
+    }));
   };
 
   // Toggle Care Types for Caretaker
@@ -304,6 +384,19 @@ export default function ProfessionalOnboarding() {
       if (provider.aadhaar) setAadhaarOnFile(provider.aadhaar);
       setTypes(offersOf(provider));
       setHours(Object.fromEntries(CONSULT_TYPES.map((t) => [t, hoursForEdit(provider, t)])));
+      const details = {};
+      if (provider.services && Array.isArray(provider.services)) {
+        provider.services.forEach((s) => {
+          details[s.name] = {
+            serviceKey: s.serviceKey,
+            price: s.price != null ? String(s.price) : '',
+            description: s.description || '',
+            homeAvailable: s.homeAvailable,
+            onlineAvailable: s.onlineAvailable,
+            clinicAvailable: s.clinicAvailable,
+          };
+        });
+      }
       setForm((f) => ({
         ...f,
         name: provider.name || f.name,
@@ -319,7 +412,8 @@ export default function ProfessionalOnboarding() {
         registrationCouncil: provider.registrationCouncil || '',
         contactPerson: provider.contactPerson || '',
         centreType: provider.centreType || 'Diagnostic Lab',
-        servicesOffered: provider.servicesOffered || ['Blood Tests', 'General Diagnostic Tests'],
+        servicesOffered: provider.servicesOffered || (provider.services?.length ? provider.services.map((s) => s.name) : (provider.profession === 'Lab Centre' ? ['Blood Tests', 'General Diagnostic Tests'] : [])),
+        servicesDetails: details,
         accreditation: provider.accreditation || 'NABL Accredited (ISO 15189)',
         careTypes: provider.careTypes || ['Elderly Care', 'Patient Care'],
         trainingCertificates: provider.trainingCertificates || '',
@@ -423,12 +517,30 @@ export default function ProfessionalOnboarding() {
     const clinicAddress = form.clinicAddress.trim() || [form.locality, form.city, form.state].filter(Boolean).join(', ');
     const phone = form.clinicPhone || form.phone;
 
+    const selectedServiceNames = Array.isArray(form.servicesOffered)
+      ? form.servicesOffered
+      : (form.servicesOffered ? String(form.servicesOffered).split(',').map((s) => s.trim()).filter(Boolean) : []);
+
+    const structuredServices = selectedServiceNames.map((name) => {
+      const d = form.servicesDetails?.[name] || {};
+      const cat = catalogServices.find((s) => s.name === name || s.key === name);
+      return {
+        name,
+        serviceKey: d.serviceKey || cat?.key,
+        price: d.price ? Number(d.price) : (Number(form.homeFee) || Number(form.clinicFee) || Number(form.onlineFee) || undefined),
+        description: d.description || cat?.short || cat?.desc || undefined,
+        homeAvailable: d.homeAvailable !== undefined ? Boolean(d.homeAvailable) : Boolean(activeTypes.home),
+        onlineAvailable: d.onlineAvailable !== undefined ? Boolean(d.onlineAvailable) : Boolean(activeTypes.online),
+        clinicAvailable: d.clinicAvailable !== undefined ? Boolean(d.clinicAvailable) : Boolean(activeTypes.clinic),
+      };
+    });
+
     return {
       name: form.name.trim(),
       profession: professionValue,
       specialization: form.specialization && !form.specialization.startsWith('Select')
         ? form.specialization
-        : (isCaretaker && form.careTypes?.length ? form.careTypes.join(', ') : isLab && form.servicesOffered?.length ? form.servicesOffered[0] : ''),
+        : (isCaretaker && form.careTypes?.length ? form.careTypes.join(', ') : isLab && form.servicesOffered?.length ? form.servicesOffered[0] : (selectedServiceNames[0] || '')),
       experience: form.experience,
       languages: isLab ? '' : form.languages,
       homeFee: activeTypes.home ? form.homeFee : '',
@@ -446,7 +558,8 @@ export default function ProfessionalOnboarding() {
       registrationCouncil: isCaretaker ? '' : form.registrationCouncil,
       contactPerson: isLab ? form.contactPerson.trim() : '',
       centreType: isLab ? form.centreType.trim() : '',
-      servicesOffered: isLab ? (Array.isArray(form.servicesOffered) ? form.servicesOffered : (form.servicesOffered ? String(form.servicesOffered).split(',').map((s) => s.trim()).filter(Boolean) : [])) : [],
+      servicesOffered: selectedServiceNames,
+      services: structuredServices,
       accreditation: isLab ? form.accreditation.trim() : '',
       careTypes: isCaretaker ? (Array.isArray(form.careTypes) ? form.careTypes : (form.careTypes ? String(form.careTypes).split(',').map((c) => c.trim()).filter(Boolean) : [])) : [],
       trainingCertificates: isCaretaker ? form.trainingCertificates.trim() : '',
@@ -797,6 +910,125 @@ export default function ProfessionalOnboarding() {
                         <input id="ob-email" type="email" value={form.email} onChange={updateForm('email')} placeholder="contact@carevaalab.com" className="w-full bg-white border border-line rounded-xl px-4 py-3 text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition" />
                       </div>
                     </>
+                  )}
+
+                  {/* Dynamic Services Selector (All Professions) */}
+                  {professionServices.length > 0 && (
+                    <div className="md:col-span-2 bg-tint/60 border border-line-soft rounded-2xl p-4 sm:p-5 space-y-3" data-testid="profession-services-selector">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                        <div>
+                          <label className="block text-[14px] font-bold text-primary flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-secondary" />
+                            Services Provided * <span className="font-normal text-xs text-gray-500">(connected to Carevaa Admin Panel)</span>
+                          </label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Select the services you offer. Newly added services for {professionValue} in the admin panel appear here automatically.
+                          </p>
+                        </div>
+                        <span className="text-xs font-semibold text-secondary">
+                          {(form.servicesOffered || []).length} selected
+                        </span>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                        {professionServices.map((svc) => {
+                          const isSelected = (form.servicesOffered || []).includes(svc.name);
+                          const d = form.servicesDetails?.[svc.name] || {};
+                          return (
+                            <div
+                              key={svc.id || svc.name}
+                              className={`rounded-xl border p-3.5 transition-all ${
+                                isSelected
+                                  ? 'bg-white border-secondary shadow-sm ring-1 ring-secondary/30'
+                                  : 'bg-white/60 border-line hover:border-secondary/40'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <label className="flex items-start gap-2.5 cursor-pointer flex-1 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleService(svc)}
+                                    className="rounded border-gray-300 text-secondary focus:ring-secondary mt-1 shrink-0"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-primary text-[14px] leading-tight">{svc.name}</p>
+                                    {(svc.short || svc.desc) && (
+                                      <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{svc.short || svc.desc}</p>
+                                    )}
+                                    {svc.price && (
+                                      <span className="inline-block mt-1 text-[11.5px] font-bold text-secondary">
+                                        Starting: {svc.price}
+                                      </span>
+                                    )}
+                                  </div>
+                                </label>
+                              </div>
+
+                              {/* Service specific customization when selected */}
+                              {isSelected && (
+                                <div className="mt-3 pt-2.5 border-t border-line-soft space-y-2.5 text-xs text-gray-600">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-gray-700 w-16 shrink-0">Fee (₹):</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder={svc.price ? String(svc.price).replace(/[^\d]/g, '') : "e.g. 500"}
+                                      value={d.price ?? ''}
+                                      onChange={(e) => updateServiceDetail(svc.name, 'price', e.target.value)}
+                                      className="flex-1 h-8 px-2.5 bg-tint/40 border border-line rounded-lg text-xs outline-none focus:border-secondary"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-gray-700 w-16 shrink-0">Details:</span>
+                                    <input
+                                      type="text"
+                                      placeholder="Specific notes/offerings for this service"
+                                      value={d.description ?? ''}
+                                      onChange={(e) => updateServiceDetail(svc.name, 'description', e.target.value)}
+                                      className="flex-1 h-8 px-2.5 bg-tint/40 border border-line rounded-lg text-xs outline-none focus:border-secondary"
+                                    />
+                                  </div>
+                                  <div className="flex flex-wrap gap-3 pt-1">
+                                    <label className="flex items-center gap-1.5 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={d.homeAvailable ?? Boolean(activeTypes.home)}
+                                        onChange={(e) => updateServiceDetail(svc.name, 'homeAvailable', e.target.checked)}
+                                        className="rounded border-gray-300 text-secondary focus:ring-secondary w-3.5 h-3.5"
+                                      />
+                                      <span>Home Visit</span>
+                                    </label>
+                                    {!skipClinic && (
+                                      <label className="flex items-center gap-1.5 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={d.onlineAvailable ?? Boolean(activeTypes.online)}
+                                          onChange={(e) => updateServiceDetail(svc.name, 'onlineAvailable', e.target.checked)}
+                                          className="rounded border-gray-300 text-secondary focus:ring-secondary w-3.5 h-3.5"
+                                        />
+                                        <span>Online Consult</span>
+                                      </label>
+                                    )}
+                                    {!skipClinic && (
+                                      <label className="flex items-center gap-1.5 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={d.clinicAvailable ?? Boolean(activeTypes.clinic)}
+                                          onChange={(e) => updateServiceDetail(svc.name, 'clinicAvailable', e.target.checked)}
+                                          className="rounded border-gray-300 text-secondary focus:ring-secondary w-3.5 h-3.5"
+                                        />
+                                        <span>Clinic Visit</span>
+                                      </label>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
 
                   {/* Caretaker: Types of Care Provided (Multi-select Pills) */}

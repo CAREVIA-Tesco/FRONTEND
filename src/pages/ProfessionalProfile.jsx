@@ -83,8 +83,8 @@ export default function ProfessionalProfile() {
                     <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {doc.rating === 'New' ? 'New on Carevaa' : `${doc.rating} (${doc.reviews} ${doc.reviews === 1 ? 'review' : 'reviews'})`}</span>
                   </div>
                   {doc.servicesOffered && doc.servicesOffered.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center sm:justify-start">
-                      <span className="text-xs font-semibold text-primary/60 mr-1">Tests & Services:</span>
+                    <div className="mt-4 flex flex-wrap gap-1.5 items-center justify-center sm:justify-start" data-testid="profile-services-offered">
+                      <span className="text-xs font-semibold text-primary/60 mr-1">Services Offered:</span>
                       {doc.servicesOffered.map((svc) => (
                         <span key={svc} className="text-xs bg-secondary/10 text-secondary font-medium px-2.5 py-1 rounded-full">{svc}</span>
                       ))}
@@ -171,6 +171,30 @@ export default function ProfessionalProfile() {
                   })}
                 </div>
               </div>
+
+              {((doc.services && doc.services.length > 0) || (doc.servicesOffered && doc.servicesOffered.length > 0)) && (
+                <div className="bg-white rounded-2xl p-6 sm:p-8" data-testid="profile-services-card">
+                  <h2 className="font-poppins font-semibold text-2xl text-primary mb-5">Services provided</h2>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {(doc.services && doc.services.length > 0 ? doc.services : doc.servicesOffered.map((name) => ({ name }))).map((s) => (
+                      <div key={s.id || s.name} className="rounded-xl border border-accent/20 p-4 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-primary text-base">{s.name}</h3>
+                            {s.price != null && <span className="font-bold text-secondary text-sm shrink-0">{inr(s.price)}</span>}
+                          </div>
+                          {s.description && <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{s.description}</p>}
+                        </div>
+                        <div className="mt-3 pt-2.5 border-t border-gray-100 flex flex-wrap gap-1.5 text-[11px] font-medium text-gray-500">
+                          {s.homeAvailable && <span className="bg-mint text-accent px-2 py-0.5 rounded-full">Home visit</span>}
+                          {s.onlineAvailable && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Online consult</span>}
+                          {s.clinicAvailable && <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">Clinic visit</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white rounded-2xl p-6 sm:p-8">
                 <h2 className="font-poppins font-semibold text-2xl text-primary mb-5">Patient reviews</h2>

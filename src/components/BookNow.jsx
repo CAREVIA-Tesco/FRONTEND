@@ -92,6 +92,22 @@ function BookNowModal({ open, onClose, preset }) {
 
   // a doctor was chosen: load the types they offer and the slots for the selected type
   const doctorId = open ? preset?.doctor?.id : null;
+  const [doctorServices, setDoctorServices] = useState([]);
+
+  useEffect(() => {
+    if (!doctorId) { setDoctorServices([]); return undefined; }
+    let live = true;
+    api.getProvider(doctorId)
+      .then((d) => {
+        if (!live) return;
+        const p = d.provider || d;
+        const svcs = (p.services && p.services.length > 0) ? p.services : (p.servicesOffered || []).map((name) => ({ name }));
+        setDoctorServices(svcs);
+      })
+      .catch(() => { if (live) setDoctorServices([]); });
+    return () => { live = false; };
+  }, [doctorId]);
+
   useEffect(() => {
     if (!doctorId) { setSlotInfo(null); return undefined; }
     let live = true;
@@ -252,6 +268,28 @@ function BookNowModal({ open, onClose, preset }) {
                     <select id="bn-service" aria-label="Service" className={`${fieldCls} appearance-none pr-10`} value={form.service} onChange={set('service')}>
                       <option value="">Not sure yet</option>
                       {SERVICES.map((s) => <option key={s.key} value={s.title}>{s.title}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-primary/60" />
+                  </span>
+                </div>
+              )}
+              {doctor && doctorServices.length > 0 && (
+                <div>
+                  <label htmlFor="bn-doc-service" className={labelCls}>Select Service <span className="font-normal text-primary/45">(provided by {doctor.name})</span></label>
+                  <span className="relative block">
+                    <select
+                      id="bn-doc-service"
+                      aria-label="Service"
+                      className={`${fieldCls} appearance-none pr-10`}
+                      value={form.service}
+                      onChange={set('service')}
+                    >
+                      <option value="">General Consultation / Care Visit</option>
+                      {doctorServices.map((s) => (
+                        <option key={s.name || s} value={s.name || s}>
+                          {s.name || s}{s.price ? ` (₹${s.price})` : ''}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-primary/60" />
                   </span>

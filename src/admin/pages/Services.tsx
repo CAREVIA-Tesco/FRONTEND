@@ -11,11 +11,12 @@ import { SERVICE_ICONS, loadServices } from "../../data/services"
 
 // The provider types a service can list on its website page (plus any specialities already in use)
 const BASE_MATCHES = ["General Physician", "Pediatrician", "Cardiologist", "Dermatologist", "Orthopedic", "Gynecologist", "Neurologist", "Psychiatrist", "ENT Specialist", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Care Taker", "BHS", "Lab Centre"]
-const BUILT_IN = ["physiotherapy", "nurse-care", "home-doctor", "doctor-visit", "care-taker", "baby-care", "ayurveda", "bhs"]
-const PAGE_FOR: Record<string, string> = { physiotherapy: "/physiotherapy", "nurse-care": "/nurse-care", "home-doctor": "/home-doctor", "doctor-visit": "/doctor-visit", "care-taker": "/care-taker", "baby-care": "/baby-care", ayurveda: "/ayurveda", bhs: "/bhs" }
+export const LISTED_PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHS"]
+const BUILT_IN = ["physiotherapy", "nurse-care", "home-doctor", "doctor-visit", "care-taker", "baby-care", "ayurveda", "bhs", "homeopathy"]
+const PAGE_FOR: Record<string, string> = { physiotherapy: "/physiotherapy", "nurse-care": "/nurse-care", "home-doctor": "/home-doctor", "doctor-visit": "/doctor-visit", "care-taker": "/care-taker", "baby-care": "/baby-care", ayurveda: "/ayurveda", bhs: "/bhs", homeopathy: "/services/homeopathy" }
 const pageFor = (key: string) => PAGE_FOR[key] || `/services/${key}`
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-const empty = { name: "", key: "", short: "", desc: "", price: "", icon: "Stethoscope", image: "", matches: [] as string[], status: "Active" }
+const empty = { name: "", key: "", short: "", desc: "", price: "", icon: "Stethoscope", image: "", matches: [] as string[], professions: [] as string[], status: "Active" }
 
 export function Services() {
   const { data, error, reload } = useApi(() => api.getServices())
@@ -38,11 +39,12 @@ export function Services() {
   const openAdd = () => { setEditing(null); setForm(empty); setKeyTouched(false); setFormError(""); setOpen(true) }
   const openEdit = (sv: any) => {
     setEditing(sv)
-    setForm({ name: sv.name || "", key: sv.key || "", short: sv.short || "", desc: sv.desc || "", price: sv.price || "", icon: sv.icon || "Stethoscope", image: sv.image || "", matches: sv.matches || [], status: sv.status || "Active" })
+    setForm({ name: sv.name || "", key: sv.key || "", short: sv.short || "", desc: sv.desc || "", price: sv.price || "", icon: sv.icon || "Stethoscope", image: sv.image || "", matches: sv.matches || [], professions: sv.professions || [], status: sv.status || "Active" })
     setKeyTouched(true); setFormError(""); setOpen(true)
   }
   const setName = (name: string) => setForm((f) => ({ ...f, name, key: keyTouched ? f.key : slugify(name) }))
   const toggleMatch = (m: string) => setForm((f) => ({ ...f, matches: f.matches.includes(m) ? f.matches.filter((x) => x !== m) : [...f.matches, m] }))
+  const toggleProfession = (p: string) => setForm((f) => ({ ...f, professions: f.professions.includes(p) ? f.professions.filter((x) => x !== p) : [...f.professions, p] }))
   const pickImage = async (file?: File) => {
     if (!file) return
     try { setForm((f) => ({ ...f, image: "" })); const image = await resizeImage(file, 900, false); setForm((f) => ({ ...f, image })) } catch (err: any) { setFormError(err.message) }
@@ -131,6 +133,13 @@ export function Services() {
                 </div>
                 {sv.short && <p className="text-xs font-semibold text-brand-600 mt-0.5">{sv.short}</p>}
                 <p className="text-muted text-sm mt-2 flex-1">{sv.desc}</p>
+                {sv.professions && sv.professions.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1">
+                    {sv.professions.map((prof: string) => (
+                      <span key={prof} className="inline-block text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-100">{prof}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
                   <div><div className="text-xs text-muted">Price</div><div className="font-semibold text-charcoal text-sm">{sv.price || "Live fees"}</div></div>
                   <div><div className="text-xs text-muted">Professionals</div><div className="font-semibold text-charcoal text-sm">{providersFor(sv)}</div></div>
@@ -201,8 +210,28 @@ export function Services() {
                 </div>
               </div>
             </div>
+            <div className="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+              <span className={`${labelCls} text-charcoal font-bold`}>Assigned Professions (Available in Professional Registration Forms)</span>
+              <p className="text-xs text-muted">Select which professions can offer this service during registration / onboarding:</p>
+              <div className="flex flex-wrap gap-1.5" data-testid="service-professions-picker">
+                {LISTED_PROFESSIONS.map((p) => {
+                  const on = form.professions.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleProfession(p)}
+                      className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${on ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" : "bg-white text-muted border-slate-200 hover:border-emerald-300"}`}
+                    >
+                      {on ? `✓ ${p}` : `+ ${p}`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="sm:col-span-2">
-              <span className={labelCls}>Professionals listed on this service page</span>
+              <span className={labelCls}>Specialities listed on this service website page</span>
               <div className="flex flex-wrap gap-1.5">
                 {matchOptions.map((m) => (
                   <button key={m} type="button" aria-pressed={form.matches.includes(m)} onClick={() => toggleMatch(m)} className={`h-8 px-3 rounded-full text-xs font-medium border transition-colors ${form.matches.includes(m) ? "bg-brand-600 text-white border-brand-600" : "bg-white text-muted border-slate-200 hover:border-brand-300"}`}>{m}</button>

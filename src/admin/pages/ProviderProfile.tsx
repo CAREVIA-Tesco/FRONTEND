@@ -345,6 +345,30 @@ export function ProviderProfile() {
                                  {p.offers?.home && <Badge variant="default" className="bg-slate-100"><Users className="h-3 w-3 mr-1"/> Home</Badge>}
                               </div>
                            </div>
+                           {((p.services && p.services.length > 0) || (p.servicesOffered && p.servicesOffered.length > 0)) && (
+                              <div className="md:col-span-2 mt-2">
+                                 <h4 className="text-sm font-medium text-muted mb-2">Services Provided ({p.services?.length || p.servicesOffered?.length})</h4>
+                                 <div className="grid sm:grid-cols-2 gap-2">
+                                    {p.services && p.services.length > 0 ? (
+                                       p.services.map((s: any, idx: number) => (
+                                          <div key={idx} className="border border-brand-200 bg-brand-50/40 rounded-lg p-2.5 text-xs text-brand-900">
+                                             <div className="font-semibold flex items-center justify-between gap-2">
+                                                <span>{s.name}</span>
+                                                {s.price != null && s.price > 0 && <span className="text-brand-700 font-bold">₹{s.price}</span>}
+                                             </div>
+                                             {s.description && <div className="text-muted mt-1 text-[11px] line-clamp-2">{s.description}</div>}
+                                          </div>
+                                       ))
+                                    ) : (
+                                       p.servicesOffered?.map((sName: string, idx: number) => (
+                                          <Badge key={idx} variant="default" className="bg-brand-50 text-brand-800 border border-brand-200">
+                                             {sName}
+                                          </Badge>
+                                       ))
+                                    )}
+                                 </div>
+                              </div>
+                           )}
                         </div>
                      )}
                   </CardContent>
