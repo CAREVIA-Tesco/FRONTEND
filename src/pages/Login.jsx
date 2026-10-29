@@ -320,6 +320,11 @@ export default function Login() {
               <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> Secure sign-in</span>
               <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-accent" /> Your data stays private</span>
             </div>
+            <div className="flex items-center justify-center gap-3 mt-3 text-xs text-primary/60">
+              <Link to="/doctor" className="hover:text-secondary font-medium">Doctor Portal (/doctor)</Link>
+              <span>•</span>
+              <Link to="/admin" className="hover:text-secondary font-medium">Admin Portal (/admin)</Link>
+            </div>
             <p className="text-center text-xs text-primary/45 mt-2">
               By continuing you agree to our <Link to="/terms" className="underline hover:text-secondary">Terms</Link> and <Link to="/privacy-policy" className="underline hover:text-secondary">Privacy Policy</Link>.
             </p>

@@ -10,7 +10,7 @@ export function Layout() {
   const [navOpen, setNavOpen] = useState(false)
   const location = useLocation()
   useEffect(() => { setNavOpen(false) }, [location.pathname])
-  if (!user || user.role !== "admin") return <Navigate to="/login?redirect=/admin" replace />
+  if (!user || user.role !== "admin") return <Navigate to="/admin" replace />
 
   return (
     <div className="theme-admin min-h-screen bg-background text-charcoal">

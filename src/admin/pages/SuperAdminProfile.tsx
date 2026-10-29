@@ -104,7 +104,7 @@ export function SuperAdminProfile() {
                     </h4>
                     <p className="text-sm text-muted mt-1">{me.lastLoginAt ? `Last login ${new Date(me.lastLoginAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : "Signed in as administrator"}. Sign out when you use a shared computer.</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/login") }}><LogOut className="h-4 w-4 mr-2" /> Sign out</Button>
+                  <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/admin") }}><LogOut className="h-4 w-4 mr-2" /> Sign out</Button>
                 </div>
               </div>
             </CardContent>

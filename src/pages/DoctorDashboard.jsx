@@ -60,7 +60,7 @@ export default function DoctorDashboard() {
   // Only doctors can open this dashboard
   React.useEffect(() => {
     const user = getSessionUser();
-    if (!user || user.role !== 'doctor') { navigate('/login'); return; }
+    if (!user || user.role !== 'doctor') { navigate('/doctor'); return; }
     api.getMyProvider()
       .then(({ provider }) => {
         if (!provider) { navigate('/professional/onboarding'); return; }
@@ -68,7 +68,7 @@ export default function DoctorDashboard() {
         api.openRequests().then((d) => setOpenRequestCount((d.requests || []).length)).catch(() => {});
         api.getReviews({ providerId: provider.id, limit: 3 }).then((d) => setMyReviews(d.reviews || [])).catch(() => {});
       })
-      .catch((err) => { setLoadError(err.message); if (err.status === 401) navigate('/login'); });
+      .catch((err) => { setLoadError(err.message); if (err.status === 401) navigate('/doctor'); });
     loadAppointments();
   }, []);
 
@@ -184,7 +184,7 @@ export default function DoctorDashboard() {
   };
   const startVisit = (apt) => { setActiveCallAppointment(apt); setActionError(''); setVisitNotes({ symptoms: '', prescription: '' }); setVisitVitals({ bloodPressure: '', weight: '' }); setIsVideoCallOpen(true); };
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); navigate('/doctor'); };
   // Accept or decline a booking that is waiting for this doctor (direct booking or care-team assignment)
   const respondToBooking = async (apt, answer) => {
     setActionError('');

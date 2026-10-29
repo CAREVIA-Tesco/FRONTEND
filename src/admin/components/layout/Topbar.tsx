@@ -25,7 +25,7 @@ export function Topbar({ onMenu }: { onMenu?: () => void }) {
 
   const handleLogout = () => {
     logout()
-    navigate("/login")
+    navigate("/admin")
   }
   const today = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })
 

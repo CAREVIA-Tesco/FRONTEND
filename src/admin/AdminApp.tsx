@@ -1,4 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Routes, Route } from "react-router-dom"
+import { getSessionUser } from "../services/api"
+import { AdminLogin } from "./pages/AdminLogin"
 import { Layout } from "./components/layout/Layout"
 import { Dashboard } from "./pages/Dashboard"
 import { Patients } from "./pages/Patients"
@@ -25,38 +28,52 @@ import { WebsiteContent } from "./pages/WebsiteContent"
 import { ClinicRecords } from "./pages/ClinicRecords"
 
 function App() {
+  const [sessionUser, setSessionUser] = useState(() => getSessionUser())
+
+  // Keep session user synchronized across tabs / logout / login
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setSessionUser(getSessionUser())
+    }
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
+  }, [])
+
+  // Admin URL (/admin and /admin/*) opens Admin Login if not authenticated as admin
+  if (!sessionUser || sessionUser.role !== "admin") {
+    return <AdminLogin onLoginSuccess={(user) => setSessionUser(user)} />
+  }
+
   return (
-    
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="patients" element={<Patients />} />
-          <Route path="patients/:id" element={<PatientProfile />} />
-          <Route path="providers" element={<Providers />} />
-          <Route path="providers/new" element={<EditProvider />} />
-          <Route path="providers/:id" element={<ProviderProfile />} />
-          <Route path="providers/:id/edit" element={<EditProvider />} />
-          <Route path="specializations" element={<Specializations />} />
-          <Route path="caretakers" element={<Caretakers />} />
-          <Route path="labs" element={<LabCentres />} />
-          <Route path="services" element={<Services />} />
-          <Route path="appointments" element={<Appointments />} />
-          <Route path="clinic" element={<ClinicRecords />} />
-          <Route path="consultations" element={<Consultations />} />
-          <Route path="availability" element={<Availability />} />
-          <Route path="emergency" element={<EmergencyRequests />} />
-          <Route path="payments" element={<Payments />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="refunds" element={<Refunds />} />
-          <Route path="payouts" element={<ProviderPayouts />} />
-          <Route path="settings" element={<SuperAdminProfile />} />
-          <Route path="enquiries" element={<Enquiries />} />
-          <Route path="applications" element={<JobApplications />} />
-          <Route path="content" element={<WebsiteContent />} />
-          <Route path="*" element={<div className="p-8 text-center text-muted">Page under construction</div>} />
-        </Route>
-      </Routes>
-    
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="patients" element={<Patients />} />
+        <Route path="patients/:id" element={<PatientProfile />} />
+        <Route path="providers" element={<Providers />} />
+        <Route path="providers/new" element={<EditProvider />} />
+        <Route path="providers/:id" element={<ProviderProfile />} />
+        <Route path="providers/:id/edit" element={<EditProvider />} />
+        <Route path="specializations" element={<Specializations />} />
+        <Route path="caretakers" element={<Caretakers />} />
+        <Route path="labs" element={<LabCentres />} />
+        <Route path="services" element={<Services />} />
+        <Route path="appointments" element={<Appointments />} />
+        <Route path="clinic" element={<ClinicRecords />} />
+        <Route path="consultations" element={<Consultations />} />
+        <Route path="availability" element={<Availability />} />
+        <Route path="emergency" element={<EmergencyRequests />} />
+        <Route path="payments" element={<Payments />} />
+        <Route path="transactions" element={<Transactions />} />
+        <Route path="refunds" element={<Refunds />} />
+        <Route path="payouts" element={<ProviderPayouts />} />
+        <Route path="settings" element={<SuperAdminProfile />} />
+        <Route path="enquiries" element={<Enquiries />} />
+        <Route path="applications" element={<JobApplications />} />
+        <Route path="content" element={<WebsiteContent />} />
+        <Route path="*" element={<div className="p-8 text-center text-muted">Page under construction</div>} />
+      </Route>
+    </Routes>
   )
 }
 

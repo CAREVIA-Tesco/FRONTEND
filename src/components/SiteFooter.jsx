@@ -21,8 +21,10 @@ export default function SiteFooter() {
     ['/jobs', 'Careers'],
     ['/blog', 'Blogs'],
     ['/doctors', 'Find Doctors'],
+    ['/doctor', 'Doctor Portal'],
+    ['/admin', 'Admin Portal'],
     ['/hire-professional', 'Hire a Professional'],
-    ['/login', 'Login / Register'],
+    ['/login', 'Patient Login / Register'],
   ];
 
   return (
