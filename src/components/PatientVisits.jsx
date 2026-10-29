@@ -1,18 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Users, CalendarCheck, CalendarDays, Plus, Search, X, Loader2, Pencil, Trash2, FileDown, ClipboardList, BarChart3, ChevronRight, Phone, History } from 'lucide-react';
+import {
+  Users, CalendarCheck, CalendarDays, Plus, Search, X, Loader2, Pencil, Trash2,
+  FileDown, ClipboardList, BarChart3, ChevronRight, Phone, History,
+  Share2, Link2, Copy, Check, MessageCircle, ExternalLink, RefreshCw,
+  UserPlus, Clock, CheckCircle2, ShieldCheck, AlertCircle
+} from 'lucide-react';
 import api from '../services/api';
 
 // Patient Visit Management – walk-in clinic patients, in the Doctor Dashboard ("Patient Visits" tab).
-// The nurse uses the doctor's dashboard and types her name in "Entered by" (remembered on that
-// computer), so every visit shows who recorded it – also in the Super Admin's Patient Visits page.
-// The server only returns the signed-in doctor's own patients.
+// The nurse can:
+// 1. Add Patient Manually (direct nurse entry)
+// 2. Share Patient Registration Link (generates unique link for patient to complete on phone)
+// Both methods use the same unified ClinicPatient & ClinicVisit system and synchronize across Doctor & Admin dashboards.
 
 const field = 'w-full h-11 px-3.5 rounded-xl border border-line bg-white text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition';
 const area = 'w-full px-3.5 py-2.5 rounded-xl border border-line bg-white text-[14px] text-primary placeholder:text-placeholder focus:border-secondary focus:ring-4 focus:ring-secondary/15 outline-none transition resize-y';
 const label = 'block text-[12.5px] font-semibold text-primary/80 mb-1.5';
 const card = 'bg-white rounded-[20px] border border-gray-100 shadow-sm';
-const btn = 'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-secondary hover:brightness-95 text-white font-semibold text-[14px] transition disabled:opacity-60';
-const btnGhost = 'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-gray-200 bg-white text-primary font-semibold text-[14px] hover:bg-gray-50 transition';
+const btn = 'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-secondary hover:brightness-95 text-white font-semibold text-[14px] transition disabled:opacity-60 cursor-pointer';
+const btnGhost = 'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-gray-200 bg-white text-primary font-semibold text-[14px] hover:bg-gray-50 transition cursor-pointer';
 
 const pad = (n) => String(n).padStart(2, '0');
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -20,8 +26,9 @@ const NURSE_KEY = 'carevaa_entered_by';
 const savedNurse = () => { try { return localStorage.getItem(NURSE_KEY) || ''; } catch { return ''; } };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : '—');
+
 const VISIT_FIELDS = [
-  ['symptoms', 'Symptoms', 'e.g. Fever for 3 days, body ache'],
+  ['symptoms', 'Symptoms & Complaints', 'e.g. Fever for 3 days, body ache'],
   ['diagnosis', 'Diagnosis', 'e.g. Viral fever'],
   ['treatment', 'Treatment', 'e.g. Rest, fluids, injection given'],
   ['prescription', 'Prescription', 'e.g. Paracetamol 650 mg – 1-0-1 × 3 days'],
@@ -31,13 +38,29 @@ const VISIT_FIELDS = [
 export function downloadCsv(filename, rows) {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }));
+  a.href = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
   a.download = filename;
   a.click();
 }
+
 export const visitCsvRows = (visits, withDoctor = false) => [
-  [...(withDoctor ? ['Doctor'] : []), 'Visit date', 'Patient ID', 'Patient', 'Age', 'Gender', 'Mobile', 'Symptoms', 'Diagnosis', 'Treatment', 'Prescription', "Nurse's notes", 'Entered by'],
-  ...visits.map((v) => [...(withDoctor ? [v.doctor] : []), fmtDateTime(v.visitDate), v.patient?.code, v.patient?.name || v.patientName, v.patient?.age, v.patient?.gender, v.patient?.phone, v.symptoms, v.diagnosis, v.treatment, v.prescription, v.nurseNotes, v.enteredBy]),
+  [...(withDoctor ? ['Doctor'] : []), 'Visit date', 'Patient ID', 'Patient', 'Age', 'Gender', 'Mobile', 'Source', 'Symptoms', 'Diagnosis', 'Treatment', 'Prescription', "Nurse's notes", 'Entered by'],
+  ...visits.map((v) => [
+    ...(withDoctor ? [v.doctor] : []),
+    fmtDateTime(v.visitDate),
+    v.patient?.code,
+    v.patient?.name || v.patientName,
+    v.patient?.age,
+    v.patient?.gender,
+    v.patient?.phone,
+    v.source === 'shared_link' ? 'Online Link' : 'Manual',
+    v.symptoms,
+    v.diagnosis,
+    v.treatment,
+    v.prescription,
+    v.nurseNotes,
+    v.enteredBy
+  ]),
 ];
 
 function Modal({ title, onClose, children, wide = false }) {
@@ -62,7 +85,7 @@ function Modal({ title, onClose, children, wide = false }) {
 
 const Msg = ({ m }) => (m ? <p role={m.ok ? 'status' : 'alert'} className={`text-[13.5px] rounded-xl px-3.5 py-2.5 ${m.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{m.text}</p> : null);
 
-// ---------------------------------------------------------------- new / edit visit
+// ---------------------------------------------------------------- manual new / edit visit
 function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
   const editing = !!visit;
   const [phone, setPhone] = useState(initialPatient?.phone || '');
@@ -121,7 +144,7 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
     <form onSubmit={save} noValidate className="space-y-5" data-testid="visit-form">
       {!editing && (
         <fieldset className="space-y-3">
-          <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Patient</legend>
+          <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Patient Details</legend>
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="block"><span className={label}>Mobile number *</span>
               <div className="flex"><span className="h-11 px-3 flex items-center rounded-l-xl border border-r-0 border-line bg-tint text-[14px] text-primary/70">+91</span>
@@ -153,7 +176,7 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
       )}
 
       <fieldset className="space-y-3">
-        <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Visit</legend>
+        <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Visit Information</legend>
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="block"><span className={label}>Visit date *</span>
             <input id="cv-date" type="date" max={localDay()} className={field} value={v.visitDate} onChange={setVal('visitDate')} /></label>
@@ -181,6 +204,452 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
         <button type="submit" disabled={busy} className={btn}>{busy && <Loader2 className="w-4 h-4 animate-spin" />}{editing ? 'Save changes' : 'Save visit'}</button>
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------- Share Patient Registration Link Modal
+function ShareLinkModal({ onLinkCreated, onClose, onOpenPatient }) {
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [recordedBy, setRecordedBy] = useState(savedNurse());
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [createdLink, setCreatedLink] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState('Pending');
+  const [submittedData, setSubmittedData] = useState(null);
+
+  // Poll status while link is active and open in modal
+  useEffect(() => {
+    if (!createdLink || status === 'Submitted') return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await api.getRegistrationLink(createdLink.id);
+        if (res.link?.status === 'Submitted') {
+          setStatus('Submitted');
+          setSubmittedData(res.link);
+          onLinkCreated?.();
+        }
+      } catch {
+        // ignore polling failures
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [createdLink, status, onLinkCreated]);
+
+  const handleGenerate = async (e) => {
+    e?.preventDefault();
+    setMsg(null);
+    setBusy(true);
+    try {
+      localStorage.setItem(NURSE_KEY, recordedBy.trim());
+    } catch { /* storage */ }
+    try {
+      const res = await api.createRegistrationLink({
+        patientName: patientName.trim(),
+        patientPhone: patientPhone.replace(/\D/g, ''),
+        notes: notes.trim(),
+        recordedBy: recordedBy.trim(),
+      });
+      setCreatedLink(res.link);
+      setStatus(res.link.status || 'Pending');
+      setMsg({ ok: true, text: 'Unique registration link generated successfully!' });
+      onLinkCreated?.();
+    } catch (err) {
+      setMsg({ ok: false, text: err.message || 'Failed to generate link' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const getFullUrl = () => {
+    if (!createdLink?.token) return '';
+    return `${window.location.origin}/register-patient/${createdLink.token}`;
+  };
+
+  const copyToClipboard = () => {
+    const url = getFullUrl();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      const t = document.createElement('textarea');
+      t.value = url;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      document.body.removeChild(t);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
+  const shareWhatsApp = () => {
+    const url = getFullUrl();
+    const phone = (patientPhone || createdLink?.patientPhone || '').replace(/\D/g, '').slice(-10);
+    const doctor = createdLink?.doctor || 'your doctor';
+    const text = encodeURIComponent(`Hello! Please click this link to fill out your patient registration form for Dr. ${doctor}: ${url}`);
+    const waUrl = phone ? `https://wa.me/91${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank', 'noreferrer');
+  };
+
+  return (
+    <div className="space-y-5" data-testid="share-link-modal">
+      {!createdLink ? (
+        <form onSubmit={handleGenerate} className="space-y-4">
+          <p className="text-[13.5px] text-gray-600 leading-relaxed">
+            Generate a unique patient registration link and share it via WhatsApp or message. The patient can open it on their mobile phone, enter their details and symptoms, and submit. The details will automatically appear in your <strong>Patient Visits</strong> list.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className={label}>Patient Name <span className="text-gray-400 font-normal">(Optional prefill)</span></span>
+              <input
+                className={field}
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                placeholder="e.g. Anita Sharma"
+              />
+            </label>
+
+            <label className="block">
+              <span className={label}>Patient Mobile <span className="text-gray-400 font-normal">(Optional prefill)</span></span>
+              <div className="flex">
+                <span className="h-11 px-3 flex items-center rounded-l-xl border border-r-0 border-line bg-tint text-[14px] text-primary/70">+91</span>
+                <input
+                  inputMode="numeric"
+                  className={`${field} rounded-l-none`}
+                  value={patientPhone}
+                  onChange={(e) => setPatientPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="10-digit mobile"
+                />
+              </div>
+            </label>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className={label}>Shared by (Nurse's Name)</span>
+              <input
+                className={field}
+                value={recordedBy}
+                onChange={(e) => setRecordedBy(e.target.value)}
+                placeholder="Nurse / Desk Staff Name"
+              />
+            </label>
+
+            <label className="block">
+              <span className={label}>Note / Purpose <span className="text-gray-400 font-normal">(Optional)</span></span>
+              <input
+                className={field}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Walk-in token #4"
+              />
+            </label>
+          </div>
+
+          <Msg m={msg} />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className={btnGhost}>Cancel</button>
+            <button type="submit" disabled={busy} className={btn}>
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+              Generate & Copy Link
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <Msg m={msg} />
+
+          {/* Registration Live Status */}
+          <div className={`p-4 rounded-2xl border flex items-start justify-between gap-3 ${status === 'Submitted' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+            <div>
+              <p className="text-[14px] font-bold flex items-center gap-2">
+                {status === 'Submitted' ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span>Patient Form Submitted!</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-5 h-5 text-amber-600 shrink-0 animate-pulse" />
+                    <span>Status: Pending Patient Submission</span>
+                  </>
+                )}
+              </p>
+              <p className="text-[12.5px] mt-1 opacity-90">
+                {status === 'Submitted'
+                  ? `Patient details have been synchronized and are now available in your Patient Visits.`
+                  : `Waiting for the patient to open the link and complete the form on their phone.`}
+              </p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${status === 'Submitted' ? 'bg-emerald-200 text-emerald-800' : 'bg-amber-200 text-amber-800'}`}>
+              {status}
+            </span>
+          </div>
+
+          {/* Link Box */}
+          <div className="p-4 rounded-2xl bg-tint border border-line-soft space-y-3">
+            <div className="flex items-center justify-between text-xs text-gray-500 font-semibold">
+              <span>Unique Link Reference: <strong className="text-primary">{createdLink.code}</strong></span>
+              <span>Valid for 7 days</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={getFullUrl()}
+                className={`${field} font-mono text-[13px] bg-white select-all`}
+              />
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className={`h-11 px-4 rounded-xl font-semibold text-sm inline-flex items-center gap-1.5 transition shrink-0 ${copied ? 'bg-emerald-600 text-white' : 'bg-secondary text-white hover:brightness-95'}`}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={shareWhatsApp}
+                className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[13px] inline-flex items-center gap-2 transition shadow-sm"
+              >
+                <MessageCircle className="w-4 h-4" /> Share via WhatsApp
+              </button>
+              <a
+                href={getFullUrl()}
+                target="_blank"
+                rel="noreferrer"
+                className="h-10 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-primary font-semibold text-[13px] inline-flex items-center gap-2 transition"
+              >
+                <ExternalLink className="w-4 h-4" /> Preview Patient Form
+              </a>
+            </div>
+          </div>
+
+          {/* Record Ready CTA */}
+          {status === 'Submitted' && (
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[13.5px] font-bold text-emerald-900">Record Ready in Patient Visits</p>
+                <p className="text-xs text-emerald-700">Patient: {submittedData?.patient?.name || createdLink.patientName || 'Patient'}</p>
+              </div>
+              {submittedData?.patientId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenPatient?.(submittedData.patientId);
+                  }}
+                  className="h-10 px-4 rounded-xl bg-emerald-700 text-white font-semibold text-xs hover:bg-emerald-800 transition"
+                >
+                  View Patient Record →
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCreatedLink(null);
+                setPatientName('');
+                setPatientPhone('');
+                setStatus('Pending');
+              }}
+              className="text-xs font-semibold text-secondary hover:underline"
+            >
+              + Generate Another Link
+            </button>
+            <button type="button" onClick={onClose} className={btnGhost}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Registration Links List Component
+function RegistrationLinksPanel({ onOpenPatient, onNewLink }) {
+  const [links, setLinks] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
+  const [err, setErr] = useState('');
+
+  const loadLinks = useCallback(() => {
+    api.getRegistrationLinks({ status: filter, search })
+      .then((d) => setLinks(d.links || []))
+      .catch((e) => setErr(e.message));
+  }, [filter, search]);
+
+  useEffect(() => {
+    loadLinks();
+    const interval = setInterval(loadLinks, 6000);
+    return () => clearInterval(interval);
+  }, [loadLinks]);
+
+  const copyUrl = (token, id) => {
+    const url = `${window.location.origin}/register-patient/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2500);
+    });
+  };
+
+  const shareWa = (link) => {
+    const url = `${window.location.origin}/register-patient/${link.token}`;
+    const phone = link.patientPhone ? link.patientPhone.replace(/\D/g, '').slice(-10) : '';
+    const text = encodeURIComponent(`Hello! Please click this link to complete your patient registration form for Dr. ${link.doctor}: ${url}`);
+    const waUrl = phone ? `https://wa.me/91${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, '_blank', 'noreferrer');
+  };
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this registration link? The patient will no longer be able to submit using this link.')) return;
+    try {
+      await api.cancelRegistrationLink(id);
+      loadLinks();
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
+
+  return (
+    <div className="space-y-4" data-testid="registration-links-panel">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-tint w-fit">
+          {[['all', 'All Links'], ['Pending', 'Pending'], ['Submitted', 'Submitted']].map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(k)}
+              className={`h-8 px-3 rounded-lg text-xs font-semibold transition ${filter === k ? 'bg-white shadow-sm text-primary' : 'text-primary/60 hover:text-primary'}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              aria-label="Search links"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search patient, phone, code..."
+              className={`${field} h-9 pl-9 text-xs`}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onNewLink}
+            className={`${btn} h-9 px-3 text-xs`}
+          >
+            <Plus className="w-3.5 h-3.5" /> Share Link
+          </button>
+        </div>
+      </div>
+
+      {err && <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">{err}</p>}
+
+      {links === null ? (
+        <p className="text-sm text-gray-500 flex items-center gap-2 py-6"><Loader2 className="w-4 h-4 animate-spin" /> Loading registration links...</p>
+      ) : !links.length ? (
+        <div className="py-10 text-center text-gray-500 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-6">
+          <Link2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="font-semibold text-primary">No registration links found</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+            {search ? 'Try clearing your search query.' : 'Click "Share Registration Link" above to generate a unique link for your patient to fill out on their phone.'}
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {links.map((link) => (
+            <div key={link.id} className="py-3.5 px-2 hover:bg-gray-50/80 rounded-xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-primary text-sm">
+                    {link.patientName || link.patient?.name || 'Walk-in Patient'}
+                  </span>
+                  <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                    {link.code}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    link.status === 'Submitted' ? 'bg-emerald-100 text-emerald-800' :
+                    link.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {link.status === 'Submitted' ? '✓ Submitted' : link.status === 'Pending' ? '⏳ Pending' : link.status}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  {link.patientPhone && <span>+91 {link.patientPhone}</span>}
+                  <span>Generated {fmtDateTime(link.createdAt)}</span>
+                  {link.recordedBy && <span>by {link.recordedBy}</span>}
+                  {link.submittedAt && <span className="text-emerald-700 font-medium">Submitted {fmtDateTime(link.submittedAt)}</span>}
+                  {link.notes && <span className="text-gray-400">· {link.notes}</span>}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => copyUrl(link.token, link.id)}
+                  className="h-8 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-primary inline-flex items-center gap-1 transition"
+                  title="Copy registration link"
+                >
+                  {copiedId === link.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-gray-500" />}
+                  {copiedId === link.id ? 'Copied' : 'Copy'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => shareWa(link)}
+                  className="h-8 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold text-emerald-800 inline-flex items-center gap-1 transition"
+                  title="Share via WhatsApp"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                </button>
+
+                {link.status === 'Submitted' && link.patientId && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenPatient?.(link.patientId)}
+                    className="h-8 px-2.5 rounded-lg bg-secondary text-white hover:brightness-95 text-xs font-semibold inline-flex items-center gap-1 transition"
+                  >
+                    View Record →
+                  </button>
+                )}
+
+                {link.status === 'Pending' && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancel(link.id)}
+                    className="h-8 px-2 rounded-lg text-xs text-red-600 hover:bg-red-50 transition"
+                    title="Cancel link"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -240,7 +709,14 @@ export function PatientRecord({ patientId, canEdit = true, canDelete = false, on
           {visits.map((v) => (
             <li key={v.id} className="rounded-2xl border border-gray-100 p-4" data-testid="visit-item">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <p className="font-semibold text-primary">{fmtDateTime(v.visitDate)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-primary">{fmtDateTime(v.visitDate)}</p>
+                  {v.source === 'shared_link' && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Online Registration
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   {canEdit && onEditVisit && <button type="button" onClick={() => onEditVisit(v, patient)} className="h-8 px-2.5 rounded-lg text-[13px] font-semibold text-secondary hover:bg-tint inline-flex items-center gap-1"><Pencil className="w-3.5 h-3.5" /> Edit</button>}
                   {canDelete && <button type="button" onClick={() => remove(v)} aria-label="Delete visit" className="h-8 w-8 rounded-lg text-red-600 hover:bg-red-50 inline-flex items-center justify-center"><Trash2 className="w-4 h-4" /></button>}
@@ -250,6 +726,15 @@ export function PatientRecord({ patientId, canEdit = true, canDelete = false, on
                 {VISIT_FIELDS.map(([k, l]) => v[k] ? (
                   <div key={k} className={k === 'prescription' || k === 'nurseNotes' ? 'sm:col-span-2' : ''}><dt className="text-[11.5px] font-semibold uppercase tracking-wider text-gray-400">{l}</dt><dd className="text-gray-800 whitespace-pre-line">{v[k]}</dd></div>
                 ) : null)}
+                {v.medicalHistory && (
+                  <div><dt className="text-[11.5px] font-semibold uppercase tracking-wider text-gray-400">Past Medical History</dt><dd className="text-gray-800">{v.medicalHistory}</dd></div>
+                )}
+                {v.allergies && (
+                  <div><dt className="text-[11.5px] font-semibold uppercase tracking-wider text-gray-400">Allergies</dt><dd className="text-gray-800">{v.allergies}</dd></div>
+                )}
+                {v.currentMedications && (
+                  <div className="sm:col-span-2"><dt className="text-[11.5px] font-semibold uppercase tracking-wider text-gray-400">Current Medications</dt><dd className="text-gray-800">{v.currentMedications}</dd></div>
+                )}
               </dl>
               <p className="text-[11.5px] text-gray-400 mt-2">Entered by {v.enteredBy || '—'}{v.updatedBy ? ` · edited by ${v.updatedBy} ${fmtDateTime(v.updatedAt)}` : ''}</p>
             </li>
@@ -314,29 +799,39 @@ export default function PatientVisits() {
   const [summary, setSummary] = useState(null);
   const [patients, setPatients] = useState(null);
   const [todayVisits, setTodayVisits] = useState([]);
+  const [pendingLinksCount, setPendingLinksCount] = useState(0);
   const [search, setSearch] = useState('');
-  const [view, setView] = useState('patients'); // patients | today | report
-  const [modal, setModal] = useState(null); // {kind:'new'|'edit'|'patient'|'staff', ...}
+  const [view, setView] = useState('patients'); // patients | today | links | report
+  const [modal, setModal] = useState(null); // {kind:'new'|'share-link'|'edit'|'patient', ...}
   const [notice, setNotice] = useState('');
 
   const refresh = useCallback(() => {
     api.clinicSummary().then((d) => setSummary(d.summary)).catch(() => {});
     const t = localDay();
     api.clinicVisits({ from: t, to: t }).then((d) => setTodayVisits(d.visits || [])).catch(() => {});
+    api.getRegistrationLinks({ status: 'Pending', limit: 100 })
+      .then((d) => setPendingLinksCount((d.links || []).length))
+      .catch(() => {});
   }, []);
-  const loadPatients = useCallback(() => { api.clinicPatients({ search }).then((d) => setPatients(d.patients || [])).catch(() => setPatients([])); }, [search]);
+
+  const loadPatients = useCallback(() => {
+    api.clinicPatients({ search }).then((d) => setPatients(d.patients || [])).catch(() => setPatients([]));
+  }, [search]);
+
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => { const t = setTimeout(loadPatients, 250); return () => clearTimeout(t); }, [loadPatients]);
 
   const afterSave = (r, text) => {
     setModal(r.patient ? { kind: 'patient', id: r.patient.id || r.visit?.patientId, key: Date.now() } : null);
     setNotice(text);
-    refresh(); loadPatients();
+    refresh();
+    loadPatients();
   };
 
   const cards = [
     ['Total patients', summary?.totalPatients, Users],
     ["Today's visits", summary?.todayVisits, CalendarCheck],
+    ['Pending Links', pendingLinksCount, Clock],
     ['This month', summary?.monthVisits, CalendarDays],
   ];
 
@@ -345,66 +840,137 @@ export default function PatientVisits() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-primary">Patient Visits</h2>
-          <p className="text-gray-500 font-medium mt-1">Clinic patients and their visit records. Nurses can enter visits here and add their name.</p>
+          <p className="text-gray-500 font-medium mt-1">
+            Clinic patients and visit records. Register patients manually or share a registration link for patients to fill out on their phone.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setModal({ kind: 'new' })} className={btn}><Plus className="w-4 h-4" /> New patient visit</button>
+
+        {/* Dual Registration Options: Share Link & Manual */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setModal({ kind: 'share-link' })}
+            className={`${btnGhost} border-secondary/40 text-secondary hover:bg-secondary/5 font-bold shadow-sm`}
+            title="Generate a unique link for the patient to fill out"
+          >
+            <Share2 className="w-4 h-4 text-secondary" /> Share Registration Link
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal({ kind: 'new' })}
+            className={btn}
+            title="Nurse fills out the patient details directly"
+          >
+            <UserPlus className="w-4 h-4" /> Add Patient Manually
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="visit-summary">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="visit-summary">
         {cards.map(([l, n, Icon]) => (
           <div key={l} className={`${card} p-5 flex items-center gap-4`}>
-            <span className="w-12 h-12 rounded-2xl bg-tint text-secondary flex items-center justify-center"><Icon className="w-5 h-5" /></span>
-            <div><p className="text-3xl font-bold text-primary leading-none">{n ?? <span className="inline-block w-8 h-7 rounded bg-gray-100 animate-pulse align-middle" />}</p><p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-1.5">{l}</p></div>
+            <span className="w-12 h-12 rounded-2xl bg-tint text-secondary flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5" />
+            </span>
+            <div>
+              <p className="text-2xl sm:text-3xl font-bold text-primary leading-none">
+                {n ?? <span className="inline-block w-8 h-7 rounded bg-gray-100 animate-pulse align-middle" />}
+              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mt-1.5">{l}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {notice && <p role="status" className="text-[13.5px] rounded-xl px-3.5 py-2.5 bg-emerald-50 text-emerald-700 flex justify-between gap-3">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Dismiss"><X className="w-4 h-4" /></button></p>}
+      {notice && (
+        <p role="status" className="text-[13.5px] rounded-xl px-3.5 py-2.5 bg-emerald-50 text-emerald-700 flex justify-between gap-3">
+          {notice}
+          <button type="button" onClick={() => setNotice('')} aria-label="Dismiss"><X className="w-4 h-4" /></button>
+        </p>
+      )}
 
       <div className={`${card} p-4 sm:p-6`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
-          <div className="flex gap-1 p-1 rounded-xl bg-tint w-fit" role="tablist">
-            {[['patients', 'Patients', ClipboardList], ['today', `Today (${todayVisits.length})`, CalendarCheck], ['report', 'Reports', BarChart3]].map(([k, l, Icon]) => (
-              <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`h-9 px-3.5 rounded-lg text-[13.5px] font-semibold inline-flex items-center gap-1.5 ${view === k ? 'bg-white shadow-sm text-primary' : 'text-primary/60 hover:text-primary'}`}><Icon className="w-4 h-4" /> {l}</button>
+          <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-tint w-fit" role="tablist">
+            {[
+              ['patients', 'Patients', ClipboardList],
+              ['today', `Today (${todayVisits.length})`, CalendarCheck],
+              ['links', `Shared Links (${pendingLinksCount ? `${pendingLinksCount} pending` : 'All'})`, Link2],
+              ['report', 'Reports', BarChart3],
+            ].map(([k, l, Icon]) => (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                aria-selected={view === k}
+                onClick={() => setView(k)}
+                className={`h-9 px-3.5 rounded-lg text-[13.5px] font-semibold inline-flex items-center gap-1.5 transition ${view === k ? 'bg-white shadow-sm text-primary' : 'text-primary/60 hover:text-primary'}`}
+              >
+                <Icon className="w-4 h-4" /> {l}
+              </button>
             ))}
           </div>
+
           {view === 'patients' && (
             <div className="relative w-full lg:w-80">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input aria-label="Search patients" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, mobile or patient ID" className={`${field} pl-10`} />
+              <input
+                aria-label="Search patients"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, mobile or patient ID"
+                className={`${field} pl-10`}
+              />
             </div>
           )}
         </div>
 
+        {/* View 1: Patients list */}
         {view === 'patients' && (
           patients === null ? <p className="text-sm text-gray-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</p>
-            : !patients.length ? <p className="text-sm text-gray-500 py-8 text-center">{search ? 'No patients match your search.' : 'No patients yet. Click “New patient visit” to add the first one.'}</p>
-              : (
-                <div className="divide-y divide-gray-100" data-testid="patient-list">
-                  {patients.map((pt) => (
-                    <button key={pt.id} type="button" onClick={() => setModal({ kind: 'patient', id: pt.id })} className="w-full text-left flex items-center gap-4 py-3.5 hover:bg-gray-50 rounded-xl px-2 transition">
-                      <span className="w-10 h-10 rounded-full bg-tint text-primary font-bold flex items-center justify-center shrink-0">{pt.name[0]?.toUpperCase()}</span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-semibold text-primary truncate">{pt.name} <span className="text-xs font-medium text-gray-400">{pt.code}</span></span>
-                        <span className="block text-xs text-gray-500">{[pt.age != null ? `${pt.age} yrs` : null, pt.gender, `+91 ${pt.phone}`].filter(Boolean).join(' · ')}</span>
-                      </span>
-                      <span className="hidden sm:block text-right text-xs text-gray-500"><span className="block font-semibold text-primary">{pt.visitCount} visit{pt.visitCount === 1 ? '' : 's'}</span>last {fmtDate(pt.lastVisitAt)}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </button>
-                  ))}
+            : !patients.length ? (
+              <div className="py-12 text-center text-gray-500 space-y-3">
+                <p>{search ? 'No patients match your search.' : 'No patients registered yet.'}</p>
+                <div className="flex justify-center gap-3">
+                  <button type="button" onClick={() => setModal({ kind: 'share-link' })} className={`${btnGhost} text-xs`}>
+                    <Share2 className="w-3.5 h-3.5 text-secondary" /> Share Registration Link
+                  </button>
+                  <button type="button" onClick={() => setModal({ kind: 'new' })} className={`${btn} text-xs`}>
+                    <UserPlus className="w-3.5 h-3.5" /> Add Patient Manually
+                  </button>
                 </div>
-              )
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100" data-testid="patient-list">
+                {patients.map((pt) => (
+                  <button key={pt.id} type="button" onClick={() => setModal({ kind: 'patient', id: pt.id })} className="w-full text-left flex items-center gap-4 py-3.5 hover:bg-gray-50 rounded-xl px-2 transition">
+                    <span className="w-10 h-10 rounded-full bg-tint text-primary font-bold flex items-center justify-center shrink-0">{pt.name[0]?.toUpperCase()}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-semibold text-primary truncate">{pt.name} <span className="text-xs font-medium text-gray-400">{pt.code}</span></span>
+                      <span className="block text-xs text-gray-500">{[pt.age != null ? `${pt.age} yrs` : null, pt.gender, `+91 ${pt.phone}`].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    <span className="hidden sm:block text-right text-xs text-gray-500"><span className="block font-semibold text-primary">{pt.visitCount} visit{pt.visitCount === 1 ? '' : 's'}</span>last {fmtDate(pt.lastVisitAt)}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </button>
+                ))}
+              </div>
+            )
         )}
 
+        {/* View 2: Today's visits */}
         {view === 'today' && (
           !todayVisits.length ? <p className="text-sm text-gray-500 py-8 text-center">No visits recorded today.</p> : (
             <div className="divide-y divide-gray-100">
               {todayVisits.map((v) => (
                 <button key={v.id} type="button" onClick={() => setModal({ kind: 'patient', id: v.patientId })} className="w-full text-left flex items-center gap-4 py-3.5 hover:bg-gray-50 rounded-xl px-2">
                   <span className="text-sm font-semibold text-primary w-20 shrink-0">{new Date(v.visitDate).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                  <span className="flex-1 min-w-0"><span className="block font-semibold text-primary truncate">{v.patient?.name || v.patientName}</span><span className="block text-xs text-gray-500 truncate">{v.diagnosis || v.symptoms || '—'}</span></span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-semibold text-primary truncate">
+                      {v.patient?.name || v.patientName}
+                      {v.source === 'shared_link' && <span className="ml-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Online Link</span>}
+                    </span>
+                    <span className="block text-xs text-gray-500 truncate">{v.diagnosis || v.symptoms || '—'}</span>
+                  </span>
                   <ChevronRight className="w-4 h-4 text-gray-300" />
                 </button>
               ))}
@@ -412,21 +978,43 @@ export default function PatientVisits() {
           )
         )}
 
+        {/* View 3: Registration Links list */}
+        {view === 'links' && (
+          <RegistrationLinksPanel
+            onOpenPatient={(id) => setModal({ kind: 'patient', id })}
+            onNewLink={() => setModal({ kind: 'share-link' })}
+          />
+        )}
+
+        {/* View 4: Reports */}
         {view === 'report' && <ReportPanel />}
       </div>
 
+      {/* Modals */}
+      {modal?.kind === 'share-link' && (
+        <Modal title="Share Patient Registration Link" onClose={() => setModal(null)} wide>
+          <ShareLinkModal
+            onLinkCreated={() => { refresh(); loadPatients(); }}
+            onClose={() => setModal(null)}
+            onOpenPatient={(id) => setModal({ kind: 'patient', id })}
+          />
+        </Modal>
+      )}
+
       {modal?.kind === 'new' && (
-        <Modal title={modal.patient ? `New visit – ${modal.patient.name}` : 'New patient visit'} onClose={() => setModal(null)} wide>
+        <Modal title={modal.patient ? `New visit – ${modal.patient.name}` : 'New patient visit (Manual)'} onClose={() => setModal(null)} wide>
           <VisitForm initialPatient={modal.patient} onSaved={afterSave} onClose={() => setModal(null)} onOpenVisit={(v, p) => setModal({ kind: 'edit', visit: v, patient: p })} />
         </Modal>
       )}
+
       {modal?.kind === 'edit' && (
         <Modal title={`Edit visit – ${modal.patient?.name || ''}`} onClose={() => setModal(null)} wide>
           <VisitForm visit={modal.visit} onSaved={(r, t) => afterSave({ patient: { id: modal.patient?.id || modal.visit.patientId } }, t)} onClose={() => setModal(null)} onOpenVisit={() => {}} />
         </Modal>
       )}
+
       {modal?.kind === 'patient' && (
-        <Modal title="Patient record" onClose={() => setModal(null)} wide>
+        <Modal title="Patient Record & Visit History" onClose={() => setModal(null)} wide>
           <PatientRecord key={modal.key || modal.id} patientId={modal.id} canDelete onChanged={() => { refresh(); loadPatients(); }}
             onAddVisit={(p) => setModal({ kind: 'new', patient: p })} onEditVisit={(v, p) => setModal({ kind: 'edit', visit: v, patient: p })} />
         </Modal>

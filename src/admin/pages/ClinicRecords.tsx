@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Users, CalendarCheck, CalendarDays, ClipboardList, Search, Download } from "lucide-react"
+import { Users, CalendarCheck, CalendarDays, ClipboardList, Search, Download, Link2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Card, CardContent } from "../components/ui/Card"
 import { Modal } from "../components/ui/Modal"
@@ -17,7 +17,7 @@ const inputCls = "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm 
 
 export function ClinicRecords() {
   const today = localDay()
-  const [tab, setTab] = useState<"report" | "visits" | "patients">("report")
+  const [tab, setTab] = useState<"report" | "visits" | "patients" | "links">("report")
   const [from, setFrom] = useState(`${today.slice(0, 7)}-01`)
   const [to, setTo] = useState(today)
   const [doctor, setDoctor] = useState("")
@@ -26,6 +26,7 @@ export function ClinicRecords() {
   const [doctorsList, setDoctorsList] = useState<any[]>([])
   const [visits, setVisits] = useState<any[] | null>(null)
   const [patients, setPatients] = useState<any[] | null>(null)
+  const [links, setLinks] = useState<any[] | null>(null)
   const [error, setError] = useState("")
   const [open, setOpen] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -46,6 +47,11 @@ export function ClinicRecords() {
     const t = setTimeout(() => { api.clinicPatients({ providerId: doctor, search, limit: 1000 }).then((d: any) => setPatients(d.patients || [])).catch((e: any) => setError(e.message)) }, 250)
     return () => clearTimeout(t)
   }, [doctor, search])
+  useEffect(() => {
+    setLinks(null)
+    const t = setTimeout(() => { api.getRegistrationLinks({ providerId: doctor, search, limit: 500 }).then((d: any) => setLinks(d.links || [])).catch((e: any) => setError(e.message)) }, 250)
+    return () => clearTimeout(t)
+  }, [doctor, search])
   useEffect(() => { setPage(1) }, [tab, from, to, doctor, search])
 
   const totals = report?.totals
@@ -58,6 +64,7 @@ export function ClinicRecords() {
   const max = Math.max(1, ...((report?.daily || []).map((d: any) => d.visits)))
   const pagedVisits = paginate(visits || [], page)
   const pagedPatients = paginate(patients || [], page)
+  const pagedLinks = paginate(links || [], page)
   const doctorName = useMemo(() => doctorsList.find((d) => d.providerId === doctor)?.doctor, [doctorsList, doctor])
 
   const exportReport = () => downloadCsv(`doctor-visit-report-${from}-to-${to}.csv`, [
@@ -103,13 +110,14 @@ export function ClinicRecords() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1 p-1 rounded-xl bg-slate-100" role="tablist">
-          {([["report", "Doctor-wise report"], ["visits", `All visits (${visits?.length ?? "…"})`], ["patients", `Patients (${patients?.length ?? "…"})`]] as const).map(([k, l]) => (
+          {([["report", "Doctor-wise report"], ["visits", `All visits (${visits?.length ?? "…"})`], ["patients", `Patients (${patients?.length ?? "…"})`], ["links", `Registration links (${links?.length ?? "…"})`]] as const).map(([k, l]) => (
             <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`h-9 px-3.5 rounded-lg text-sm font-semibold ${tab === k ? "bg-white shadow-sm text-charcoal" : "text-muted hover:text-charcoal"}`}>{l}</button>
           ))}
         </div>
         {tab === "report" && <Button variant="outline" onClick={exportReport}><Download className="h-4 w-4 mr-2" /> Export report</Button>}
         {tab === "visits" && <Button variant="outline" onClick={() => downloadCsv(`patient-visits-${from}-to-${to}.csv`, visitCsvRows(visits || [], true))}><Download className="h-4 w-4 mr-2" /> Export visits</Button>}
         {tab === "patients" && <Button variant="outline" onClick={() => downloadCsv("clinic-patients.csv", [["Patient ID", "Name", "Age", "Gender", "Mobile", "Doctor", "Visits", "First visit", "Last visit"], ...(patients || []).map((p: any) => [p.code, p.name, p.age, p.gender, p.phone, p.doctor, p.visitCount, fmt(p.firstVisitAt), fmt(p.lastVisitAt)])])}><Download className="h-4 w-4 mr-2" /> Export patients</Button>}
+        {tab === "links" && <Button variant="outline" onClick={() => downloadCsv("registration-links.csv", [["Code", "Doctor", "Patient", "Mobile", "Status", "Nurse", "Created at", "Submitted at"], ...(links || []).map((l: any) => [l.code, l.doctor, l.patientName || l.patient?.name || "-", l.patientPhone || l.patient?.phone || "-", l.status, l.recordedBy || "-", fmt(l.createdAt), fmt(l.submittedAt)])])}><Download className="h-4 w-4 mr-2" /> Export links</Button>}
       </div>
 
       {tab === "report" && (
@@ -201,6 +209,59 @@ export function ClinicRecords() {
             </TableBody>
           </Table>
           <Pager page={pagedPatients.current} pages={pagedPatients.pages} from={pagedPatients.from} to={pagedPatients.to} total={(patients || []).length} label="patients" onPage={setPage} />
+        </div>
+      )}
+
+      {tab === "links" && (
+        <div className="bg-surface border border-slate-200 rounded-2xl overflow-x-auto">
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Code</TableHead>
+              <TableHead>Doctor</TableHead>
+              <TableHead>Target Patient</TableHead>
+              <TableHead>Mobile</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Generated by</TableHead>
+              <TableHead>Created at</TableHead>
+              <TableHead>Submitted at</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {links === null && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">Loading…</TableCell></TableRow>}
+              {links?.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted py-8">No registration links found{doctorName ? ` for ${doctorName}` : ""}.</TableCell></TableRow>}
+              {pagedLinks.rows.map((l: any) => (
+                <TableRow key={l.id} className="hover:bg-slate-50">
+                  <TableCell className="font-mono text-xs font-semibold">{l.code}</TableCell>
+                  <TableCell className="text-sm font-medium">{l.doctor}</TableCell>
+                  <TableCell>
+                    <span className="font-medium text-charcoal">{l.patientName || l.patient?.name || "Walk-in Patient"}</span>
+                    {l.patient?.code && <span className="block text-xs text-muted">{l.patient.code}</span>}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{l.patientPhone || l.patient?.phone || "-"}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      l.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      l.status === 'Pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {l.status === 'Submitted' ? '✓ Submitted' : l.status === 'Pending' ? '⏳ Pending' : l.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm">{l.recordedBy || "-"}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{fmt(l.createdAt)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{fmt(l.submittedAt)}</TableCell>
+                  <TableCell className="text-right">
+                    {l.patientId ? (
+                      <Button variant="ghost" size="sm" className="h-8 text-brand-600" onClick={() => setOpen(l.patientId)}>View patient</Button>
+                    ) : (
+                      <span className="text-xs text-muted">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pager page={pagedLinks.current} pages={pagedLinks.pages} from={pagedLinks.from} to={pagedLinks.to} total={(links || []).length} label="links" onPage={setPage} />
         </div>
       )}
 

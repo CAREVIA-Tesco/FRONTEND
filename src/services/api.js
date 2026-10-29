@@ -80,6 +80,14 @@ export const api = {
   updateClinicVisit: (id, data) => request(`/clinic/visits/${id}`, { method: 'PUT', body: data }),
   deleteClinicVisit: (id) => request(`/clinic/visits/${id}`, { method: 'DELETE' }),
   adminClinicReport: (params = {}) => request(`/admin/clinic/report${qs(params)}`),
+  // patient registration links (shared link workflow)
+  createRegistrationLink: (data) => request('/clinic/registration-links', { method: 'POST', body: data }),
+  getRegistrationLinks: (params = {}) => request(`/clinic/registration-links${qs(params)}`),
+  getRegistrationLink: (id) => request(`/clinic/registration-links/${id}`),
+  cancelRegistrationLink: (id) => request(`/clinic/registration-links/${id}`, { method: 'DELETE' }),
+  // public patient registration (no login required for patient)
+  getPublicRegistration: (token) => request(`/clinic/public/register/${encodeURIComponent(token)}`, { auth: false }),
+  submitPublicRegistration: (token, data) => request(`/clinic/public/register/${encodeURIComponent(token)}`, { method: 'POST', body: data, auth: false }),
   // notifications (bell icon)
   notifications: (limit = 30) => request(`/notifications?limit=${limit}`),
   readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),

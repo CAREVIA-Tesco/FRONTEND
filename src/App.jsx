@@ -35,6 +35,7 @@ import Reviews from './pages/Reviews.jsx';
 import Refer from './pages/Refer.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import ThankYou from './pages/ThankYou.jsx';
+import PatientRegistration from './pages/PatientRegistration.jsx';
 import { BookNowProvider } from './components/BookNow.jsx';
 
 export default function App() {
@@ -75,7 +76,8 @@ export default function App() {
         <Route path="/privacy-policy" element={<LegalPage contentKey="legal-privacy" fallbackTitle="Privacy Policy" />} />
         <Route path="/terms" element={<LegalPage contentKey="legal-terms" fallbackTitle="Terms & Conditions" />} />
         <Route path="/patient-rights" element={<LegalPage contentKey="legal-patient-rights" fallbackTitle="Patient Rights" />} />
-        <Route path="/verification" element={<Navigate to="/professional/onboarding" replace />} />
+        <Route path="/register-patient/:token" element={<PatientRegistration />} />
+        <Route path="/patient-registration/:token" element={<PatientRegistration />} />
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/professional/onboarding" element={<ProfessionalOnboarding />} />
