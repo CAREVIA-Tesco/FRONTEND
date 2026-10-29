@@ -1,10 +1,24 @@
 import React, { useState } from "react"
-import { useNavigate, useSearchParams, Link } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import {
-  ShieldAlert, Lock, Eye, EyeOff, ShieldCheck, AlertCircle,
-  LayoutDashboard, LogOut, ArrowRight, Activity, ArrowLeft, KeyRound
+  ShieldCheck, Lock, Eye, EyeOff, Phone, ArrowLeft,
+  LayoutDashboard, UserCheck, BarChart3, AlertCircle
 } from "lucide-react"
-import api, { saveSession, getSessionUser, logout } from "../../services/api"
+import api, { saveSession } from "../../services/api"
+
+const PANEL = {
+  photo: "/career-hero.jpg",
+  focus: "50% 45%",
+  eyebrow: "Carevaa care team",
+  title: "Run operations from one console",
+  desc: "Dispatch requests to professionals, manage patients and providers, and keep the website up to date.",
+  mobile: "Sign in to the Carevaa admin console.",
+  points: [
+    { icon: LayoutDashboard, title: "Dispatch & enquiries", text: "Route every request to the right professional." },
+    { icon: UserCheck, title: "Providers & patients", text: "Approve, verify and manage accounts." },
+    { icon: BarChart3, title: "Live insights", text: "Bookings, payments and performance at a glance." },
+  ],
+}
 
 interface AdminLoginProps {
   onLoginSuccess?: (user: any) => void
@@ -13,44 +27,37 @@ interface AdminLoginProps {
 export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [currentUser, setCurrentUser] = useState(() => getSessionUser())
-
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-
     if (!identifier.trim() || !password) {
-      setError("Please enter your administrator email/phone and password.")
+      setError("Please enter your email/phone and password.")
       return
     }
-
     setLoading(true)
     try {
       const data = await api.login(identifier.trim(), password, "admin")
       saveSession(data)
-      setCurrentUser(data.user)
-
       if (onLoginSuccess) {
         onLoginSuccess(data.user)
       }
-
-      const redirectPath = searchParams.get("redirect")
-      if (redirectPath && redirectPath.startsWith("/admin")) {
-        navigate(redirectPath)
+      const redirect = searchParams.get("redirect")
+      if (redirect && redirect.startsWith("/admin")) {
+        navigate(redirect)
       } else {
         navigate("/admin")
       }
     } catch (err: any) {
       if (err.data?.message?.includes("registered as a doctor") || err.message?.includes("registered as a doctor")) {
-        setError("Access Denied: Doctors are not authorized to access the Admin Console. Please use the Doctor Portal at /doctor.")
+        setError("This account is registered as a doctor. Please use the Doctor Portal at /doctor.")
       } else if (err.data?.message?.includes("registered as a patient") || err.message?.includes("registered as a patient")) {
-        setError("Access Denied: Patient accounts cannot access the Admin Console. Please use the Patient Login at /login.")
+        setError("This account is registered as a patient. Please use the Patient Login at /login.")
       } else {
         setError(err.message || "Invalid administrator credentials.")
       }
@@ -59,177 +66,159 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     }
   }
 
-  const handleSwitchAccount = () => {
-    logout()
-    setCurrentUser(null)
-    setError("")
-  }
+  const inputCls = "w-full h-12 lg:h-11 px-4 rounded-xl border border-line bg-white text-primary placeholder:text-placeholder focus:ring-4 focus:ring-secondary/15 focus:border-secondary transition-all outline-none"
+  const labelCls = "block text-[13px] font-semibold text-primary mb-1.5"
 
   return (
-    <div className="theme-admin min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans selection:bg-brand-500 selection:text-white">
-      {/* Top Bar */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/70 backdrop-blur px-4 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2" title="Carevaa Home">
-            <span className="font-serif font-bold text-xl tracking-tight text-white flex items-center gap-2">
-              <span className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-black text-base">C</span>
-              Carevaa <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono font-medium border border-slate-700">ADMIN</span>
-            </span>
+    <div className="theme-portea min-h-screen lg:h-screen flex flex-col font-sans text-primary bg-tint">
+      {/* Slim header */}
+      <header className="h-16 shrink-0 bg-white/90 backdrop-blur border-b border-line-soft sticky top-0 z-30">
+        <div className="h-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between">
+          <Link to="/" className="flex items-center" aria-label="Carevaa home">
+            <img src="/logo.png" alt="Carevaa Logo" className="h-10 w-auto object-contain mix-blend-multiply" />
           </Link>
+          <div className="flex items-center gap-3 sm:gap-6 text-sm">
+            <a href="tel:18001234567" className="hidden sm:flex items-center gap-2 text-primary/80 hover:text-secondary transition-colors">
+              <Phone className="w-4 h-4 text-secondary" /> Need help? <span className="font-semibold text-primary">1800-123-4567</span>
+            </a>
+            <Link to="/" className="flex items-center gap-1.5 font-semibold text-primary/80 hover:text-secondary transition-colors">
+              <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Back to website</span><span className="sm:hidden">Home</span>
+            </Link>
+          </div>
         </div>
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Website
-        </Link>
       </header>
 
-      {/* Main Login Card */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-md">
-          {/* Non-Admin User Warning Banner */}
-          {currentUser && currentUser.role !== "admin" && (
-            <div className="mb-6 p-4 rounded-2xl bg-amber-950/60 border border-amber-600/40 text-amber-200">
-              <div className="flex items-start gap-3">
-                <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1.5">
-                  <p className="font-semibold text-amber-100 text-sm">
-                    Access Denied: {currentUser.role === "doctor" ? "Doctor" : "Patient"} Account Detected
-                  </p>
-                  <p className="text-amber-200/80 leading-relaxed">
-                    You are currently signed in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role}). The Admin Console is restricted strictly to authorized administrators.
-                  </p>
-                  <div className="pt-2 flex flex-wrap gap-2">
-                    <Link
-                      to={currentUser.role === "doctor" ? "/doctor/dashboard" : "/patient/dashboard"}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold border border-amber-500/40 transition"
-                    >
-                      <LayoutDashboard className="w-3.5 h-3.5" /> Go to {currentUser.role === "doctor" ? "Doctor" : "Patient"} Dashboard
-                    </Link>
+      <div className="flex-1 min-h-0 grid lg:grid-cols-2">
+        {/* Brand panel */}
+        <aside className="relative hidden lg:flex flex-col justify-end gap-6 overflow-hidden bg-deep text-white px-12 xl:px-16 py-10">
+          <img
+            src={PANEL.photo}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: PANEL.focus }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-deep via-deep/85 to-deep/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-deep/70 via-deep/20 to-transparent pointer-events-none" />
+
+          <span className="absolute top-8 left-12 xl:left-16 inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/25 px-3.5 py-1.5 text-[12px] font-medium text-white">
+            <ShieldCheck className="w-4 h-4" /> Verified home healthcare
+          </span>
+
+          <div className="relative max-w-lg">
+            <p className="eyebrow text-on-deep mb-3">{PANEL.eyebrow}</p>
+            <h1 className="font-serif text-[32px] xl:text-[38px] leading-[1.12] font-semibold mb-3 drop-shadow-[0_2px_12px_rgba(0,0,0,0.25)]">{PANEL.title}</h1>
+            <p className="text-[14px] leading-relaxed text-white/80 mb-5">{PANEL.desc}</p>
+            <ul className="space-y-3.5">
+              {PANEL.points.map(({ icon: Icon, title, text }) => (
+                <li key={title} className="flex items-start gap-4">
+                  <span className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center shrink-0">
+                    <Icon className="w-[18px] h-[18px] text-on-deep" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-white text-[14px]">{title}</p>
+                    <p className="text-[13px] text-white/65 leading-snug">{text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative grid grid-cols-3 gap-3 max-w-md">
+            {[["7+", "home care services"], ["24×7", "care team support"], ["100%", "verified professionals"]].map(([v, l]) => (
+              <div key={l} className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/15 px-3.5 py-2.5">
+                <p className="font-serif text-lg font-semibold text-white leading-tight">{v}</p>
+                <p className="text-[11.5px] text-white/60 leading-snug mt-0.5">{l}</p>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        {/* Form side */}
+        <main className="relative flex items-center justify-center px-4 sm:px-6 py-8 sm:py-10 lg:py-6 lg:overflow-y-auto">
+          <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-mint/70 to-transparent lg:hidden pointer-events-none" />
+          <div className="relative w-full max-w-[460px]">
+            {/* Mobile intro */}
+            <div className="lg:hidden text-center mb-6">
+              <p className="eyebrow text-accent mb-2">{PANEL.eyebrow}</p>
+              <p className="text-sm text-primary/70">{PANEL.mobile}</p>
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-[0_24px_60px_-20px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] ring-1 ring-line-soft p-6 sm:p-8 lg:px-8 lg:py-6">
+              <div className="mb-6 lg:mb-5">
+                <h2 className="font-serif text-[28px] lg:text-[28px] font-semibold leading-tight mb-1">
+                  Welcome back
+                </h2>
+                <p className="text-sm text-primary/60">
+                  Sign in to your admin console.
+                </p>
+              </div>
+
+              <form className="space-y-5 lg:space-y-4" onSubmit={handleLogin} noValidate>
+                <div>
+                  <label htmlFor="identifier" className={labelCls}>Email or Phone Number</label>
+                  <input
+                    id="identifier"
+                    type="text"
+                    autoComplete="username"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="Enter your email or phone"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label htmlFor="password" className="block text-[13px] font-semibold text-primary">Password</label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className={`${inputCls} pr-12`}
+                    />
                     <button
                       type="button"
-                      onClick={handleSwitchAccount}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold transition"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-primary/50 hover:text-primary hover:bg-tint"
                     >
-                      <LogOut className="w-3.5 h-3.5" /> Sign Out
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/90 shadow-2xl shadow-black/80 backdrop-blur-xl p-6 sm:p-8">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3 shadow-inner">
-                <Lock className="w-6 h-6" />
-              </div>
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-white tracking-tight">
-                Admin Console
-              </h1>
-              <p className="text-xs text-slate-400 mt-1.5">
-                Authorized administrator login & operations management
-              </p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4" noValidate>
-              <div>
-                <label htmlFor="admin-id" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Admin Identifier
-                </label>
-                <input
-                  id="admin-id"
-                  type="text"
-                  autoComplete="username"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="admin@carevia.com or phone"
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-700 bg-slate-950/80 text-white placeholder:text-slate-500 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label htmlFor="admin-pwd" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="admin-pwd"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full h-11 px-3.5 pr-11 rounded-xl border border-slate-700 bg-slate-950/80 text-white placeholder:text-slate-500 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {error && (
-                <div role="alert" className="flex items-start gap-2.5 p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{error}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer mt-2"
-              >
-                {loading ? (
-                  "Verifying..."
-                ) : (
-                  <>
-                    <KeyRound className="w-4 h-4" />
-                    <span>Sign In to Admin Console</span>
-                  </>
+                {error && (
+                  <p role="alert" className="flex items-start gap-2 text-sm font-medium text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {error}
+                  </p>
                 )}
-              </button>
-            </form>
 
-            <div className="mt-6 pt-5 border-t border-slate-800 text-center space-y-2">
-              <p className="text-xs text-slate-400">
-                Need role-specific access?
-              </p>
-              <div className="flex items-center justify-center gap-4 text-xs font-medium">
-                <Link to="/doctor" className="text-emerald-400 hover:underline">
-                  Doctor Login
-                </Link>
-                <span className="text-slate-700">·</span>
-                <Link to="/login" className="text-slate-400 hover:text-slate-200 hover:underline">
-                  Patient Login
-                </Link>
-              </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 lg:h-11 rounded-xl bg-secondary hover:brightness-95 text-white font-semibold text-[15px] shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-secondary)_70%,transparent)] transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 cursor-pointer"
+                >
+                  {loading ? "Please wait..." : "Login"}
+                </button>
+              </form>
             </div>
-          </div>
 
-          <div className="mt-6 text-center space-y-2">
-            <div className="inline-flex items-center gap-2 text-[11px] font-medium text-slate-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Role-Based Access Control · TLS 1.3 · IP Monitored</span>
+            <div className="flex items-center justify-center gap-5 mt-4 text-xs font-medium text-primary/55">
+              <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> Secure sign-in</span>
+              <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-accent" /> Your data stays private</span>
             </div>
-            <p className="text-[11px] text-slate-600">
-              Unauthorized access attempts are logged and will be reported.
+            <p className="text-center text-xs text-primary/45 mt-2">
+              By continuing you agree to our <Link to="/terms" className="underline hover:text-secondary">Terms</Link> and <Link to="/privacy-policy" className="underline hover:text-secondary">Privacy Policy</Link>.
             </p>
           </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="h-12 border-t border-slate-900 px-4 text-center flex items-center justify-center text-[11px] text-slate-600">
-        Carevaa Healthcare Operations Console © {new Date().getFullYear()} · All rights reserved.
-      </footer>
+        </main>
+      </div>
     </div>
   )
 }

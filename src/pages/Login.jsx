@@ -10,7 +10,7 @@ import ForgotPasswordForm from '../components/ForgotPasswordForm';
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 
 export default function Login() {
-  const [role, setRole] = useState('patient'); // 'login' or 'register'
+  const role = 'patient';
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // 'login' | 'register' | 'forgot' (forgot password opens inside this card)
@@ -184,23 +184,6 @@ export default function Login() {
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_24px_60px_-20px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] ring-1 ring-line-soft p-6 sm:p-8 lg:px-8 lg:py-6">
-              {/* Role toggle */}
-              {!patientStep2 && view !== 'forgot' && (
-              <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-tint ring-1 ring-line-soft mb-6 lg:mb-5" role="group" aria-label="Account type">
-                {[['patient', 'Patient'], ['doctor', 'Doctor'], ['admin', 'Admin']].map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={role === key}
-                    onClick={() => { setRole(key); if (key === 'admin' && view === 'register') switchView('login'); }}
-                    className={`h-10 text-sm font-semibold rounded-xl transition-all ${role === key ? 'bg-primary text-white shadow-md' : 'text-primary/60 hover:text-primary hover:bg-white'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              )}
-
               {view === 'forgot' ? (
               <div key="forgot" className="animate-[fade-in_0.35s_ease-out]">
                 <ForgotPasswordForm initialPhone={forgotPhone} onBack={() => switchView('login')} />
@@ -208,14 +191,14 @@ export default function Login() {
               ) : (
               <div key={view} className="animate-[fade-in_0.35s_ease-out]">
                 <div className="mb-6 lg:mb-5">
-                  {isRegister && role === 'patient' && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-1">Step {regStep} of 2</p>}
+                  {isRegister && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-1">Step {regStep} of 2</p>}
                   <h2 className="font-serif text-[28px] lg:text-[28px] font-semibold leading-tight mb-1">{patientStep2 ? 'About the patient' : isRegister ? 'Create your account' : 'Welcome back'}</h2>
                   <p className={`text-sm text-primary/60 ${patientStep2 ? 'lg:hidden' : ''}`}>
                     {patientStep2
                       ? 'Helps our care team and doctors prepare for the visit.'
                       : isRegister
-                      ? (role === 'doctor' ? 'Sign up as a healthcare professional. Your account is created once you complete and submit your professional details.' : 'Sign up as a patient.')
-                      : `Sign in to your ${role === 'doctor' ? 'professional dashboard' : role === 'admin' ? 'admin console' : 'account'}.`}
+                      ? 'Sign up as a patient.'
+                      : 'Sign in to your account.'}
                   </p>
                 </div>
 
@@ -319,11 +302,6 @@ export default function Login() {
             <div className={`${patientStep2 ? 'hidden' : 'flex'} items-center justify-center gap-5 mt-4 text-xs font-medium text-primary/55`}>
               <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> Secure sign-in</span>
               <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-accent" /> Your data stays private</span>
-            </div>
-            <div className="flex items-center justify-center gap-3 mt-3 text-xs text-primary/60">
-              <Link to="/doctor" className="hover:text-secondary font-medium">Doctor Portal (/doctor)</Link>
-              <span>•</span>
-              <Link to="/admin" className="hover:text-secondary font-medium">Admin Portal (/admin)</Link>
             </div>
             <p className="text-center text-xs text-primary/45 mt-2">
               By continuing you agree to our <Link to="/terms" className="underline hover:text-secondary">Terms</Link> and <Link to="/privacy-policy" className="underline hover:text-secondary">Privacy Policy</Link>.
