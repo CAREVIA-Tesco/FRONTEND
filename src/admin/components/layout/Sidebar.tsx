@@ -6,7 +6,7 @@ import {
   HeartHandshake, FlaskConical, Stethoscope as ServicesIcon,
   CalendarDays, Video, Clock, Siren,
   CreditCard, ArrowRightLeft, Undo2, HandCoins,
-  ChevronRight, Inbox, Briefcase, FileEdit, X, ExternalLink, ClipboardList } from "lucide-react"
+  ChevronRight, Inbox, Briefcase, FileEdit, X, ExternalLink, ClipboardList, MessageSquareQuote } from "lucide-react"
 
 const mainNav = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -32,6 +32,7 @@ const operationsNav = [
 
 const websiteNav = [
   { title: "Website Content", href: "/admin/content", icon: FileEdit },
+  { title: "Customer Reviews", href: "/admin/reviews", icon: MessageSquareQuote },
   { title: "Job Applications", href: "/admin/applications", icon: Briefcase },
 ]
 

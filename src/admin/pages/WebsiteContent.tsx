@@ -28,7 +28,7 @@ const SECTIONS: Section[] = [
     { name: "offers", label: "New offers", type: "select", options: SHOW },
     { name: "offersAuto", label: "Automatic offers (shown while your Offers list is empty)", type: "select", options: SHOW },
     { name: "stats", label: "Numbers band", type: "select", options: SHOW },
-    { name: "testimonials", label: "Testimonials", type: "select", options: SHOW },
+    { name: "testimonials", label: "Happy Customers (reviews – add them in Customer Reviews)", type: "select", options: SHOW },
     { name: "doctors", label: "Meet our expert doctors", type: "select", options: SHOW },
     { name: "why", label: "About / Why Carevaa", type: "select", options: SHOW },
     { name: "articles", label: "Stories & articles (blog)", type: "select", options: SHOW },
@@ -72,9 +72,6 @@ const SECTIONS: Section[] = [
   ] },
   { key: "faqs", title: "FAQs", desc: "Questions shown on the homepage.", preview: "/#faq", itemLabel: (i) => i.q, blank: { q: "", a: "" }, fields: [
     { name: "q", label: "Question" }, { name: "a", label: "Answer", type: "textarea" },
-  ] },
-  { key: "testimonials", title: "Testimonials", desc: "Customer stories in the homepage slider.", preview: "/#testimonials", itemLabel: (i) => i.name, blank: { name: "", role: "Patient", quote: "", img: "" }, fields: [
-    { name: "name", label: "Name" }, { name: "role", label: "Role / city" }, { name: "quote", label: "Quote", type: "textarea" }, { name: "img", label: "Photo URL (optional)" },
   ] },
   { key: "blog", title: "Blog articles", desc: "Articles on the Blog page – each gets its own page.", preview: "/blog", itemLabel: (i) => i.title, blank: { title: "", date: new Date().toLocaleDateString("en-GB").replace(/\//g, "-"), category: "Health", img: "", desc: "", body: [] }, fields: [
     { name: "title", label: "Title" }, { name: "slug", label: "URL slug (optional)", placeholder: "auto from title" }, { name: "date", label: "Date" }, { name: "category", label: "Category" },

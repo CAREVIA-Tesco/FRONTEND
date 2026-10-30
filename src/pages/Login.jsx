@@ -3,11 +3,23 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Lock, Eye, EyeOff, Phone, ArrowLeft, HeartPulse, CalendarCheck, FileText, Inbox, Star, LayoutDashboard, BarChart3, UserCheck, AlertCircle } from 'lucide-react';
 import { setPendingSignup } from '../services/pendingSignup';
 import api, { saveSession } from '../services/api';
+import { saveCurrentUser } from '../utils/storage';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
 
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
+// "What care do you need?" – each choice asks one follow-up question that fits it
+const CARE_NEEDS = [
+  { value: 'Doctor consultation', ask: 'Main symptoms or reason', placeholder: 'e.g. Fever for 3 days, BP check' },
+  { value: 'Nursing care', ask: 'Nursing needed', options: ['Injection / IV / drip', 'Wound dressing', 'Post-surgery care', 'Catheter / tube care', 'Elderly nursing', '12 / 24-hour nurse'] },
+  { value: 'Physiotherapy', ask: 'Problem area', options: ['Back / neck pain', 'Knee / joint pain', 'Post-surgery rehab', 'Stroke / paralysis', 'Sports injury', 'Other'] },
+  { value: 'Elder care / Care taker', ask: 'Hours of care needed', options: ['A few hours a day', '12 hours – day', '12 hours – night', '24 hours (live-in)'] },
+  { value: 'Baby & mother care', ask: "Baby's age", placeholder: 'e.g. 2 weeks, or due next month' },
+  { value: 'Lab tests at home', ask: 'Tests needed', placeholder: 'e.g. Sugar, thyroid, full body checkup' },
+  { value: 'Not sure yet', ask: null },
+];
+const MISSING = (u) => !u || u.age === undefined || u.age === null || !u.gender || String(u.phone || '').replace(/\D/g, '').length < 10 || !u.pincode;
 
 export default function Login() {
   const role = 'patient';
@@ -22,8 +34,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [regStep, setRegStep] = useState(1); // patient sign-up: 1 = account, 2 = about the patient
-  const [details, setDetails] = useState({ careFor: 'Myself', age: '', gender: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', conditions: '' });
+  const [details, setDetails] = useState({ careFor: 'Myself', patientName: '', careNeed: '', careNeedDetail: '', age: '', gender: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', conditions: '' });
+  const [pendingUser, setPendingUser] = useState(null); // signed-in patient asked for missing details
   const setDetail = (k, v) => setDetails((d) => ({ ...d, [k]: v }));
   const patchDetails = (patch) => { setDetails((d) => ({ ...d, ...patch })); setError(''); };
   const pin = usePincode(details, patchDetails);
@@ -34,8 +46,37 @@ export default function Login() {
     return '/patient/dashboard';
   };
 
-  const switchView = (next) => { setView(next); setError(''); setRegStep(1); };
-  useEffect(() => { setRegStep(1); setError(''); }, [role]);
+  const switchView = (next) => { setView(next); setError(''); };
+  useEffect(() => { setError(''); }, [role]);
+  // a mobile number typed as the login ID is reused for visit updates
+  useEffect(() => {
+    const digits = identifier.replace(/\D/g, '');
+    if (!identifier.includes('@') && digits.length === 10) setDetails((d) => (d.phone ? d : { ...d, phone: digits }));
+  }, [identifier]);
+
+  // checks the patient questions; '' when everything needed is there
+  const detailsError = () => {
+    const age = Number(details.age);
+    if (!details.careFor) return 'Please choose who needs care.';
+    if (details.careFor !== 'Myself' && !details.patientName.trim()) return "Please enter the patient's name.";
+    if (!details.careNeed) return 'Please choose the care you need.';
+    if (details.age === '' || !Number.isInteger(age) || age < 0 || age > 120) return `Please enter ${details.careFor === 'Myself' ? 'your' : "the patient's"} age in years.`;
+    if (!details.gender) return `Please select ${details.careFor === 'Myself' ? 'your' : "the patient's"} gender.`;
+    if (details.phone.replace(/\D/g, '').length !== 10) return 'Please enter a valid 10-digit mobile number.';
+    const addrErr = pincodeErrors(details, pin);
+    if (addrErr.pincode) return addrErr.pincode;
+    if (addrErr.city) return 'Please enter your city.';
+    return '';
+  };
+  const detailsPayload = () => ({
+    careFor: details.careFor,
+    patientName: details.careFor === 'Myself' ? '' : details.patientName.trim(),
+    careNeed: details.careNeed,
+    careNeedDetail: details.careNeedDetail.trim(),
+    age: details.age, gender: details.gender, phone: details.phone,
+    city: details.city, pincode: details.pincode, district: details.district, state: details.state, locality: details.locality,
+    conditions: details.conditions,
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -45,6 +86,20 @@ export default function Login() {
     try {
       const data = await api.login(identifier.trim(), password, role);
       saveSession(data);
+      // a patient whose profile is missing details answers the questions right here before continuing
+      if (data.user.role === 'patient' && MISSING(data.user)) {
+        const u = data.user;
+        setDetails((d) => ({
+          ...d,
+          careFor: u.careFor || 'Myself', patientName: u.patientName || '', careNeed: u.careNeed || '', careNeedDetail: u.careNeedDetail || '',
+          age: u.age ?? '', gender: u.gender || '', phone: String(u.phone || '').replace(/\D/g, '').slice(-10) || d.phone,
+          city: u.city || '', pincode: u.pincode || '', district: u.district || '', state: u.state || '', locality: u.locality || '',
+          conditions: (u.conditions || []).join(', '),
+        }));
+        setPendingUser(u);
+        setView('details');
+        return;
+      }
       navigate(searchParams.get('redirect') || dashboardFor(data.user));
     } catch (err) {
       setError(err.message);
@@ -59,21 +114,9 @@ export default function Login() {
     if (role === 'admin') { setError('Admin accounts cannot be self-registered. Please login instead.'); return; }
     if (!fullName.trim() || !identifier.trim() || !password) { setError('Please fill in all the fields.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
-    if (role === 'patient' && regStep === 1) {
-      const digits = identifier.replace(/\D/g, '');
-      if (!identifier.includes('@') && digits.length >= 10) setDetails((d) => ({ ...d, phone: d.phone || digits.slice(-10) }));
-      setRegStep(2);
-      return;
-    }
     if (role === 'patient') {
-      const age = Number(details.age);
-      if (!details.careFor) { setError('Please choose who needs care.'); return; }
-      if (details.age === '' || !Number.isInteger(age) || age < 0 || age > 120) { setError("Please enter the patient's age in years."); return; }
-      if (!details.gender) { setError("Please select the patient's gender."); return; }
-      if (details.phone.replace(/\D/g, '').length !== 10) { setError('Please enter a valid 10-digit mobile number.'); return; }
-      const addrErr = pincodeErrors(details, pin);
-      if (addrErr.pincode) { setError(addrErr.pincode); return; }
-      if (addrErr.city) { setError('Please enter your city.'); return; }
+      const msg = detailsError();
+      if (msg) { setError(msg); return; }
     }
     setLoading(true);
     if (role === 'doctor') {
@@ -90,9 +133,27 @@ export default function Login() {
       return;
     }
     try {
-      const data = await api.register(fullName.trim(), identifier.trim(), password, role, role === 'patient' ? details : {});
+      const data = await api.register(fullName.trim(), identifier.trim(), password, role, role === 'patient' ? detailsPayload() : {});
       saveSession(data);
       navigate(role === 'doctor' ? '/professional/onboarding' : (searchParams.get('redirect') || '/patient/dashboard'));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // signed-in patient completing missing details
+  const handleDetails = async (e) => {
+    e.preventDefault();
+    setError('');
+    const msg = detailsError();
+    if (msg) { setError(msg); return; }
+    setLoading(true);
+    try {
+      const { user } = await api.updateMe(detailsPayload());
+      saveCurrentUser({ ...pendingUser, ...user });
+      navigate(searchParams.get('redirect') || '/patient/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,10 +167,80 @@ export default function Login() {
 
   const panel = PANELS[role];
   const isRegister = view === 'register';
-  const patientStep2 = isRegister && role === 'patient' && regStep === 2;
+  const isDetails = view === 'details';
+  const patientSignup = isRegister && role === 'patient';
   const inputCls = 'w-full h-12 lg:h-11 px-4 rounded-xl border border-line bg-white text-primary placeholder:text-placeholder focus:ring-4 focus:ring-secondary/15 focus:border-secondary transition-all outline-none';
   const labelCls = 'block text-[13px] font-semibold text-primary mb-1.5';
   const smallCls = inputCls.replace('lg:h-11', 'lg:h-10');
+
+  const need = CARE_NEEDS.find((n) => n.value === details.careNeed);
+  const forSelf = details.careFor === 'Myself';
+  // the patient questions – shown on the sign-up form, and after login when a profile is missing details
+  const patientQuestions = (
+    <div className="space-y-4 lg:space-y-3" data-testid="patient-questions">
+      <div>
+        <p className={labelCls}>Who needs care?</p>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who needs care" data-testid="care-for">
+          {CARE_FOR.map((c) => (
+            <button key={c} type="button" onClick={() => setDetail('careFor', c)} aria-pressed={details.careFor === c}
+              className={`h-8 px-3 rounded-full border text-[12.5px] font-medium transition-colors ${details.careFor === c ? 'bg-primary border-primary text-white' : 'border-line text-primary/70 hover:border-secondary/60'}`}>{c === 'Other' ? 'Someone else' : c}</button>
+          ))}
+        </div>
+      </div>
+      {!forSelf && (
+        <div>
+          <label htmlFor="pt-name" className={labelCls}>Patient's name</label>
+          <input id="pt-name" value={details.patientName} onChange={(e) => setDetail('patientName', e.target.value.slice(0, 80))} placeholder={`Name of your ${details.careFor === 'Other' ? 'family member' : details.careFor.toLowerCase()}`} className={smallCls} />
+        </div>
+      )}
+      <div>
+        <label htmlFor="pt-need" className={labelCls}>What care do you need?</label>
+        <select id="pt-need" value={details.careNeed} onChange={(e) => setDetails((d) => ({ ...d, careNeed: e.target.value, careNeedDetail: '' }))} className={smallCls}>
+          <option value="">Select</option>
+          {CARE_NEEDS.map((n) => <option key={n.value}>{n.value}</option>)}
+        </select>
+      </div>
+      {need?.ask && (
+        <div>
+          <label htmlFor="pt-need-detail" className={labelCls}>{need.ask} <span className="font-normal text-primary/45">(optional)</span></label>
+          {need.options ? (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={need.ask} data-testid="care-need-options">
+              {need.options.map((o) => (
+                <button key={o} type="button" onClick={() => setDetail('careNeedDetail', details.careNeedDetail === o ? '' : o)} aria-pressed={details.careNeedDetail === o}
+                  className={`h-8 px-3 rounded-full border text-[12.5px] font-medium transition-colors ${details.careNeedDetail === o ? 'bg-secondary border-secondary text-white' : 'border-line text-primary/70 hover:border-secondary/60'}`}>{o}</button>
+              ))}
+            </div>
+          ) : (
+            <input id="pt-need-detail" value={details.careNeedDetail} onChange={(e) => setDetail('careNeedDetail', e.target.value.slice(0, 200))} placeholder={need.placeholder} className={smallCls} />
+          )}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="pt-age" className={labelCls}>{forSelf ? 'Your age' : "Patient's age"}</label>
+          <input id="pt-age" type="number" min="0" max="120" inputMode="numeric" value={details.age} onChange={(e) => setDetail('age', e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="Years" className={smallCls} />
+        </div>
+        <div>
+          <label htmlFor="pt-gender" className={labelCls}>{forSelf ? 'Gender' : "Patient's gender"}</label>
+          <select id="pt-gender" value={details.gender} onChange={(e) => setDetail('gender', e.target.value)} className={smallCls}>
+            <option value="">Select</option><option>Female</option><option>Male</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label htmlFor="pt-phone" className={labelCls}>Mobile number</label>
+        <div className="flex">
+          <span className="h-12 lg:h-10 px-3.5 flex items-center rounded-l-xl border border-r-0 border-line bg-tint text-[14px] text-primary/70">+91</span>
+          <input id="pt-phone" inputMode="numeric" autoComplete="tel-national" value={details.phone} onChange={(e) => setDetail('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="For visit updates" className={`${smallCls} rounded-l-none`} />
+        </div>
+      </div>
+      <PincodeFields idPrefix="pt" value={details} onChange={patchDetails} lookup={pin} required={false} fieldCls={smallCls} labelCls={labelCls} className="space-y-4 lg:space-y-3" />
+      <div>
+        <label htmlFor="pt-conditions" className={labelCls}>Ongoing conditions or allergies <span className="font-normal text-primary/45">(optional)</span></label>
+        <input id="pt-conditions" value={details.conditions} onChange={(e) => setDetail('conditions', e.target.value)} placeholder="e.g. Diabetes, penicillin allergy" className={smallCls} />
+      </div>
+    </div>
+  );
 
   return (
     <div className="theme-portea min-h-screen lg:h-screen flex flex-col font-sans text-primary bg-tint">
@@ -174,9 +305,9 @@ export default function Login() {
         </aside>
 
         {/* Form side */}
-        <main className="relative flex items-start lg:items-center justify-center px-4 sm:px-6 py-8 sm:py-10 lg:py-2 lg:overflow-y-auto">
+        <main className="relative flex items-start justify-center px-4 sm:px-6 py-8 sm:py-10 lg:py-6 lg:overflow-y-auto">
           <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-mint/70 to-transparent lg:hidden pointer-events-none" />
-          <div className="relative w-full max-w-[460px]">
+          <div className={`relative w-full lg:my-auto ${patientSignup || isDetails ? 'max-w-[520px]' : 'max-w-[460px]'}`}>
             {/* Mobile intro */}
             <div className="lg:hidden text-center mb-6">
               <p className="eyebrow text-accent mb-2">{panel.eyebrow}</p>
@@ -191,54 +322,19 @@ export default function Login() {
               ) : (
               <div key={view} className="animate-[fade-in_0.35s_ease-out]">
                 <div className="mb-6 lg:mb-5">
-                  {isRegister && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-1">Step {regStep} of 2</p>}
-                  <h2 className="font-serif text-[28px] lg:text-[28px] font-semibold leading-tight mb-1">{patientStep2 ? 'About the patient' : isRegister ? 'Create your account' : 'Welcome back'}</h2>
-                  <p className={`text-sm text-primary/60 ${patientStep2 ? 'lg:hidden' : ''}`}>
-                    {patientStep2
-                      ? 'Helps our care team and doctors prepare for the visit.'
+                  <h2 className="font-serif text-[28px] lg:text-[28px] font-semibold leading-tight mb-1">{isDetails ? `Welcome back${pendingUser?.name ? `, ${pendingUser.name.split(' ')[0]}` : ''}` : isRegister ? 'Create your account' : 'Welcome back'}</h2>
+                  <p className="text-sm text-primary/60">
+                    {isDetails
+                      ? 'A few details about the patient help our doctors and care team prepare for the visit.'
                       : isRegister
-                      ? 'Sign up as a patient.'
+                      ? 'Sign up as a patient – your account and care details in one step.'
                       : 'Sign in to your account.'}
                   </p>
                 </div>
 
-                <form className="space-y-5 lg:space-y-4" onSubmit={isRegister ? handleRegister : handleLogin} noValidate>
-                  {patientStep2 ? (
-                    <div className="space-y-4 lg:space-y-2.5">
-                      <div>
-                        <p className={labelCls}>Who needs care?</p>
-                        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Who needs care" data-testid="care-for">
-                          {CARE_FOR.map((c) => (
-                            <button key={c} type="button" onClick={() => setDetail('careFor', c)} aria-pressed={details.careFor === c}
-                              className={`h-8 px-3 rounded-full border text-[12.5px] font-medium transition-colors ${details.careFor === c ? 'bg-primary border-primary text-white' : 'border-line text-primary/70 hover:border-secondary/60'}`}>{c === 'Other' ? 'Someone else' : c}</button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label htmlFor="pt-age" className={labelCls}>{details.careFor === 'Myself' ? 'Your age' : "Patient's age"}</label>
-                          <input id="pt-age" type="number" min="0" max="120" inputMode="numeric" value={details.age} onChange={(e) => setDetail('age', e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="Years" className={smallCls} />
-                        </div>
-                        <div>
-                          <label htmlFor="pt-gender" className={labelCls}>Gender</label>
-                          <select id="pt-gender" value={details.gender} onChange={(e) => setDetail('gender', e.target.value)} className={smallCls}>
-                            <option value="">Select</option><option>Female</option><option>Male</option><option>Other</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="pt-phone" className={labelCls}>Mobile number</label>
-                        <div className="flex">
-                          <span className="h-12 lg:h-10 px-3.5 flex items-center rounded-l-xl border border-r-0 border-line bg-tint text-[14px] text-primary/70">+91</span>
-                          <input id="pt-phone" inputMode="numeric" autoComplete="tel-national" value={details.phone} onChange={(e) => setDetail('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="For visit updates" className={`${smallCls} rounded-l-none`} />
-                        </div>
-                      </div>
-                      <PincodeFields idPrefix="pt" value={details} onChange={patchDetails} lookup={pin} required={false} fieldCls={smallCls} labelCls={labelCls} className="space-y-4" />
-                      <div>
-                        <label htmlFor="pt-conditions" className={labelCls}>Ongoing conditions or allergies <span className="font-normal text-primary/45">(optional)</span></label>
-                        <input id="pt-conditions" value={details.conditions} onChange={(e) => setDetail('conditions', e.target.value)} placeholder="e.g. Diabetes, penicillin allergy" className={smallCls} />
-                      </div>
-                    </div>
+                <form className="space-y-5 lg:space-y-4" onSubmit={isDetails ? handleDetails : isRegister ? handleRegister : handleLogin} noValidate>
+                  {isDetails ? (
+                    patientQuestions
                   ) : (
                     <>
                   {isRegister && (
@@ -266,6 +362,12 @@ export default function Login() {
                     </div>
                     {isRegister && <p className="text-xs text-primary/50 mt-1.5">At least 6 characters.</p>}
                   </div>
+                  {patientSignup && (
+                    <div className="pt-4 lg:pt-3 border-t border-line-soft">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-3">About the patient</p>
+                      {patientQuestions}
+                    </div>
+                  )}
                     </>
                   )}
 
@@ -276,13 +378,13 @@ export default function Login() {
                   )}
 
                   <div className="flex gap-2.5">
-                    {patientStep2 && <button type="button" onClick={() => { setRegStep(1); setError(''); }} aria-label="Back to account details" className="h-12 lg:h-11 px-4 rounded-xl border border-line text-primary/70 hover:text-primary hover:bg-tint flex items-center gap-1.5 text-[14px] font-medium"><ArrowLeft className="w-4 h-4" /> Back</button>}
+                    {isDetails && <button type="button" onClick={() => navigate(searchParams.get('redirect') || '/patient/dashboard')} className="h-12 lg:h-11 px-4 rounded-xl border border-line text-primary/70 hover:text-primary hover:bg-tint text-[14px] font-medium">Skip for now</button>}
                   <button
                     type="submit"
                     disabled={loading}
                     className="flex-1 h-12 lg:h-11 rounded-xl bg-secondary hover:brightness-95 text-white font-semibold text-[15px] shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--color-secondary)_70%,transparent)] transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
                   >
-                    {loading ? 'Please wait...' : isRegister && role === 'patient' && regStep === 1 ? 'Continue' : isRegister && role === 'doctor' ? 'Continue to professional details' : isRegister ? 'Create Account' : 'Login'}
+                    {loading ? 'Please wait...' : isDetails ? 'Save & continue' : isRegister && role === 'doctor' ? 'Continue to professional details' : isRegister ? 'Create Account' : 'Login'}
                   </button>
                   </div>
                 </form>
@@ -299,7 +401,7 @@ export default function Login() {
               )}
             </div>
 
-            <div className={`${patientStep2 ? 'hidden' : 'flex'} items-center justify-center gap-5 mt-4 text-xs font-medium text-primary/55`}>
+            <div className={`${isDetails ? 'hidden' : 'flex'} items-center justify-center gap-5 mt-4 text-xs font-medium text-primary/55`}>
               <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-accent" /> Secure sign-in</span>
               <span className="flex items-center gap-1.5"><Lock className="w-4 h-4 text-accent" /> Your data stays private</span>
             </div>

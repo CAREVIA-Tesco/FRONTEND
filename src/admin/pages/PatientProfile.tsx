@@ -192,6 +192,30 @@ export function PatientProfile() {
               </div>
 
               <Card>
+                <CardContent className="p-6" data-testid="care-requirement">
+                  <h3 className="text-lg font-bold text-charcoal mb-4">Care Requirement</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted mb-1">Who needs care</h4>
+                      <p className="text-sm font-medium text-charcoal">{pt.careFor ? (pt.careFor === "Other" ? "Someone else" : pt.careFor) : "Not given"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted mb-1">Patient name</h4>
+                      <p className="text-sm font-medium text-charcoal">{pt.careFor && pt.careFor !== "Myself" ? pt.patientName || "Not given" : pt.name}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted mb-1">Care needed</h4>
+                      <p className="text-sm font-medium text-charcoal">{pt.careNeed || "Not given"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted mb-1">Details</h4>
+                      <p className="text-sm font-medium text-charcoal">{pt.careNeedDetail || "-"}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardContent className="p-6">
                   <h3 className="text-lg font-bold text-charcoal mb-4">Medical Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

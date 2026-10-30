@@ -8,7 +8,7 @@ const TITLES: Record<string, string> = {
   "": "Dashboard", patients: "Patients", providers: "Doctors & Providers", specializations: "Specializations",
   caretakers: "Caretakers", labs: "Lab Centres", services: "Services", enquiries: "Enquiries & Callbacks",
   appointments: "Appointments", clinic: "Patient Visits", consultations: "Consultations", availability: "Availability",
-  emergency: "Emergency Requests", content: "Website Content", applications: "Job Applications",
+  emergency: "Emergency Requests", content: "Website Content", reviews: "Customer Reviews", applications: "Job Applications",
   payments: "Payments", transactions: "Transactions", refunds: "Refunds", payouts: "Provider Payouts", settings: "My Profile",
 }
 

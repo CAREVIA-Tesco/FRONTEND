@@ -104,7 +104,7 @@ export default function Reviews() {
         <div className="max-w-[1200px] mx-auto bg-gradient-to-br from-deep via-deep-2 to-deep-3 rounded-2xl p-8 sm:p-10 text-white flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
             <h2 className="font-poppins font-semibold text-2xl sm:text-3xl mb-1">Ready to experience it yourself?</h2>
-            <p className="text-white/75">Book a verified professional or talk to a care advisor.</p>
+            <p className="text-white/75">Book a verified professional in minutes.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button type="button" onClick={() => bookNow()} className="bg-secondary hover:bg-secondary-hover text-white px-6 py-3 rounded-lg font-bold whitespace-nowrap">Book Now</button>

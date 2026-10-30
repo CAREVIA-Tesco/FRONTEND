@@ -126,7 +126,7 @@ export function Patients() {
                         <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm">
                            {patient.name?.charAt(0) || 'P'}
                         </div>
-                        <span className="font-medium text-charcoal">{patient.name || 'Anonymous'}</span>
+                        <span><span className="block font-medium text-charcoal">{patient.name || "Anonymous"}</span>{patient.careNeed && <span className="block text-xs text-muted">{patient.careNeed}{patient.careFor && patient.careFor !== "Myself" ? ` · for ${patient.patientName || patient.careFor.toLowerCase()}` : ""}</span>}</span>
                      </div>
                   </TableCell>
                   <TableCell className="text-muted text-sm">{patient.code}</TableCell>

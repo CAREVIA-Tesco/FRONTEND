@@ -26,6 +26,7 @@ import { Enquiries } from "./pages/Enquiries"
 import { JobApplications } from "./pages/JobApplications"
 import { WebsiteContent } from "./pages/WebsiteContent"
 import { ClinicRecords } from "./pages/ClinicRecords"
+import { CustomerReviews } from "./pages/CustomerReviews"
 
 function App() {
   const [sessionUser, setSessionUser] = useState(() => getSessionUser())
@@ -60,6 +61,7 @@ function App() {
         <Route path="services" element={<Services />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="clinic" element={<ClinicRecords />} />
+        <Route path="reviews" element={<CustomerReviews />} />
         <Route path="consultations" element={<Consultations />} />
         <Route path="availability" element={<Availability />} />
         <Route path="emergency" element={<EmergencyRequests />} />

@@ -65,9 +65,9 @@ export default function ServicesPage() {
         <div className="max-w-5xl mx-auto bg-primary rounded-[32px] p-8 sm:p-12 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold font-poppins mb-2">Not sure which service you need?</h2>
-            <p className="text-white/75">Our care advisor will understand the patient&apos;s condition and suggest the right care plan.</p>
+            <p className="text-white/75">Tell us about the patient and we will suggest the right care plan.</p>
           </div>
-          <button type="button" onClick={() => setEnquiry({})} className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-full font-semibold shrink-0">Talk to a care advisor</button>
+          <button type="button" onClick={() => bookNow()} className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-full font-semibold shrink-0">Book Now</button>
         </div>
       </section>
 

@@ -79,9 +79,7 @@ export default function SiteHeader() {
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2 text-sm">
                     <Link to="/services" className="font-semibold text-primary flex items-center gap-1 hover:text-accent">View all services <ArrowRight className="w-4 h-4" /></Link>
-                    <button type="button" onClick={() => { setMenuOpen(false); setCallbackOpen(true); }} className="font-semibold text-accent flex items-center gap-1 justify-end">
-                      <PhoneCall className="w-4 h-4" /> Talk to a care advisor
-                    </button>
+                    <span aria-hidden="true" />
                     <Link to="/track" className="text-gray-600 flex items-center gap-1.5 hover:text-accent"><SearchCheck className="w-4 h-4" /> Track your request</Link>
                     <Link to="/partner" className="text-gray-600 flex items-center gap-1.5 justify-end hover:text-accent"><Handshake className="w-4 h-4" /> Partner with us</Link>
                     <Link to="/jobs" className="text-gray-600 flex items-center gap-1.5 hover:text-accent"><Briefcase className="w-4 h-4" /> Careers</Link>

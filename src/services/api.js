@@ -62,7 +62,37 @@ const qs = (params = {}) => {
   return clean.length ? `?${new URLSearchParams(clean).toString()}` : '';
 };
 
+// public URL of an uploaded review video
+export const reviewVideoUrl = (id, preview = false) => `${API_BASE}/media/review-videos/${id}${preview ? '?preview=1' : ''}`;
+
+// Upload a review video (admin). The file is sent as-is; onProgress gets 0–100.
+export function uploadReviewVideo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/admin/review-videos`);
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+    xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name || 'review-video'));
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100)); };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* not JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+      else reject(new Error(data.message || (xhr.status === 413 ? 'The video is too large – please upload a video under 60 MB' : `Upload failed (${xhr.status})`)));
+    };
+    xhr.onerror = () => reject(new Error('Upload failed – please check your connection and try again.'));
+    xhr.send(file);
+  });
+}
+
 export const api = {
+  // Happy Customers reviews (added by the admin team)
+  customerReviews: () => request('/customer-reviews', { auth: false }),
+  adminCustomerReviews: () => request('/admin/customer-reviews'),
+  createCustomerReview: (data) => request('/admin/customer-reviews', { method: 'POST', body: data }),
+  updateCustomerReview: (id, data) => request(`/admin/customer-reviews/${id}`, { method: 'PUT', body: data }),
+  deleteCustomerReview: (id) => request(`/admin/customer-reviews/${id}`, { method: 'DELETE' }),
   // auth
   login: (identifier, password, role) => request('/auth/login', { method: 'POST', body: { identifier, password, role }, auth: false }),
   registerCheck: (name, identifier, password, role) => request('/auth/register-check', { method: 'POST', body: { name, identifier, password, role }, auth: false }),

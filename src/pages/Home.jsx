@@ -11,6 +11,7 @@ import BookingModal from '../components/BookingModal';
 import EnquiryModal from '../components/EnquiryModal';
 import { useBookNow } from '../components/BookNow';
 import Reveal from '../components/Reveal';
+import HappyCustomers from '../components/HappyCustomers';
 import api from '../services/api';
 import { usePublicStats, serviceStats, usePricingRules, packagePrices, inr } from '../services/usePublicStats';
 import { useSiteContent, useContact } from '../services/useSiteContent';
@@ -51,36 +52,12 @@ const HOME_NUMBERS = [
   { value: '100+', label: 'Hospital partners' },
 ];
 
-function TestimonialCard({ t }) {
-  const [open, setOpen] = useState(false);
-  const long = String(t.quote || '').length > 190;
-  return (
-    <div className="h-full bg-white rounded-xl border border-black/[0.06] border-l-[5px] border-l-accent shadow-[0_2px_14px_color-mix(in_srgb,var(--color-primary)_5%,transparent)] p-6 lg:p-7 flex flex-col">
-      <span className="font-poppins text-6xl leading-none text-accent/30 h-8 mb-4 select-none" aria-hidden="true">“</span>
-      <p className={`text-[15px] lg:text-base leading-[1.75] text-gray-700 ${open ? '' : 'line-clamp-6'}`}>{t.quote}</p>
-      {long && <button type="button" onClick={() => setOpen(!open)} className="self-start mt-2 font-bold text-accent underline underline-offset-4 text-[15px]">{open ? 'Read less' : 'Read more'}</button>}
-      <div className="mt-auto pt-6">
-        <div className="border-t border-gray-100 pt-5 flex items-center gap-4">
-          <span className="relative w-14 h-14 rounded-full bg-mint border border-accent/25 text-accent text-xl font-bold flex items-center justify-center overflow-hidden shrink-0">
-            {initials(t.name).slice(0, 1)}
-            {t.img && <img src={t.img} alt={t.name} onError={(e) => { e.currentTarget.style.display = 'none'; }} className="absolute inset-0 w-full h-full object-cover" />}
-          </span>
-          <div>
-            <p className="font-bold text-primary text-[17px] capitalize">{String(t.name || '').toLowerCase()}</p>
-            {t.role && <p className="text-sm text-gray-500 capitalize">{String(t.role).toLowerCase()}</p>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   const { list: SERVICES, loaded: servicesLoaded } = useServicesState();
   const stats = usePublicStats();
   const rules = usePricingRules();
   const contact = useContact();
-  const testimonials = useSiteContent('testimonials');
   const cityList = useSiteContent('cities');
   const blog = useSiteContent('blog');
   const faqs = useSiteContent('faqs');
@@ -90,19 +67,10 @@ export default function Home() {
   const [booking, setBooking] = useState({ open: false, type: undefined });
   const [enquiry, setEnquiry] = useState(null);
   const [careChoice, setCareChoice] = useState('');
-  const [slide, setSlide] = useState(0);
-  const [perView, setPerView] = useState(3);
   const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
     api.getProviders().then((d) => { setProviders(d.providers || []); setProvidersLoaded(true); }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const update = () => setPerView(window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
   }, []);
 
   const bookNow = useBookNow();
@@ -120,7 +88,6 @@ export default function Home() {
   // numbers band: Admin → Website Content → Homepage numbers (defaults below)
   const numberItems = useSiteContent('home-numbers').filter((x) => x && x.value && x.label && x.show !== 'hide');
   const bandTiles = (numberItems.length ? numberItems : HOME_NUMBERS).slice(0, 3);
-  const servedTile = bandTiles.find((t) => /serv/i.test(t.label));
 
   // offers: the admin's own list (Admin → Website Content → Offers); while that is empty,
   // automatic offers built from the pricing rules + live fees
@@ -156,15 +123,6 @@ export default function Home() {
     cityList.forEach((c) => { const s = c.desc || 'Other'; map.set(s, [...(map.get(s) || []), c.name]); });
     return [...map.entries()];
   }, [cityList]);
-
-  // testimonials slider
-  const maxSlide = Math.max(0, testimonials.length - perView);
-  useEffect(() => { setSlide((s) => Math.min(s, maxSlide)); }, [maxSlide]);
-  useEffect(() => {
-    if (maxSlide === 0) return undefined;
-    const t = setInterval(() => setSlide((s) => (s >= maxSlide ? 0 : s + 1)), 6000);
-    return () => clearInterval(t);
-  }, [maxSlide]);
 
   const chat = () => (contact.whatsappHref ? window.open(contact.whatsappHref, '_blank', 'noopener') : setEnquiry({}));
 
@@ -220,11 +178,6 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-                <button type="button" onClick={() => setEnquiry({ service: selected?.title })} className="inline-flex items-center gap-2 bg-white sm:bg-transparent rounded-full px-4 py-2.5 sm:p-0 shadow-sm sm:shadow-none text-sm sm:text-[15px] font-semibold text-accent sm:underline sm:underline-offset-4 sm:decoration-accent/40 hover:decoration-accent">
-                  <PhoneCall className="w-4 h-4 sm:hidden" /> Talk to a care advisor
-                </button>
-              </div>
             </Reveal>
           </div>
 
@@ -367,32 +320,8 @@ export default function Home() {
       </section>
       </>)}
 
-      {/* 6. Testimonials */}
-      {on('testimonials') && (<>
-      {testimonials.length > 0 && (
-        <section id="testimonials" className="py-14 lg:py-24 bg-white">
-          <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
-            <Heading eyebrow="Patient stories" title="Happy Customers" desc={servedTile ? `${servedTile.value} families have trusted Carevaa with their care. Here is what they say.` : 'Take it from the families we care for – here is what they say about Carevaa.'} />
-            <div className="relative">
-              <div className="overflow-hidden -mx-3">
-                <div className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ transform: `translateX(-${(slide * 100) / perView}%)` }}>
-                  {testimonials.map((t, i) => (
-                    <div key={i} className="shrink-0 px-3" style={{ width: `${100 / perView}%` }}><TestimonialCard t={t} /></div>
-                  ))}
-                </div>
-              </div>
-              {maxSlide > 0 && (
-                <>
-                  <button type="button" aria-label="Previous" onClick={() => setSlide((s) => (s <= 0 ? maxSlide : s - 1))} className="hidden sm:flex absolute -left-2 lg:-left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white border border-black/10 shadow-lg text-accent items-center justify-center hover:bg-accent hover:text-white transition-colors"><ChevronLeft className="w-6 h-6" /></button>
-                  <button type="button" aria-label="Next" onClick={() => setSlide((s) => (s >= maxSlide ? 0 : s + 1))} className="flex absolute right-2 sm:-right-2 lg:-right-6 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white border border-black/10 shadow-lg text-accent items-center justify-center hover:bg-accent hover:text-white transition-colors"><ChevronRight className="w-6 h-6" /></button>
-                </>
-              )}
-            </div>
-            <div className="text-center mt-10"><Link to="/reviews" className="font-bold text-accent inline-flex items-center gap-2 hover:gap-3 transition-all">Read all patient reviews <ArrowRight className="w-4 h-4" /></Link></div>
-          </div>
-        </section>
-      )}
-      </>)}
+      {/* 6. Happy Customers – text and video reviews from Admin → Customer Reviews */}
+      {on('testimonials') && <HappyCustomers Heading={Heading} />}
 
       {/* 7. Expert doctor panel */}
       {on('doctors') && (<>

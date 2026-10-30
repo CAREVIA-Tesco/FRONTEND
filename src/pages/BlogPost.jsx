@@ -41,7 +41,7 @@ export default function BlogPost() {
               <div className="mt-12 bg-tint rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <p className="font-bold text-primary text-lg">Need help with care at home?</p>
-                  <p className="text-sm text-gray-600">Talk to a Carevaa care advisor – it&apos;s free.</p>
+                  <p className="text-sm text-gray-600">Our team will help you choose the right care – it&apos;s free.</p>
                 </div>
                 <button type="button" onClick={() => setCallbackOpen(true)} className="bg-secondary hover:bg-secondary-hover text-white px-6 py-3 rounded-full font-semibold shrink-0">Request a callback</button>
               </div>
