@@ -6,6 +6,8 @@ import {
   FileCheck2, Pill, AlertTriangle, Sparkles, Loader2
 } from 'lucide-react';
 import api from '../services/api';
+import { useFormDraft } from '../services/formDraft';
+import DraftNotice from '../components/DraftNotice';
 
 const pad = (n) => String(n).padStart(2, '0');
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -74,6 +76,12 @@ export default function PatientRegistration() {
     return () => { active = false; };
   }, [token]);
 
+  // auto-saved draft on this device until the form is submitted
+  const draft = useFormDraft(token && linkData && !result ? `patient-link:${token}` : null, form, {
+    ready: !loading,
+    onRestore: (d) => { if (d) setForm((prev) => ({ ...prev, ...d })); },
+  });
+
   const validate = () => {
     const errs = {};
     const name = form.name.trim();
@@ -124,6 +132,7 @@ export default function PatientRegistration() {
         visitDate: form.visitDate,
         notes: form.notes.trim(),
       });
+      draft.clear(); // submitted – the draft is no longer needed
       setResult(res);
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit registration. Please try again.');
@@ -381,6 +390,8 @@ export default function PatientRegistration() {
               Please enter your details and symptoms. They will be immediately available in the doctor's patient visit records.
             </p>
           </div>
+
+          <DraftNotice draft={draft} />
 
           {submitError && (
             <div role="alert" className="p-4 rounded-2xl bg-red-50 border border-red-200 text-sm font-medium text-red-700 flex items-start gap-2.5">

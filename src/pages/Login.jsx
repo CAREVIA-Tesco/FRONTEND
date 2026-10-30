@@ -7,6 +7,8 @@ import { saveCurrentUser } from '../utils/storage';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
+import { useFormDraft } from '../services/formDraft';
+import DraftNotice from '../components/DraftNotice';
 
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 // "What care do you need?" – each choice asks one follow-up question that fits it
@@ -53,6 +55,19 @@ export default function Login() {
     const digits = identifier.replace(/\D/g, '');
     if (!identifier.includes('@') && digits.length === 10) setDetails((d) => (d.phone ? d : { ...d, phone: digits }));
   }, [identifier]);
+
+  // ---- auto-saved drafts (this device only, never the password) until the form is submitted
+  const signupDraft = useFormDraft('patient-signup', view === 'register' ? { fullName, identifier, details } : null, {
+    onRestore: (d) => {
+      if (!d) return;
+      setFullName(d.fullName || ''); setIdentifier(d.identifier || '');
+      if (d.details) setDetails((x) => ({ ...x, ...d.details }));
+      if (!searchParams.get('forgot')) setView('register');
+    },
+  });
+  const detailsDraft = useFormDraft(view === 'details' && pendingUser ? `patient-details:${pendingUser.id}` : null, details, {
+    onRestore: (d) => { if (d) setDetails((x) => ({ ...x, ...d })); },
+  });
 
   // checks the patient questions; '' when everything needed is there
   const detailsError = () => {
@@ -134,6 +149,7 @@ export default function Login() {
     }
     try {
       const data = await api.register(fullName.trim(), identifier.trim(), password, role, role === 'patient' ? detailsPayload() : {});
+      signupDraft.clear(); // submitted – the draft is no longer needed
       saveSession(data);
       navigate(role === 'doctor' ? '/professional/onboarding' : (searchParams.get('redirect') || '/patient/dashboard'));
     } catch (err) {
@@ -152,6 +168,7 @@ export default function Login() {
     setLoading(true);
     try {
       const { user } = await api.updateMe(detailsPayload());
+      detailsDraft.clear();
       saveCurrentUser({ ...pendingUser, ...user });
       navigate(searchParams.get('redirect') || '/patient/dashboard');
     } catch (err) {
@@ -332,6 +349,8 @@ export default function Login() {
                   </p>
                 </div>
 
+                {isRegister && <DraftNotice draft={signupDraft} className="mb-4" />}
+                {isDetails && <DraftNotice draft={detailsDraft} className="mb-4" />}
                 <form className="space-y-5 lg:space-y-4" onSubmit={isDetails ? handleDetails : isRegister ? handleRegister : handleLogin} noValidate>
                   {isDetails ? (
                     patientQuestions

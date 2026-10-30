@@ -5,6 +5,7 @@ import {
   CalendarCheck, Inbox, Star, AlertCircle
 } from 'lucide-react';
 import { setPendingSignup } from '../services/pendingSignup';
+import { useFormDraft } from '../services/formDraft';
 import api, { saveSession, getSessionUser } from '../services/api';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
 
@@ -43,6 +44,16 @@ export default function DoctorLogin() {
   }, [navigate]);
 
   const switchView = (next) => { setView(next); setError(''); };
+
+  // sign-up draft: name and email/phone are kept on this device (never the password), so a doctor who
+  // left half-way can sign up again and continue the professional form where they stopped
+  const signupDraft = useFormDraft('doctor-signup', view === 'register' ? { fullName, identifier } : null, {
+    onRestore: (d) => {
+      if (!d || (!d.fullName && !d.identifier)) return;
+      setFullName(d.fullName || ''); setIdentifier(d.identifier || '');
+      if (!searchParams.get('forgot')) setView('register');
+    },
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -249,7 +260,7 @@ export default function DoctorLogin() {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {isRegister && <p className="text-xs text-primary/50 mt-1.5">At least 6 characters.</p>}
+                      {isRegister && <p className="text-xs text-primary/50 mt-1.5">{signupDraft.restoredAt ? 'Welcome back – enter a password again to continue your registration where you stopped.' : 'At least 6 characters.'}</p>}
                     </div>
 
                     {error && (

@@ -6,6 +6,8 @@ import {
   UserPlus, Clock, CheckCircle2
 } from 'lucide-react';
 import api from '../services/api';
+import { useFormDraft } from '../services/formDraft';
+import DraftNotice from './DraftNotice';
 
 // Patient Visit Management – walk-in clinic patients, in the Doctor Dashboard ("Patient Visits" tab).
 // The nurse can:
@@ -111,6 +113,15 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
     return () => { live = false; };
   }, [phone, editing, initialPatient]);
 
+  // auto-saved draft (this device) until the visit is saved – reopening the form continues where it stopped
+  const draft = useFormDraft(editing ? `clinic-visit:edit:${visit.id}` : `clinic-visit:new:${initialPatient?.id || 'any'}`, { phone, patientId, p, v }, {
+    onRestore: (d) => {
+      if (!d) return;
+      if (!initialPatient && !editing && d.phone !== undefined) { setPhone(d.phone); setPatientId(d.patientId || ''); if (d.p) setP((x) => ({ ...x, ...d.p })); }
+      if (d.v) setV((x) => ({ ...x, ...d.v }));
+    },
+  });
+
   const choose = (m) => { setPatientId(m.id); setP({ name: m.name, age: m.age ?? '', gender: m.gender || '' }); };
   const setVal = (k) => (e) => { setV((x) => ({ ...x, [k]: e.target.value })); setMsg(null); setDup(null); };
 
@@ -127,11 +138,13 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
     try {
       if (editing) {
         const r = await api.updateClinicVisit(visit.id, v);
+        draft.clear();
         onSaved(r, 'Visit updated');
       } else {
         const body = { ...v, allowSameDay, patient: { name: p.name.trim(), age: p.age, gender: p.gender, phone } };
         if (patientId) body.patientId = patientId;
         const r = await api.addClinicVisit(body);
+        draft.clear();
         onSaved(r, r.message);
       }
     } catch (err) {
@@ -144,6 +157,7 @@ function VisitForm({ initialPatient, visit, onSaved, onClose, onOpenVisit }) {
 
   return (
     <form onSubmit={save} noValidate className="space-y-5" data-testid="visit-form">
+      <DraftNotice draft={draft} />
       {!editing && (
         <fieldset className="space-y-3">
           <legend className="text-[13px] font-bold uppercase tracking-wider text-primary/50 mb-1">Patient Details</legend>

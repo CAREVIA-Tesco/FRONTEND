@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { saveCurrentUser } from '../utils/storage';
 import api, { getSessionUser, saveSession } from '../services/api';
+import { useFormDraft, clearDraft } from '../services/formDraft';
+import DraftNotice from '../components/DraftNotice';
 import { getPendingSignup, clearPendingSignup } from '../services/pendingSignup';
 import { CheckCircle, Upload, Camera, FileText, Calendar, ShieldCheck, Check, Sparkles } from 'lucide-react';
 import PincodeFields from '../components/PincodeFields';
@@ -353,6 +355,7 @@ export default function ProfessionalOnboarding() {
   };
 
   // Specialities added in Admin → Specializations
+  const [draftReady, setDraftReady] = useState(false); // saved profile loaded – a draft is applied on top of it
   const [catalogSpecs, setCatalogSpecs] = useState([]);
   useEffect(() => {
     api.getSpecializations()
@@ -365,10 +368,11 @@ export default function ProfessionalOnboarding() {
     const signup = getPendingSignup();
     if ((!user || user.role !== 'doctor') && signup) {
       setForm((f) => ({ ...f, name: f.name || signup.name, holderName: f.holderName || signup.name }));
+      setDraftReady(true);
       return;
     }
     if (!user || user.role !== 'doctor') {
-      navigate('/login?redirect=/professional/onboarding');
+      navigate('/doctor?redirect=/professional/onboarding');
       return;
     }
     setForm((f) => ({ ...f, name: f.name || user.name || '', holderName: f.holderName || user.name || '' }));
@@ -434,8 +438,31 @@ export default function ProfessionalOnboarding() {
         bankName: provider.bank?.bankName || '',
         ifsc: provider.bank?.ifsc || '',
       }));
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setDraftReady(true));
   }, [navigate]);
+
+  // ---- auto-saved draft: unfinished details stay in the form (this device only) until it is submitted
+  const draftUser = getSessionUser();
+  const draftSignup = getPendingSignup();
+  const draftKey = draftUser?.role === 'doctor' ? `pro-onboarding:${draftUser.id}`
+    : draftSignup ? `pro-onboarding:new:${String(draftSignup.identifier).trim().toLowerCase()}` : null;
+  const draft = useFormDraft(draftKey, {
+    step: step <= 4 ? step : 2, profession, otherProfession, specIsOther, customLabService, aadhaar, types, hours, form,
+  }, {
+    ready: draftReady,
+    onRestore: (d) => {
+      if (d.profession !== undefined) setProfession(d.profession);
+      if (d.otherProfession !== undefined) setOtherProfession(d.otherProfession);
+      if (d.specIsOther !== undefined) setSpecIsOther(d.specIsOther);
+      if (d.customLabService !== undefined) setCustomLabService(d.customLabService);
+      if (d.aadhaar) setAadhaar((a) => ({ ...a, ...d.aadhaar }));
+      if (d.types) setTypes(d.types);
+      if (d.hours) setHours((h) => ({ ...h, ...d.hours }));
+      if (d.form) setForm((f) => ({ ...f, ...d.form }));
+      if (d.step >= 2 && d.step <= 4) setStep(d.step);
+    },
+  });
+  const finishDraft = () => { draft.clear(); clearDraft('doctor-signup'); };
 
   const validateProfile = () => {
     if (!profession || profession === 'Select Profession') return 'Please select your profession.';
@@ -649,11 +676,13 @@ export default function ProfessionalOnboarding() {
         const data = await api.register(signup.name, signup.identifier, signup.password, 'doctor', { profile: buildPayload() });
         saveSession(data);
         clearPendingSignup();
+        finishDraft(); // submitted – the draft is no longer needed
         setProviderStatus(data.provider.status);
         setStep(5);
         return;
       }
       const { provider } = await api.submitOnboarding(buildPayload());
+      finishDraft();
       setProviderStatus(provider.status);
       const user = getSessionUser();
       if (user) saveCurrentUser({ ...user, name: provider.name, providerId: provider.id, providerStatus: provider.status });
@@ -672,6 +701,7 @@ export default function ProfessionalOnboarding() {
     setFormError('');
     try {
       await api.submitOnboarding(buildPayload());
+      finishDraft();
       navigate('/doctor/dashboard');
     } catch (err) {
       setFormError(err.message);
@@ -715,7 +745,7 @@ export default function ProfessionalOnboarding() {
   const signingUp = !!getPendingSignup() && !getSessionUser();
 
   const handleSaveExit = () => {
-    if (signingUp) { clearPendingSignup(); navigate('/login'); return; }
+    if (signingUp) { clearPendingSignup(); navigate('/doctor'); return; } // the draft stays, so they can continue later
     navigate(providerStatus ? '/doctor/dashboard' : '/');
   };
 
@@ -727,7 +757,7 @@ export default function ProfessionalOnboarding() {
           <Link to="/" aria-label="Carevaa home"><img src="/logo.png" alt="Carevaa Logo" className="h-10 w-auto object-contain mix-blend-multiply" /></Link>
           <div className="flex items-center gap-3 sm:gap-5 text-sm">
             <span className="hidden md:inline text-primary/60">Questions? <a href="/contact" className="font-semibold text-primary hover:text-secondary">Contact our team</a></span>
-            <button type="button" onClick={handleSaveExit} className="h-9 px-4 rounded-xl border border-line font-semibold text-primary/80 hover:text-primary hover:bg-tint transition">{signingUp ? 'Cancel sign-up' : 'Save & exit'}</button>
+            <button type="button" onClick={handleSaveExit} className="h-9 px-4 rounded-xl border border-line font-semibold text-primary/80 hover:text-primary hover:bg-tint transition">Save & exit</button>
           </div>
         </div>
       </header>
@@ -746,7 +776,7 @@ export default function ProfessionalOnboarding() {
               ? 'Register your diagnostic or pathology centre. Patients can find your test offerings and book home sample collections or centre visits once approved.'
               : 'It takes about 5 minutes. After you submit, the Carevaa team reviews your profile. Patients can find and book you once it is approved.'}
           </p>
-          {signingUp && <p data-testid="signup-pending" className="mt-3 inline-block text-[13.5px] bg-white/10 ring-1 ring-white/20 rounded-xl px-3.5 py-2">Your account is created only when you submit this form (Submit for Verification). Please don't refresh the page until then.</p>}
+          {signingUp && <p data-testid="signup-pending" className="mt-3 inline-block text-[13.5px] bg-white/10 ring-1 ring-white/20 rounded-xl px-3.5 py-2">Your account is created only when you submit this form (Submit for Verification). What you type is kept on this device – if you leave, sign up again with the same email or phone to continue where you stopped.</p>}
           <div className="mt-6 max-w-xl">
             <div className="flex items-center justify-between text-[12px] text-white/70 mb-2">
               <span>Step {stepIndex + 1} of {visibleSteps.length}: <span className="font-semibold text-white">{visibleSteps[stepIndex]?.title}</span></span>
@@ -801,6 +831,7 @@ export default function ProfessionalOnboarding() {
           <div className="flex-1 min-w-0">
 
             {/* STEP 2: PROFILE */}
+            {step <= 4 && <DraftNotice draft={draft} className="mb-5" />}
             {step === 2 && (
               <div className="bg-white rounded-3xl p-6 sm:p-9 ring-1 ring-line-soft shadow-[0_24px_60px_-34px_color-mix(in_srgb,var(--color-primary)_35%,transparent)] cv-rise">
                 <div className="mb-6 pb-4 border-b border-gray-100">
