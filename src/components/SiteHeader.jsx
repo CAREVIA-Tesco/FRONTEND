@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, Menu, X, Phone, ArrowRight, PhoneCall, SearchCheck, Handshake, Briefcase } from 'lucide-react';
+import { ChevronDown, Menu, X, Phone, ArrowRight, PhoneCall, SearchCheck, Handshake, Briefcase, Stethoscope, ShieldCheck } from 'lucide-react';
 import { getSessionUser } from '../services/api';
 import { useContact } from '../services/useSiteContent';
 import { useServices } from '../data/services';
@@ -28,6 +28,14 @@ export default function SiteHeader() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [callbackOpen, setCallbackOpen] = useState(false);
   const menuRef = useRef(null);
+  // Partners menu: sign-in pages for doctors / professionals and for the Carevaa admin team
+  const [partnersOpen, setPartnersOpen] = useState(false);
+  const [mobilePartners, setMobilePartners] = useState(false);
+  const partnersRef = useRef(null);
+  const PARTNER_LINKS = [
+    { to: '/doctor', label: 'Doctor Login', sub: 'Doctors & care professionals', icon: Stethoscope },
+    { to: '/admin', label: 'Admin Login', sub: 'Carevaa admin team', icon: ShieldCheck },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -36,12 +44,17 @@ export default function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useEffect(() => { setMenuOpen(false); setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => { setMenuOpen(false); setMobileOpen(false); setPartnersOpen(false); }, [location.pathname]);
 
   useEffect(() => {
-    const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    const close = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (partnersRef.current && !partnersRef.current.contains(e.target)) setPartnersOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') { setMenuOpen(false); setPartnersOpen(false); } };
+    document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', onKey); };
   }, []);
 
   const navCls = ({ isActive }) => `whitespace-nowrap text-[15px] xl:text-base transition-colors py-2 ${isActive ? 'text-accent' : 'text-primary hover:text-accent'}`;
@@ -54,7 +67,7 @@ export default function SiteHeader() {
             <img src="/logo.png" alt="Carevaa Logo" className="h-12 lg:h-[60px] w-auto object-contain mix-blend-multiply" />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-7 xl:gap-10 ml-auto">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-10 ml-auto">
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -94,17 +107,41 @@ export default function SiteHeader() {
             <NavLink to="/about" className={navCls}>About Us</NavLink>
             <NavLink to="/blog" className={navCls}>Blogs</NavLink>
             <span className="hidden xl:inline-flex"><NavLink to="/contact" className={navCls}>Contact</NavLink></span>
+            <div className="relative" ref={partnersRef}>
+              <button
+                type="button"
+                onClick={() => setPartnersOpen((v) => !v)}
+                aria-expanded={partnersOpen}
+                aria-haspopup="true"
+                className={`flex items-center gap-2 whitespace-nowrap text-[15px] xl:text-base py-2 transition-colors ${partnersOpen ? 'text-accent' : 'text-primary hover:text-accent'}`}
+              >
+                Partners <ChevronDown className={`w-5 h-5 text-accent transition-transform ${partnersOpen ? 'rotate-180' : ''}`} strokeWidth={2.5} />
+              </button>
+              <div className={`absolute right-0 top-full pt-5 transition-all duration-200 ${partnersOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'}`}>
+                <div className="w-[280px] bg-white rounded-2xl shadow-2xl border border-black/5 p-2" role="menu" aria-label="Partners" data-testid="partners-menu">
+                  {PARTNER_LINKS.map((l) => (
+                    <Link key={l.to} to={l.to} role="menuitem" onClick={() => setPartnersOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-cream group transition-colors">
+                      <span className="w-10 h-10 rounded-xl bg-mint text-accent flex items-center justify-center shrink-0"><l.icon className="w-5 h-5" /></span>
+                      <span>
+                        <span className="block font-semibold text-primary text-[15px] group-hover:text-accent transition-colors">{l.label}</span>
+                        <span className="block text-xs text-gray-500">{l.sub}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </nav>
 
-          <div className="hidden lg:flex items-center gap-4 xl:gap-7 shrink-0">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-7 shrink-0">
             <Link to={accountLink} className="whitespace-nowrap text-[15px] text-primary hover:text-accent transition-colors">{accountLabel}</Link>
             {contact.phone && (
-              <a href={contact.phoneHref} className="flex items-center gap-3 bg-white rounded-lg px-4 py-3 shadow-[0_2px_10px_color-mix(in_srgb,var(--color-primary)_6%,transparent)] hover:shadow-md transition-shadow">
+              <a href={contact.phoneHref} aria-label={`Call ${contact.phone}`} className="flex items-center gap-3 bg-white rounded-lg px-3 xl:px-4 py-3 shadow-[0_2px_10px_color-mix(in_srgb,var(--color-primary)_6%,transparent)] hover:shadow-md transition-shadow">
                 <Phone className="w-5 h-5 text-accent fill-accent" />
-                <span className="font-bold text-primary text-[15px] xl:text-base whitespace-nowrap">{contact.phone}</span>
+                <span className="hidden xl:inline font-bold text-primary text-base whitespace-nowrap">{contact.phone}</span>
               </a>
             )}
-            <button type="button" onClick={() => bookNow()} className="whitespace-nowrap bg-secondary hover:bg-secondary-hover text-white px-6 py-3.5 rounded-lg font-bold text-[15px] xl:text-[17px] leading-none shadow-sm hover:shadow-lg transition-all">
+            <button type="button" onClick={() => bookNow()} className="whitespace-nowrap bg-secondary hover:bg-secondary-hover text-white px-5 xl:px-6 py-3.5 rounded-lg font-bold text-[15px] xl:text-[17px] leading-none shadow-sm hover:shadow-lg transition-all">
               Book Now
             </button>
           </div>
@@ -138,6 +175,18 @@ export default function SiteHeader() {
             {[['/services', 'All Services'], ['/doctors', 'Find Doctors'], ['/hire-professional', 'Hire a Professional'], ['/about', 'About Us'], ['/blog', 'Blogs'], ['/contact', 'Contact Us'], ['/reviews', 'Patient Reviews'], ['/track', 'Track Request'], ['/refer', 'Refer a Friend'], ['/partner', 'Partner With Us'], ['/jobs', 'Careers']].map(([to, label]) => (
               <Link key={to} to={to} className="py-3 font-medium text-primary border-b border-gray-100">{label}</Link>
             ))}
+            <button type="button" onClick={() => setMobilePartners((v) => !v)} aria-expanded={mobilePartners} className="flex items-center justify-between py-3 font-semibold text-primary border-b border-gray-100">
+              Partners <ChevronDown className={`w-4 h-4 text-accent transition-transform ${mobilePartners ? 'rotate-180' : ''}`} />
+            </button>
+            {mobilePartners && (
+              <div className="py-2 border-b border-gray-100" data-testid="partners-menu-mobile">
+                {PARTNER_LINKS.map((l) => (
+                  <Link key={l.to} to={l.to} className="flex items-center gap-2.5 py-2.5 pl-2 text-[15px] font-medium text-primary">
+                    <l.icon className="w-4 h-4 text-accent" /> {l.label}
+                  </Link>
+                ))}
+              </div>
+            )}
             <Link to={accountLink} className="py-3 font-bold text-primary">{accountLabel}</Link>
             <div className="grid grid-cols-2 gap-3 mt-2">
               <button type="button" onClick={() => { setMobileOpen(false); setCallbackOpen(true); }} className="border-2 border-accent text-accent py-3 rounded-lg font-semibold">Request Callback</button>
