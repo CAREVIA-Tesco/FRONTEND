@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PhoneCall, Mail, MapPin, Clock, Briefcase, Handshake, SearchCheck, ArrowRight } from 'lucide-react';
+import { PhoneCall, Mail, MapPin, Clock, Briefcase, SearchCheck, ArrowRight } from 'lucide-react';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import PageHero from '../components/PageHero';
@@ -53,7 +53,6 @@ export default function Contact() {
           <div className="space-y-5">
             {[
               { icon: SearchCheck, title: 'Track a request', desc: 'Check the status of a callback or care request with your request ID.', to: '/track', cta: 'Track request' },
-              { icon: Handshake, title: 'Partner with us', desc: 'Hospitals, clinics, diagnostic centres and companies can work with Carevaa.', to: '/partner', cta: 'Partnership enquiry' },
               { icon: Briefcase, title: 'Join our team', desc: 'Doctors, nurses, physios and caregivers – see current openings.', to: '/jobs', cta: 'View openings' },
             ].map((c, i) => (
               <Reveal key={c.title} delay={i * 80}>

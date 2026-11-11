@@ -453,11 +453,11 @@ export default function Home() {
         <Reveal className="max-w-[1320px] mx-auto px-5 sm:px-8">
           <div className="bg-white rounded-2xl overflow-hidden grid lg:grid-cols-2 items-center border border-black/[0.05]">
             <div className="p-6 sm:p-10 lg:p-14">
-              <p className="eyebrow text-accent mb-4">Partner with us</p>
+              <p className="eyebrow text-accent mb-4">Join Carevaa</p>
               <h2 className="font-poppins font-semibold text-[26px] md:text-[34px] leading-tight text-primary mb-4">Are you a healthcare professional?</h2>
               <p className="text-gray-600 text-[15px] md:text-lg mb-7 font-light">Doctors, physiotherapists, nurses and caregivers can join Carevaa, set their own fees and schedule, and start receiving bookings as soon as their profile is live.</p>
               <div className="flex flex-wrap gap-4">
-                <Link to="/login" className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-lg font-bold transition-colors">Register as a professional</Link>
+                <Link to="/doctor" className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-lg font-bold transition-colors">Register as a professional</Link>
                 <Link to="/jobs" className="border border-accent/40 text-accent px-7 py-3.5 rounded-lg font-bold hover:bg-accent hover:text-white transition-colors">View openings</Link>
               </div>
             </div>

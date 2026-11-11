@@ -23,7 +23,6 @@ import Ayurveda from './pages/Ayurveda.jsx';
 import BHS from './pages/BHS.jsx';
 import Doctors from './pages/Doctors.jsx';
 import Contact from './pages/Contact.jsx';
-import Partner from './pages/Partner.jsx';
 import TrackRequest from './pages/TrackRequest.jsx';
 import BlogPost from './pages/BlogPost.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
@@ -56,7 +55,8 @@ export default function App() {
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/services/:key" element={<ServiceDetail />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/partner" element={<Partner />} />
+        {/* the Partner With Us page was removed – old links go to the home page */}
+        <Route path="/partner" element={<Navigate to="/" replace />} />
         <Route path="/track" element={<TrackRequest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

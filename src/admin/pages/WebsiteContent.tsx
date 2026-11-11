@@ -33,7 +33,7 @@ const SECTIONS: Section[] = [
     { name: "why", label: "About / Why Carevaa", type: "select", options: SHOW },
     { name: "articles", label: "Stories & articles (blog)", type: "select", options: SHOW },
     { name: "cities", label: "Cities we serve", type: "select", options: SHOW },
-    { name: "partner", label: "Partner / join us", type: "select", options: SHOW },
+    { name: "partner", label: "Join Carevaa (professionals)", type: "select", options: SHOW },
     { name: "faq", label: "FAQs", type: "select", options: SHOW },
     { name: "cta", label: "Closing call-to-action", type: "select", options: SHOW },
     { name: "chat", label: "Floating chat button", type: "select", options: SHOW },

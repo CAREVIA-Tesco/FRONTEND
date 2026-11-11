@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { PhoneCall, Mail, Clock, MapPin, Briefcase, ArrowUpRight } from 'lucide-react';
+import { PhoneCall, Mail, Clock, MapPin, Briefcase } from 'lucide-react';
 import { useServices } from '../data/services';
 import { useContact, useSiteContent } from '../services/useSiteContent';
 import SocialLinks from './SocialLinks';
@@ -17,7 +17,6 @@ export default function SiteFooter() {
     ['/track', 'Track Your Request'],
     ['/reviews', 'Patient Reviews'],
     ['/refer', 'Refer a Friend'],
-    ['/partner', 'Partner With Us'],
     ['/jobs', 'Careers'],
     ['/blog', 'Blogs'],
     ['/doctors', 'Find Doctors'],
@@ -36,9 +35,6 @@ export default function SiteFooter() {
             <p className="text-sm leading-relaxed max-w-sm mb-6">
               Quality healthcare, delivered. Book verified doctors, physiotherapists, nurses and caregivers who come to your home or consult online.
             </p>
-            <Link to="/partner" className="inline-flex items-center gap-2 text-sm font-semibold text-white border border-white/20 rounded-full px-5 py-2.5 hover:bg-white hover:text-primary transition-colors">
-              Partner with us <ArrowUpRight className="w-4 h-4" />
-            </Link>
             {contact.social.length > 0 && (
               <div className="mt-7" data-testid="footer-social">
                 <h4 className="text-white font-semibold mb-3 text-sm">Follow us</h4>
