@@ -102,7 +102,6 @@ export default function SiteHeader() {
             </div>
             <NavLink to="/doctors" className={navCls}>Find Doctors</NavLink>
             <NavLink to="/about" className={navCls}>About Us</NavLink>
-            <NavLink to="/blog" className={navCls}>Blogs</NavLink>
             <NavLink to="/jobs" className={navCls}>Careers</NavLink>
             <span className="hidden xl:inline-flex"><NavLink to="/contact" className={navCls}>Contact</NavLink></span>
             <div className="relative" ref={partnersRef}>
@@ -170,7 +169,7 @@ export default function SiteHeader() {
                 ))}
               </div>
             )}
-            {[['/services', 'All Services'], ['/doctors', 'Find Doctors'], ['/about', 'About Us'], ['/blog', 'Blogs'], ['/contact', 'Contact Us'], ['/reviews', 'Patient Reviews'], ['/track', 'Track Request'], ['/jobs', 'Careers']].map(([to, label]) => (
+            {[['/services', 'All Services'], ['/doctors', 'Find Doctors'], ['/about', 'About Us'], ['/contact', 'Contact Us'], ['/reviews', 'Patient Reviews'], ['/track', 'Track Request'], ['/jobs', 'Careers']].map(([to, label]) => (
               <Link key={to} to={to} className="py-3 font-medium text-primary border-b border-gray-100">{label}</Link>
             ))}
             <button type="button" onClick={() => setMobilePartners((v) => !v)} aria-expanded={mobilePartners} className="flex items-center justify-between py-3 font-semibold text-primary border-b border-gray-100">
