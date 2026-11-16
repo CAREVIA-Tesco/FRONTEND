@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { CalendarCheck, PhoneCall, ShieldCheck, Clock, House, Loader2, Building2, Video, FlaskConical, Check } from 'lucide-react';
+import { CalendarCheck, ShieldCheck, Clock, House, Loader2, Building2, Video, FlaskConical, Check } from 'lucide-react';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import PageHero from '../components/PageHero';
-import EnquiryModal from '../components/EnquiryModal';
+import ServiceGuide from '../components/ServiceGuide';
 import ServiceProfessionals from '../components/ServiceProfessionals';
 import { useBookNow } from '../components/BookNow';
 import { useServices, loadServices } from '../data/services';
@@ -15,7 +15,6 @@ export default function ServiceDetail() {
   const { key } = useParams();
   const services = useServices();
   const [checked, setChecked] = useState(false);
-  const [enquiry, setEnquiry] = useState(false);
   const bookNow = useBookNow();
   const service = services.find((s) => s.key === key);
 
@@ -51,8 +50,7 @@ export default function ServiceDetail() {
       <SiteHeader />
       <PageHero eyebrow={service.short || 'Care at home'} title={homeOk ? `${service.title} at home` : `${service.title} – Clinic & Online`} desc={service.desc} crumbs={[['Our Services', '/services'], [service.title]]}>
         <div className="mt-7 flex flex-wrap gap-3">
-          <button type="button" onClick={() => bookNow({ service: service.title })} className="bg-primary hover:bg-primary-hover text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Book Now</button>
-          <button type="button" onClick={() => setEnquiry(true)} className="bg-white border border-primary/15 text-primary font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2 hover:border-primary"><PhoneCall className="w-4 h-4" /> Request callback</button>
+          <button type="button" onClick={() => bookNow({ service: service.title })} className="bg-secondary hover:bg-secondary-hover text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Book Now</button>
         </div>
       </PageHero>
 
@@ -87,7 +85,7 @@ export default function ServiceDetail() {
             <p className="mt-2 text-gray-600 max-w-2xl">Pick a test and book – a trained phlebotomist collects the sample at your home and the report is shared with you.</p>
             <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {LAB_TESTS.map((t) => (
-                <button key={t} type="button" onClick={() => bookNow({ service: service.title, labTests: [t] })} className="group flex items-center justify-between gap-3 text-left bg-white rounded-2xl border border-black/[0.07] px-5 py-4 hover:border-accent/50 hover:shadow-md transition">
+                <button key={t} type="button" onClick={() => bookNow({ service: service.title, labTests: [t] })} className="group flex items-center justify-between gap-3 text-left bg-white rounded-2xl border border-black/[0.07] px-5 py-4 hover:-translate-y-0.5 hover:border-secondary/60 hover:shadow-[0_18px_40px_-18px_color-mix(in_srgb,var(--color-secondary)_45%,transparent)] transition-all duration-300">
                   <span className="flex items-center gap-3 font-semibold text-primary"><span className="w-9 h-9 rounded-xl bg-tint flex items-center justify-center shrink-0"><FlaskConical className="w-4 h-4 text-accent" /></span>{t}</span>
                   <span className="text-[13px] font-semibold text-secondary whitespace-nowrap group-hover:underline">Book</span>
                 </button>
@@ -98,9 +96,10 @@ export default function ServiceDetail() {
         </section>
       )}
 
+      <ServiceGuide serviceKey={service.key} serviceName={service.title} onBook={() => bookNow({ service: service.title })} bg="bg-white" />
+
       <ServiceProfessionals serviceKey={service.key} />
       <SiteFooter />
-      <EnquiryModal open={enquiry} onClose={() => setEnquiry(false)} service={service.title} />
     </div>
   );
 }

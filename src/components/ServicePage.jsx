@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Phone, ChevronRight, ChevronDown, MessageCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, MessageCircle, Wallet, Zap, BadgeCheck, RotateCcw, CalendarCheck } from 'lucide-react';
 import { usePublicStats, serviceStats, plural, usePricingRules, packagePrices, inr } from '../services/usePublicStats';
+import ServiceGuide, { HOVER_CARD } from './ServiceGuide';
 import SiteHeader from './SiteHeader';
 import SiteFooter from './SiteFooter';
 import ServiceProfessionals from './ServiceProfessionals';
-import EnquiryModal from './EnquiryModal';
 import { useBookNow } from './BookNow';
 import { useContact } from '../services/useSiteContent';
 import AnimatedCTA from './AnimatedCTA';
 import { SERVICE_CONTENT } from '../data/serviceContent';
-
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Shared layout of the service pages (/physiotherapy, /nurse-care …). Text lives in data/serviceContent.js;
 // prices, counts and ratings come live from the database.
@@ -21,28 +19,15 @@ export default function ServicePage({ serviceKey }) {
   const pricingRules = usePricingRules();
   const prices = packagePrices(liveStats?.minFee, pricingRules);
   const bookNow = useBookNow();
-  const [enquiry, setEnquiry] = useState(null);
   const contact = useContact();
-  const chatOnWhatsApp = () => (contact.whatsappHref ? window.open(contact.whatsappHref, '_blank', 'noopener') : setEnquiry({}));
   const [openFaq, setOpenFaq] = useState(0);
   const book = () => bookNow({ service: c.service });
-  const packs = prices?.packSessions || 10;
-  const Unit = cap(c.unit);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = `${c.service} at Home – Carevaa`;
     return () => { document.title = 'Carevaa | Doctors, Nurses & Home Care Services'; };
   }, [c.service]);
-
-  const Price = ({ value, suffix }) => (prices
-    ? <><span className="text-4xl font-bold text-primary">{inr(value)}</span><span className="text-ink-soft">{suffix}</span></>
-    : <span className="text-2xl font-bold text-primary">Price on request</span>);
-  const Points = ({ items, strongFirst }) => (
-    <ul className="space-y-4 mb-8">
-      {items.map((p, i) => <li key={p} className={`flex items-start gap-2 text-sm text-primary ${strongFirst && i === 0 ? 'font-medium' : ''}`}><CheckCircle className="w-5 h-5 text-accent shrink-0" /> {p}</li>)}
-    </ul>
-  );
 
   return (
     <div className="theme-portea font-sans text-primary bg-cream min-h-screen relative overflow-x-clip selection:bg-primary selection:text-white" data-testid={`service-page-${serviceKey}`}>
@@ -68,9 +53,6 @@ export default function ServicePage({ serviceKey }) {
 
           <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full sm:w-auto">
             <AnimatedCTA onClick={book}>{c.cta}</AnimatedCTA>
-            <button type="button" onClick={() => setEnquiry({})} className="bg-transparent border-2 border-primary text-primary hover:bg-tint px-6 py-3 rounded-xl font-medium text-base transition flex items-center justify-center gap-2">
-              <Phone className="w-5 h-5" /> {c.talk}
-            </button>
           </div>
           <p className="text-sm text-ink-soft">🕐 Book open slots online • 🛡️ Verified {c.proNounPlural} • 📄 Visit summary after every visit</p>
         </div>
@@ -83,18 +65,18 @@ export default function ServicePage({ serviceKey }) {
       </section>
 
       {/* Quick facts */}
-      <section className="bg-accent/5 py-10 border-y border-accent/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section className="bg-tint py-12 sm:py-14 border-y border-black/[0.04]" data-testid="service-facts">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {[
-            ['💰', 'Starting Price', prices ? `${inr(prices.single)} per ${c.unit}` : 'Price on request'],
-            ['⚡', 'Easy Booking', 'See open slots and book online'],
-            ['✅', 'Verified Profiles', 'Qualifications and ID checked'],
-            ['💯', 'Easy Refunds', 'Cancel paid bookings before the visit'],
-          ].map(([icon, t, d]) => (
-            <div key={t} className="flex flex-col items-center text-center">
-              <span className="text-3xl mb-2">{icon}</span>
-              <h4 className="font-bold text-primary mb-1">{t}</h4>
-              <p className="text-sm text-ink-soft">{d}</p>
+            [Wallet, 'Starting Price', prices ? `${inr(prices.single)} per ${c.unit}` : 'Price on request'],
+            [Zap, 'Easy Booking', 'See open slots and book online'],
+            [BadgeCheck, 'Verified Profiles', 'Qualifications and ID checked'],
+            [RotateCcw, 'Easy Refunds', 'Cancel paid bookings before the visit'],
+          ].map(([Icon, t, d]) => (
+            <div key={t} className={`group bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 flex flex-col items-start ${HOVER_CARD}`}>
+              <span className="w-12 h-12 rounded-xl bg-mint flex items-center justify-center transition-colors group-hover:bg-secondary"><Icon className="w-6 h-6 text-accent transition-colors group-hover:text-white" /></span>
+              <h4 className="mt-4 font-semibold text-primary text-[16px] sm:text-[17px]">{t}</h4>
+              <p className="mt-1 text-[13.5px] sm:text-sm text-ink-soft leading-snug">{d}</p>
             </div>
           ))}
         </div>
@@ -128,12 +110,12 @@ export default function ServicePage({ serviceKey }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {c.conditions.map(([icon, name, desc], i) => (
-              <div key={name} className="bg-white p-6 rounded-[20px] shadow-sm hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--color-primary)_12%,transparent)] transition-all duration-300 hover:-translate-y-1.5 border border-transparent hover:border-tint">
+              <div key={name} className={`bg-white p-6 rounded-[20px] shadow-sm border border-black/[0.05] flex flex-col ${HOVER_CARD}`}>
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-4 ${i % 2 === 0 ? 'bg-blue-50' : 'bg-red-50'}`}>{icon}</div>
                 <h3 className="text-lg font-semibold text-primary mb-2">{name}</h3>
-                <p className="text-sm text-ink-soft mb-4">{desc}</p>
-                <button type="button" onClick={() => setEnquiry({ message: `I need help with ${name}.` })} className="text-accent font-medium flex items-center gap-1 text-sm hover:gap-2 transition-all">
-                  Ask an Expert <ChevronRight className="w-4 h-4" />
+                <p className="text-sm text-ink-soft mb-4 flex-1">{desc}</p>
+                <button type="button" onClick={book} className="self-start text-secondary font-semibold flex items-center gap-1 text-sm hover:gap-2 transition-all">
+                  Book Now <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             ))}
@@ -141,46 +123,9 @@ export default function ServicePage({ serviceKey }) {
         </div>
       </section>
 
+      <ServiceGuide serviceKey={serviceKey} serviceName={c.service} onBook={book} />
+
       <ServiceProfessionals serviceKey={serviceKey} />
-
-      {/* Pricing */}
-      <section className="py-14 sm:py-24 bg-tint relative border-t border-[#e2e8f0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-lg text-ink-soft">No hidden fees. Save more with packs and monthly plans.</p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center max-w-5xl mx-auto">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold text-primary mb-2">{c.plans.single.name}</h3>
-              <div className="flex items-baseline gap-1 mb-2"><Price value={prices?.single} suffix={`/ ${c.unit}`} /></div>
-              <p className="text-sm text-ink-soft mb-8 pb-8 border-b border-gray-100">{c.plans.single.note}</p>
-              <Points items={c.plans.single.points} />
-              <button type="button" onClick={book} className="w-full bg-transparent border-2 border-primary text-primary hover:bg-tint py-3 rounded-xl font-semibold transition">Book Single {Unit}</button>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl shadow-2xl border-2 border-accent relative lg:-translate-y-4">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-secondary text-white px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1 shadow-md whitespace-nowrap">⭐ Most Popular</div>
-              <h3 className="text-xl font-bold text-primary mb-2 mt-2">{packs}-{Unit} Pack</h3>
-              <div className="flex items-baseline gap-1 mb-2"><Price value={prices?.pack} suffix={`/ ${packs} ${c.units}`} /></div>
-              <p className="text-sm font-medium text-accent mb-8 pb-8 border-b border-gray-100">{prices ? `Save ${inr(prices.packSaving)} (${inr(prices.perSession)} per ${c.unit})` : 'Pack savings shown once prices are set'}</p>
-              <Points items={c.plans.pack.points} strongFirst />
-              <button type="button" onClick={() => setEnquiry({ type: 'plan', plan: `${packs}-${Unit} Pack${prices ? ` (${inr(prices.pack)})` : ''}` })} className="w-full bg-secondary hover:bg-secondary-hover text-white py-3.5 rounded-xl font-bold text-lg transition shadow-md">Get This Pack</button>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <h3 className="text-xl font-bold text-primary mb-2">{c.plans.monthly.name}</h3>
-              <div className="flex items-baseline gap-1 mb-2"><Price value={prices?.monthly} suffix="/ month" /></div>
-              <p className="text-sm text-ink-soft mb-8 pb-8 border-b border-gray-100">{c.plans.monthly.note}</p>
-              <Points items={c.plans.monthly.points} />
-              <button type="button" onClick={() => setEnquiry({ type: 'plan', plan: `${c.plans.monthly.name}${prices ? ` (${inr(prices.monthly)}/month)` : ''}` })} className="w-full bg-transparent border-2 border-primary text-primary hover:bg-tint py-3 rounded-xl font-semibold transition">Start Monthly Plan</button>
-            </div>
-          </div>
-          {(prices?.emiMinimum ?? pricingRules?.emiMinimum) ? (
-            <p className="text-center mt-10 text-sm text-ink-soft">💳 EMI available on packs above {inr(prices?.emiMinimum ?? pricingRules?.emiMinimum)}</p>
-          ) : null}
-        </div>
-      </section>
 
       {/* FAQs */}
       <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8 bg-white">
@@ -188,7 +133,7 @@ export default function ServicePage({ serviceKey }) {
           <h2 className="text-3xl md:text-[40px] font-semibold font-poppins text-primary text-center mb-8 sm:mb-12">{c.service}: Common Questions</h2>
           <div className="space-y-3">
             {c.faqs.map(([q, a], i) => (
-              <div key={q} className="rounded-2xl border border-gray-100 bg-cream overflow-hidden">
+              <div key={q} className={`rounded-2xl border overflow-hidden transition-colors ${openFaq === i ? 'border-secondary/50 bg-cream' : 'border-gray-100 bg-cream hover:border-secondary/40'}`}>
                 <button type="button" aria-expanded={openFaq === i} onClick={() => setOpenFaq(openFaq === i ? -1 : i)} className="w-full flex items-center justify-between gap-4 text-left px-5 py-4 font-semibold text-primary">
                   {q} <ChevronDown className={`w-5 h-5 shrink-0 text-accent transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
                 </button>
@@ -206,8 +151,7 @@ export default function ServicePage({ serviceKey }) {
             <h2 className="text-3xl md:text-[40px] font-bold font-poppins mb-6 leading-tight">{c.ctaTitle}</h2>
             <p className="text-lg md:text-xl mb-10 opacity-90 max-w-2xl mx-auto">{c.ctaText}</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button type="button" onClick={book} className="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg">📱 {c.ctaButton}</button>
-              <button type="button" onClick={chatOnWhatsApp} className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center justify-center gap-2">💬 Chat on WhatsApp</button>
+              <button type="button" onClick={book} className="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg inline-flex items-center justify-center gap-2"><CalendarCheck className="w-5 h-5" /> {c.ctaButton}</button>
             </div>
             <p className="text-sm mt-6 opacity-80">⚡ Booking takes about a minute</p>
           </div>
@@ -221,7 +165,6 @@ export default function ServicePage({ serviceKey }) {
         <MessageCircle className="w-6 h-6 relative z-10" />
       </a>
 
-      <EnquiryModal open={!!enquiry} onClose={() => setEnquiry(null)} type={enquiry?.type} service={c.service} plan={enquiry?.plan} message={enquiry?.message} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ export const SERVICE_CONTENT = {
     badge: '🏠 Certified Physiotherapists at Your Doorstep',
     title: ['Expert Physiotherapy,', 'Delivered to Your Home'],
     intro: 'Recover from pain, injury or surgery with certified physiotherapists who treat you at home – a personal plan, no travel and steady progress.',
-    cta: 'Book a Session', talk: 'Talk to a Physio',
+    cta: 'Book a Session',
     heroImg: '/hero.png', heroAlt: 'Physiotherapist helping a patient exercise at home',
     aboutTitle: 'Physiotherapy That Comes to You',
     about: [
@@ -50,7 +50,7 @@ export const SERVICE_CONTENT = {
     badge: '🏠 Trained Nurses at Your Doorstep',
     title: ['Skilled Nursing Care,', 'Right at Home'],
     intro: 'Injections, IV drips, wound dressing, catheter care and post-hospital nursing by trained nurses (GNM / B.Sc.) – for a single visit or round-the-clock care.',
-    cta: 'Book a Nurse', talk: 'Talk to a Nurse',
+    cta: 'Book a Nurse',
     heroImg: '/nurse-hero.jpg', heroAlt: 'Nurse caring for an elderly woman at home',
     aboutTitle: 'Hospital-Quality Nursing at Home',
     about: [
@@ -92,7 +92,7 @@ export const SERVICE_CONTENT = {
     badge: '🏠 General Physicians Who Visit You',
     title: ['A Doctor at Your Door,', 'When You Need One'],
     intro: 'Qualified general physicians (MBBS) who visit you at home to examine, diagnose and prescribe – ideal for elders, people who are unwell and anyone who cannot travel.',
-    cta: 'Book a Home Visit', talk: 'Talk to a Doctor',
+    cta: 'Book a Home Visit',
     heroImg: '/hero.png', heroAlt: 'Doctor examining a patient at home',
     aboutTitle: 'Doctor Visits Without the Waiting Room',
     about: [
@@ -134,7 +134,7 @@ export const SERVICE_CONTENT = {
     badge: '🩺 General Medicine · Online & Clinic',
     title: ['Consult Expert Doctors,', 'Online or at the Clinic'],
     intro: 'Book general physicians and specialists for a video or phone consultation from home, or a clinic visit at a time that suits you – with a digital prescription.',
-    cta: 'Book a Consultation', talk: 'Talk to a Care Advisor',
+    cta: 'Book a Consultation',
     heroImg: '/doctor-hero.png', heroAlt: 'Doctor ready for a consultation',
     aboutTitle: 'See a Doctor Without the Wait',
     about: [
@@ -167,7 +167,7 @@ export const SERVICE_CONTENT = {
       ['How do I pay?', 'Online consultations are paid when you book. Clinic and home visits are paid at the visit.'],
       ['Can I cancel or change my booking?', 'You can cancel from your dashboard before the visit – paid bookings are refunded automatically. The doctor can also reschedule with you.'],
     ],
-    ctaTitle: 'Talk to a Doctor Today', ctaText: 'Book an online or clinic consultation with a verified doctor.', ctaButton: 'Book Consultation',
+    ctaTitle: 'See a Doctor Today', ctaText: 'Book an online or clinic consultation with a verified doctor.', ctaButton: 'Book Consultation',
   },
 
   'care-taker': {
@@ -176,7 +176,7 @@ export const SERVICE_CONTENT = {
     badge: '🏠 Trained Attendants for Your Loved Ones',
     title: ['Caring Attendants for', 'Elders & Patients at Home'],
     intro: 'Trained care takers for daily living support – bathing, feeding, mobility and companionship – for elders, bedridden patients and anyone recovering from surgery.',
-    cta: 'Book a Care Taker', talk: 'Talk to a Care Advisor',
+    cta: 'Book a Care Taker',
     heroImg: '/caretaker-hero.png', heroAlt: 'Care taker helping an elderly man walk',
     aboutTitle: 'Everyday Care, With Respect',
     about: [
@@ -218,7 +218,7 @@ export const SERVICE_CONTENT = {
     badge: '👶 Support for Mother & Baby',
     title: ['Gentle Care for Your', 'Newborn & You'],
     intro: 'Trained baby care nurses and nannies help with newborn care, feeding, bathing and sleep routines – while new mothers rest and recover.',
-    cta: 'Book Baby Care', talk: 'Talk to a Care Advisor',
+    cta: 'Book Baby Care',
     heroImg: '/homecare-hero.png', heroAlt: 'Baby care nurse with a newborn',
     aboutTitle: 'A Helping Hand in the First Months',
     about: [
@@ -260,7 +260,7 @@ export const SERVICE_CONTENT = {
     badge: '🌿 Qualified BAMS Doctors',
     title: ['Authentic Ayurveda,', 'at Your Home'],
     intro: 'Consult qualified Ayurveda doctors (BAMS) at home or online for natural, personalised treatment plans – with diet and lifestyle guidance.',
-    cta: 'Book a Consultation', talk: 'Talk to an Ayurveda Doctor',
+    cta: 'Book a Consultation',
     heroImg: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop', heroAlt: 'Ayurvedic wellness at home',
     aboutTitle: 'Traditional Healing, Personal Care',
     about: [
