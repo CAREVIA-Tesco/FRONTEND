@@ -67,7 +67,7 @@ export default function SiteHeader() {
             <img src="/logo.png" alt="Carevaa Logo" className="h-12 lg:h-[60px] w-auto object-contain mix-blend-multiply" />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-5 xl:gap-10 ml-auto">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-6 min-[1440px]:gap-10 ml-auto">
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -103,6 +103,7 @@ export default function SiteHeader() {
             <NavLink to="/doctors" className={navCls}>Find Doctors</NavLink>
             <NavLink to="/about" className={navCls}>About Us</NavLink>
             <NavLink to="/blog" className={navCls}>Blogs</NavLink>
+            <NavLink to="/jobs" className={navCls}>Careers</NavLink>
             <span className="hidden xl:inline-flex"><NavLink to="/contact" className={navCls}>Contact</NavLink></span>
             <div className="relative" ref={partnersRef}>
               <button
@@ -130,12 +131,12 @@ export default function SiteHeader() {
             </div>
           </nav>
 
-          <div className="hidden lg:flex items-center gap-3 xl:gap-7 shrink-0">
+          <div className="hidden lg:flex items-center gap-3 xl:gap-5 min-[1440px]:gap-7 shrink-0">
             <Link to={accountLink} className="whitespace-nowrap text-[15px] text-primary hover:text-accent transition-colors">{accountLabel}</Link>
             {contact.phone && (
               <a href={contact.phoneHref} aria-label={`Call ${contact.phone}`} className="flex items-center gap-3 bg-white rounded-lg px-3 xl:px-4 py-3 shadow-[0_2px_10px_color-mix(in_srgb,var(--color-primary)_6%,transparent)] hover:shadow-md transition-shadow">
                 <Phone className="w-5 h-5 text-accent fill-accent" />
-                <span className="hidden xl:inline font-bold text-primary text-base whitespace-nowrap">{contact.phone}</span>
+                <span className="hidden min-[1440px]:inline font-bold text-primary text-base whitespace-nowrap">{contact.phone}</span>
               </a>
             )}
             <button type="button" onClick={() => bookNow()} className="whitespace-nowrap bg-secondary hover:bg-secondary-hover text-white px-5 xl:px-6 py-3.5 rounded-lg font-bold text-[15px] xl:text-[17px] leading-none shadow-sm hover:shadow-lg transition-all">
