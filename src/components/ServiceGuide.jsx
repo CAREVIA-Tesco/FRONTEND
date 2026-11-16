@@ -5,6 +5,12 @@ import { visitTypesForService, needsDutyHours, DUTY_HOURS } from '../data/servic
 
 const VISIT = { home: ['Home visit', House], clinic: ['Clinic visit', Building2], online: ['Online consultation', Video] };
 // cards on the service pages lift and turn pink on hover (the website's secondary colour)
+// soft colour per card (the website's purple, pink and deep-purple), used for headers, icons and ticks
+const TONES = [
+  { soft: 'bg-[color-mix(in_srgb,var(--color-accent)_12%,white)]', icon: 'bg-accent text-white', tick: 'text-accent', bar: 'bg-accent' },
+  { soft: 'bg-[color-mix(in_srgb,var(--color-secondary)_12%,white)]', icon: 'bg-secondary text-white', tick: 'text-secondary', bar: 'bg-secondary' },
+  { soft: 'bg-[color-mix(in_srgb,var(--color-primary)_9%,white)]', icon: 'bg-primary text-white', tick: 'text-primary', bar: 'bg-primary' },
+];
 export const HOVER_CARD = 'transition-all duration-300 hover:-translate-y-1 hover:border-secondary/60 hover:shadow-[0_18px_40px_-18px_color-mix(in_srgb,var(--color-secondary)_45%,transparent)]';
 
 // In-depth explanation of a service: overview, who it is for, how it works, what is included,
@@ -47,10 +53,11 @@ export default function ServiceGuide({ serviceKey, serviceName, onBook, bg = 'bg
 
         <div className="mt-12">
           <h3 className="text-2xl md:text-[28px] font-semibold font-poppins text-primary mb-6">How it works</h3>
-          <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <ol className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-stretch">
             {g.steps.map(([t, d], i) => (
-              <li key={t} className={`relative bg-cream rounded-2xl border border-black/[0.06] p-6 ${HOVER_CARD}`}>
-                <span className="w-10 h-10 rounded-full bg-secondary text-white font-bold flex items-center justify-center">{i + 1}</span>
+              <li key={t} className={`relative h-full bg-white rounded-2xl border border-black/[0.06] p-6 pt-7 overflow-visible ${HOVER_CARD}`}>
+                <span className={`absolute inset-x-0 top-0 h-1.5 rounded-t-2xl ${TONES[i % 3].bar}`} aria-hidden="true" />
+                <span className={`w-11 h-11 rounded-xl font-bold text-[17px] flex items-center justify-center ${TONES[i % 3].icon}`}>{String(i + 1).padStart(2, '0')}</span>
                 {i < g.steps.length - 1 && <ArrowRight className="hidden lg:block absolute -right-3.5 top-9 w-5 h-5 text-secondary/60 z-10" aria-hidden="true" />}
                 <p className="mt-4 font-semibold text-primary text-[17px]">{t}</p>
                 <p className="mt-1.5 text-[14px] text-ink-soft leading-relaxed">{d}</p>
@@ -59,22 +66,27 @@ export default function ServiceGuide({ serviceKey, serviceName, onBook, bg = 'bg
           </ol>
         </div>
 
-        <div className="mt-12 grid md:grid-cols-3 gap-5">
-          {lists.map(([Icon, title, items]) => (
-            <div key={title} className={`bg-white rounded-2xl border border-black/[0.07] p-6 sm:p-7 ${HOVER_CARD}`}>
-              <span className="w-12 h-12 rounded-xl bg-mint flex items-center justify-center"><Icon className="w-6 h-6 text-accent" /></span>
-              <h3 className="mt-4 text-lg font-semibold text-primary">{title}</h3>
-              <ul className="mt-4 space-y-2.5">
-                {items.map((x) => <li key={x} className="flex items-start gap-2.5 text-[14.5px] text-ink-soft"><CheckCircle2 className="w-[18px] h-[18px] text-secondary shrink-0 mt-0.5" /> {x}</li>)}
-              </ul>
-            </div>
-          ))}
+        <div className="mt-12 grid md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+          {lists.map(([Icon, title, items], n) => {
+            const tone = TONES[n % 3];
+            return (
+              <div key={title} className="h-full flex flex-col bg-white rounded-2xl border border-black/[0.07] overflow-hidden transition-all duration-300 hover:border-secondary/60 hover:shadow-[0_18px_40px_-18px_color-mix(in_srgb,var(--color-secondary)_45%,transparent)]" data-testid="guide-card">
+                <div className={`flex items-center gap-3.5 px-6 py-5 ${tone.soft}`}>
+                  <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${tone.icon}`}><Icon className="w-5 h-5" /></span>
+                  <h3 className="text-[17px] font-semibold text-primary leading-snug">{title}</h3>
+                </div>
+                <ul className="px-6 py-5 space-y-3 flex-1">
+                  {items.map((x) => <li key={x} className="flex items-start gap-2.5 text-[14.5px] text-ink-soft leading-snug"><CheckCircle2 className={`w-[18px] h-[18px] shrink-0 mt-px ${tone.tick}`} /> {x}</li>)}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="mt-8 rounded-2xl bg-tint border border-black/[0.05] p-6 sm:p-7 flex flex-col md:flex-row md:items-center gap-5">
-          <span className="flex items-center gap-3 shrink-0"><span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center"><ShieldCheck className="w-6 h-6 text-accent" /></span><span className="font-semibold text-primary text-lg">Safety & quality</span></span>
+        <div className="mt-8 rounded-2xl border border-black/[0.05] p-6 sm:p-7 flex flex-col md:flex-row md:items-center gap-5 bg-gradient-to-r from-[color-mix(in_srgb,var(--color-accent)_12%,white)] via-white to-[color-mix(in_srgb,var(--color-secondary)_12%,white)]" data-testid="guide-quality">
+          <span className="flex items-center gap-3 shrink-0 md:w-[220px]"><span className="w-12 h-12 rounded-xl bg-accent text-white flex items-center justify-center shadow-sm"><ShieldCheck className="w-6 h-6" /></span><span className="font-semibold text-primary text-lg">Safety & quality</span></span>
           <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 flex-1">
-            {g.quality.map((x) => <li key={x} className="flex items-start gap-2 text-[14.5px] text-ink-soft"><CheckCircle2 className="w-[18px] h-[18px] text-accent shrink-0 mt-0.5" /> {x}</li>)}
+            {g.quality.map((x) => <li key={x} className="flex items-start gap-2 text-[14.5px] text-primary/80"><CheckCircle2 className="w-[18px] h-[18px] text-secondary shrink-0 mt-0.5" /> {x}</li>)}
           </ul>
         </div>
       </div>

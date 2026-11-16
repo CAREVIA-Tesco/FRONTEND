@@ -72,9 +72,9 @@ export default function ServicePage({ serviceKey }) {
             [Zap, 'Easy Booking', 'See open slots and book online'],
             [BadgeCheck, 'Verified Profiles', 'Qualifications and ID checked'],
             [RotateCcw, 'Easy Refunds', 'Cancel paid bookings before the visit'],
-          ].map(([Icon, t, d]) => (
+          ].map(([Icon, t, d], i) => (
             <div key={t} className={`group bg-white rounded-2xl border border-black/[0.06] p-5 sm:p-6 flex flex-col items-start ${HOVER_CARD}`}>
-              <span className="w-12 h-12 rounded-xl bg-mint flex items-center justify-center transition-colors group-hover:bg-secondary"><Icon className="w-6 h-6 text-accent transition-colors group-hover:text-white" /></span>
+              <span className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors group-hover:bg-secondary ${['bg-[color-mix(in_srgb,var(--color-accent)_14%,white)]', 'bg-[color-mix(in_srgb,var(--color-secondary)_14%,white)]', 'bg-[color-mix(in_srgb,var(--color-primary)_10%,white)]', 'bg-[color-mix(in_srgb,var(--color-secondary)_14%,white)]'][i]}`}><Icon className={`w-6 h-6 transition-colors group-hover:text-white ${['text-accent', 'text-secondary', 'text-primary', 'text-secondary'][i]}`} /></span>
               <h4 className="mt-4 font-semibold text-primary text-[16px] sm:text-[17px]">{t}</h4>
               <p className="mt-1 text-[13.5px] sm:text-sm text-ink-soft leading-snug">{d}</p>
             </div>
@@ -145,16 +145,13 @@ export default function ServicePage({ serviceKey }) {
       </section>
 
       {/* CTA */}
-      <section className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-[32px] px-6 py-10 sm:p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-[40px] font-bold font-poppins mb-6 leading-tight">{c.ctaTitle}</h2>
-            <p className="text-lg md:text-xl mb-10 opacity-90 max-w-2xl mx-auto">{c.ctaText}</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button type="button" onClick={book} className="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 transition shadow-lg inline-flex items-center justify-center gap-2"><CalendarCheck className="w-5 h-5" /> {c.ctaButton}</button>
-            </div>
-            <p className="text-sm mt-6 opacity-80">⚡ Booking takes about a minute</p>
+      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto bg-gradient-to-r from-secondary to-primary rounded-3xl px-6 py-7 sm:px-10 sm:py-8 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center gap-5 md:gap-8" data-testid="service-cta">
+          <div className="relative z-10 flex-1 text-center md:text-left">
+            <h2 className="text-2xl md:text-[28px] font-bold font-poppins leading-tight">{c.ctaTitle}</h2>
+            <p className="text-[15px] md:text-base mt-2 opacity-90">{c.ctaText} <span className="opacity-80">· Booking takes about a minute</span></p>
           </div>
+          <button type="button" onClick={book} className="relative z-10 shrink-0 self-center bg-white text-primary px-6 py-3 rounded-xl font-bold text-[15px] hover:bg-gray-50 transition shadow-lg inline-flex items-center justify-center gap-2"><CalendarCheck className="w-5 h-5" /> {c.ctaButton}</button>
         </div>
       </section>
 
