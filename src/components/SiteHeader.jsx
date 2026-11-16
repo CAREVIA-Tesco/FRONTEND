@@ -94,9 +94,8 @@ export default function SiteHeader() {
                     <Link to="/services" className="font-semibold text-primary flex items-center gap-1 hover:text-accent">View all services <ArrowRight className="w-4 h-4" /></Link>
                     <span aria-hidden="true" />
                     <Link to="/track" className="text-gray-600 flex items-center gap-1.5 hover:text-accent"><SearchCheck className="w-4 h-4" /> Track your request</Link>
-                    <Link to="/refer" className="text-gray-600 flex items-center gap-1.5 justify-end hover:text-accent">Refer a friend</Link>
-                    <Link to="/jobs" className="text-gray-600 flex items-center gap-1.5 hover:text-accent"><Briefcase className="w-4 h-4" /> Careers</Link>
-                    <Link to="/reviews" className="text-gray-600 flex items-center gap-1.5 justify-end hover:text-accent">Patient reviews</Link>
+                    <Link to="/jobs" className="text-gray-600 flex items-center gap-1.5 justify-end hover:text-accent"><Briefcase className="w-4 h-4" /> Careers</Link>
+                    <Link to="/reviews" className="text-gray-600 flex items-center gap-1.5 hover:text-accent">Patient reviews</Link>
                   </div>
                 </div>
               </div>
@@ -170,7 +169,7 @@ export default function SiteHeader() {
                 ))}
               </div>
             )}
-            {[['/services', 'All Services'], ['/doctors', 'Find Doctors'], ['/about', 'About Us'], ['/blog', 'Blogs'], ['/contact', 'Contact Us'], ['/reviews', 'Patient Reviews'], ['/track', 'Track Request'], ['/refer', 'Refer a Friend'], ['/jobs', 'Careers']].map(([to, label]) => (
+            {[['/services', 'All Services'], ['/doctors', 'Find Doctors'], ['/about', 'About Us'], ['/blog', 'Blogs'], ['/contact', 'Contact Us'], ['/reviews', 'Patient Reviews'], ['/track', 'Track Request'], ['/jobs', 'Careers']].map(([to, label]) => (
               <Link key={to} to={to} className="py-3 font-medium text-primary border-b border-gray-100">{label}</Link>
             ))}
             <button type="button" onClick={() => setMobilePartners((v) => !v)} aria-expanded={mobilePartners} className="flex items-center justify-between py-3 font-semibold text-primary border-b border-gray-100">

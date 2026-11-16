@@ -27,6 +27,7 @@ import { JobApplications } from "./pages/JobApplications"
 import { WebsiteContent } from "./pages/WebsiteContent"
 import { ClinicRecords } from "./pages/ClinicRecords"
 import { CustomerReviews } from "./pages/CustomerReviews"
+import { BusinessPartners } from "./pages/BusinessPartners"
 
 function App() {
   const [sessionUser, setSessionUser] = useState(() => getSessionUser())
@@ -71,6 +72,7 @@ function App() {
         <Route path="payouts" element={<ProviderPayouts />} />
         <Route path="settings" element={<SuperAdminProfile />} />
         <Route path="enquiries" element={<Enquiries />} />
+        <Route path="business-partners" element={<BusinessPartners />} />
         <Route path="applications" element={<JobApplications />} />
         <Route path="content" element={<WebsiteContent />} />
         <Route path="*" element={<div className="p-8 text-center text-muted">Page under construction</div>} />

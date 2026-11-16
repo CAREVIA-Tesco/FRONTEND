@@ -87,6 +87,11 @@ export function uploadReviewVideo(file, onProgress) {
 }
 
 export const api = {
+  // Business partners (separate from doctor registration) – reviewed in Admin → Business Partners
+  registerBusinessPartner: (data) => request('/business-partners', { method: 'POST', body: data, auth: false }),
+  adminBusinessPartners: () => request('/admin/business-partners'),
+  updateBusinessPartner: (id, data) => request(`/admin/business-partners/${id}`, { method: 'PATCH', body: data }),
+  deleteBusinessPartner: (id) => request(`/admin/business-partners/${id}`, { method: 'DELETE' }),
   // Happy Customers reviews (added by the admin team)
   customerReviews: () => request('/customer-reviews', { auth: false }),
   adminCustomerReviews: () => request('/admin/customer-reviews'),

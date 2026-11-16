@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Phone, PhoneCall, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus, Minus, MapPin,
   ShieldCheck, Clock, Wallet, RotateCcw, ClipboardCheck, House, Activity, MessageCircleMore, ArrowUpRight,
-  Handshake, UserCheck, CalendarCheck, TrendingUp,
+  Handshake, UserCheck, CalendarCheck, TrendingUp, Stethoscope, Building2, Users,
 } from 'lucide-react';
 
 import SiteHeader from '../components/SiteHeader';
@@ -421,29 +421,48 @@ export default function Home() {
       )}
       </>)}
 
-      {/* 11. Register as a Partner – doctors and healthcare professionals (opens the doctor registration) */}
+      {/* 11. Registration – two separate workflows: professionals (doctor registration) and business partners */}
       {on('partner') && (<>
       <section id="register-partner" className="py-14 lg:py-20 bg-tint" data-testid="register-partner">
-        <Reveal className="max-w-[1320px] mx-auto px-5 sm:px-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-deep via-deep-2 to-deep-3 text-white grid lg:grid-cols-[1.15fr_1fr] items-stretch shadow-[0_30px_70px_-30px_color-mix(in_srgb,var(--color-deep)_70%,transparent)]">
-            <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-secondary/25 blur-3xl pointer-events-none" aria-hidden="true" />
-            <div className="relative p-7 sm:p-10 lg:p-14">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/20 px-3.5 py-1.5 text-[12px] font-semibold tracking-[0.12em] uppercase text-on-deep"><Handshake className="w-4 h-4" /> For doctors & professionals</p>
-              <h2 className="mt-5 font-poppins font-semibold text-[28px] md:text-[36px] xl:text-[40px] leading-tight">Register as a Partner</h2>
-              <p className="mt-4 text-white/80 text-[15px] md:text-lg font-light max-w-xl">Are you a doctor or healthcare professional? Partner with Carevaa and grow your healthcare services with us.</p>
-              <ul className="mt-7 grid sm:grid-cols-3 gap-3 text-[14px]">
-                {[[UserCheck, 'Verified profile'], [CalendarCheck, 'Your own timings'], [TrendingUp, 'More patients']].map(([Icon, t]) => (
-                  <li key={t} className="flex items-center gap-2.5 rounded-xl bg-white/10 ring-1 ring-white/15 px-3.5 py-2.5"><Icon className="w-4 h-4 text-on-deep shrink-0" /> {t}</li>
-                ))}
-              </ul>
-              <Link to="/doctor/register" data-testid="register-partner-btn" className="mt-8 inline-flex items-center gap-2 bg-secondary hover:bg-secondary-hover text-white px-8 py-3.5 rounded-xl font-bold text-[16px] shadow-[0_14px_30px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition hover:-translate-y-0.5">Register Now <ArrowRight className="w-5 h-5" /></Link>
-            </div>
-            <div className="relative min-h-[220px] lg:min-h-full">
-              <img src="/career-hero.jpg" alt="Carevaa healthcare professionals" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-deep-3/70 via-transparent to-transparent" aria-hidden="true" />
-            </div>
+        <div className="max-w-[1320px] mx-auto px-5 sm:px-8">
+          <Heading eyebrow="Join Carevaa" title="Grow with Carevaa" desc="Two ways to work with us – choose the one that fits you." />
+          <div className="grid lg:grid-cols-2 gap-5 lg:gap-7">
+            <Reveal className="h-full">
+              <div className="relative h-full overflow-hidden rounded-3xl bg-gradient-to-br from-deep via-deep-2 to-deep-3 text-white p-7 sm:p-10 flex flex-col shadow-[0_30px_70px_-30px_color-mix(in_srgb,var(--color-deep)_70%,transparent)]" data-testid="register-professional-card">
+                <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-secondary/25 blur-3xl pointer-events-none" aria-hidden="true" />
+                <span className="relative w-14 h-14 rounded-2xl bg-white/10 ring-1 ring-white/20 flex items-center justify-center"><Stethoscope className="w-7 h-7 text-on-deep" /></span>
+                <p className="relative mt-5 text-[12px] font-semibold tracking-[0.14em] uppercase text-on-deep">Doctors & healthcare professionals</p>
+                <h2 className="relative mt-2 font-poppins font-semibold text-[26px] md:text-[32px] leading-tight">Register as a Professional</h2>
+                <p className="relative mt-3 text-white/80 text-[15px] md:text-[17px] font-light">Are you a doctor or healthcare professional? Join Carevaa and grow your practice by connecting with more patients.</p>
+                <ul className="relative mt-6 flex flex-wrap gap-2 text-[13.5px]">
+                  {[[UserCheck, 'Verified profile'], [CalendarCheck, 'Your own timings'], [TrendingUp, 'More patients']].map(([Icon, t]) => (
+                    <li key={t} className="flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3.5 py-2"><Icon className="w-4 h-4 text-on-deep shrink-0" /> {t}</li>
+                  ))}
+                </ul>
+                <div className="relative mt-auto pt-8">
+                  <Link to="/doctor/register" data-testid="register-partner-btn" className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary-hover text-white px-8 py-3.5 rounded-xl font-bold text-[16px] shadow-[0_14px_30px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition hover:-translate-y-0.5">Register Now <ArrowRight className="w-5 h-5" /></Link>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal className="h-full" delay={100}>
+              <div className="relative h-full overflow-hidden rounded-3xl bg-white ring-1 ring-black/[0.06] p-7 sm:p-10 flex flex-col shadow-[0_24px_60px_-30px_color-mix(in_srgb,var(--color-primary)_35%,transparent)]" data-testid="register-business-card">
+                <div className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" aria-hidden="true" />
+                <span className="relative w-14 h-14 rounded-2xl bg-mint flex items-center justify-center"><Building2 className="w-7 h-7 text-accent" /></span>
+                <p className="relative mt-5 text-[12px] font-semibold tracking-[0.14em] uppercase text-accent">Clinics, labs & healthcare businesses</p>
+                <h2 className="relative mt-2 font-poppins font-semibold text-[26px] md:text-[32px] leading-tight text-primary">Register as a Business Partner</h2>
+                <p className="relative mt-3 text-gray-600 text-[15px] md:text-[17px] font-light">Are you running a healthcare business, clinic, laboratory, or healthcare service? Partner with Carevaa and expand your business opportunities.</p>
+                <ul className="relative mt-6 flex flex-wrap gap-2 text-[13.5px] text-primary">
+                  {[[Handshake, 'Trusted partnership'], [Users, 'Patient referrals'], [ShieldCheck, 'Verified partner']].map(([Icon, t]) => (
+                    <li key={t} className="flex items-center gap-2 rounded-full bg-tint ring-1 ring-black/[0.05] px-3.5 py-2"><Icon className="w-4 h-4 text-accent shrink-0" /> {t}</li>
+                  ))}
+                </ul>
+                <div className="relative mt-auto pt-8">
+                  <Link to="/business-partner/register" data-testid="register-business-btn" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-8 py-3.5 rounded-xl font-bold text-[16px] transition hover:-translate-y-0.5">Register Your Business <ArrowRight className="w-5 h-5" /></Link>
+                </div>
+              </div>
+            </Reveal>
           </div>
-        </Reveal>
+        </div>
       </section>
       </>)}
 

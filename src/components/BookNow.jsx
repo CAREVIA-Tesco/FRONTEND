@@ -210,6 +210,8 @@ function BookNowModal({ open, onClose, preset }) {
   const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', doctor ? 'Only this doctor\'s options' : serviceTypes.length < 3 ? serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1]).join(' or ') : 'Home, online or clinic']];
   const offers = doctor && slotInfo?.offers ? slotInfo.offers : null;
   const visitTypes = (offers ? VISIT_TYPES.filter(([v]) => offers[v]) : VISIT_TYPES).filter(([v]) => serviceTypes.includes(v));
+  // the time picked is when the visit starts (duty hours are chosen separately above)
+  const timeLabel = needsDutyHours(serviceKey) ? `Duty start time${form.dutyHours ? ` (${form.dutyHours} from this time)` : ''}` : serviceKey === 'lab-tests' ? 'Sample collection time' : 'Time';
   const toggleTest = (t) => setVal('labTests', form.labTests.includes(t) ? form.labTests.filter((x) => x !== t) : [...form.labTests, t]);
   const feeOf = (v) => slotInfo?.modes?.find((m) => m.type === v)?.fee;
   const slotDay = doctorSlots ? slotInfo.days.find((d) => d.date === form.date) : null;
@@ -421,7 +423,7 @@ function BookNowModal({ open, onClose, preset }) {
                     <Err k="date" />
                   </div>
                   <div>
-                    <p className={`${labelCls} flex items-center gap-1.5`}><Clock className="w-4 h-4 text-accent" /> Time</p>
+                    <p className={`${labelCls} flex items-center gap-1.5`}><Clock className="w-4 h-4 text-accent" /> {timeLabel}</p>
                     <div className="space-y-2.5" data-testid="slot-times">
                       {SLOT_GROUPS.map((g) => {
                         const slots = (slotDay?.slots || []).filter((t) => !t.past).filter((t) => { const h = Number(slotTo24(t.time).slice(0, 2)); return g.name === 'Morning' ? h < 12 : g.name === 'Afternoon' ? h >= 12 && h < 17 : h >= 17; });
@@ -470,7 +472,7 @@ function BookNowModal({ open, onClose, preset }) {
               </div>
 
               <div>
-                <p className={`${labelCls} flex items-center gap-1.5`}><Clock className="w-4 h-4 text-accent" /> Time</p>
+                <p className={`${labelCls} flex items-center gap-1.5`}><Clock className="w-4 h-4 text-accent" /> {timeLabel}</p>
                 <div className="space-y-2.5">
                   {SLOT_GROUPS.map((g) => {
                     const slots = slotsFor(g).filter((t) => !slotPast(t));

@@ -30,10 +30,10 @@ import VisitSummary from './pages/VisitSummary.jsx';
 import ProfessionalProfile from './pages/ProfessionalProfile.jsx';
 import CityCare from './pages/CityCare.jsx';
 import Reviews from './pages/Reviews.jsx';
-import Refer from './pages/Refer.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import ThankYou from './pages/ThankYou.jsx';
 import PatientRegistration from './pages/PatientRegistration.jsx';
+import BusinessPartnerRegister from './pages/BusinessPartnerRegister.jsx';
 import { BookNowProvider } from './components/BookNow.jsx';
 
 export default function App() {
@@ -55,7 +55,8 @@ export default function App() {
         <Route path="/services/:key" element={<ServiceDetail />} />
         <Route path="/contact" element={<Contact />} />
         {/* the Partner With Us page was removed – old links go to the home page */}
-        <Route path="/partner" element={<Navigate to="/" replace />} />
+        <Route path="/partner" element={<Navigate to="/business-partner/register" replace />} />
+        <Route path="/business-partner/register" element={<BusinessPartnerRegister />} />
         <Route path="/track" element={<TrackRequest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -72,7 +73,7 @@ export default function App() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/thank-you" element={<ThankYou />} />
         <Route path="/visit-summary/:id" element={<VisitSummary />} />
-        <Route path="/refer" element={<Refer />} />
+        <Route path="/refer" element={<Navigate to="/" replace />} />
         <Route path="/privacy-policy" element={<LegalPage contentKey="legal-privacy" fallbackTitle="Privacy Policy" />} />
         <Route path="/terms" element={<LegalPage contentKey="legal-terms" fallbackTitle="Terms & Conditions" />} />
         <Route path="/patient-rights" element={<LegalPage contentKey="legal-patient-rights" fallbackTitle="Patient Rights" />} />

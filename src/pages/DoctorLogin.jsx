@@ -49,7 +49,7 @@ export default function DoctorLogin({ initialView = 'login' }) {
 
   // sign-up draft: name and email/phone are kept on this device (never the password), so a doctor who
   // left half-way can sign up again and continue the professional form where they stopped
-  const signupDraft = useFormDraft('doctor-signup', view === 'register' ? { fullName, identifier } : null, {
+  useFormDraft('doctor-signup', view === 'register' ? { fullName, identifier } : null, {
     onRestore: (d) => {
       if (!d || (!d.fullName && !d.identifier)) return;
       setFullName(d.fullName || ''); setIdentifier(d.identifier || '');
@@ -264,7 +264,7 @@ export default function DoctorLogin({ initialView = 'login' }) {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {isRegister && <p className="text-xs text-primary/50 mt-1.5">{signupDraft.restoredAt ? 'Welcome back – enter a password again to continue your registration where you stopped.' : 'At least 6 characters.'}</p>}
+                      {isRegister && <p className="text-xs text-primary/50 mt-1.5">At least 6 characters.</p>}
                     </div>
 
                     {isRegister && (

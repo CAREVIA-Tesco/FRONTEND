@@ -16,7 +16,6 @@ export default function SiteFooter() {
     ['/contact', 'Contact Us'],
     ['/track', 'Track Your Request'],
     ['/reviews', 'Patient Reviews'],
-    ['/refer', 'Refer a Friend'],
     ['/jobs', 'Careers'],
     ['/blog', 'Blogs'],
     ['/doctors', 'Find Doctors'],
