@@ -10,6 +10,7 @@ import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { ConsultTypePicker, HoursEditor } from '../components/ConsultationSettings';
 import { CONSULT_TYPES, CONSULT_LABEL, offersOf, hoursForEdit, checkConsultation } from '../services/consultation';
+import { visitTypesForProfession } from '../data/serviceRules';
 
 const specializationOptions = {
   "MBBS Doctor": [
@@ -39,10 +40,9 @@ const specializationOptions = {
     "Lipid Profile", "Liver Function Tests", "Kidney Function Tests", "Hormone Tests", "Allergy Tests", 
     "Vitamin Tests", "Microbiology", "Pathology", "Hematology", "Imaging & Diagnostics"
   ],
-  "BHS": [
-    "General Health Science", "Community Health", "Public Health", "Health & Wellness", 
-    "Nutrition & Wellness", "Healthcare Management", "Medical Laboratory Science", 
-    "Health Education", "Preventive Healthcare", "Rehabilitation & Health Support"
+  "BHMS": [
+    "General Homeopathy", "Pediatrics", "Dermatology", "Women’s Health", "Chronic Disease Care",
+    "Allergy & Asthma", "Digestive Health", "Mental Wellness", "Joint & Pain Management", "Respiratory Care"
   ],
   "Ayurveda Doctor": [
     "General Ayurveda", "Panchakarma", "Kayachikitsa (General Medicine)", "Shalya Tantra (Surgery)", 
@@ -84,7 +84,7 @@ const ACCREDITATION_OPTIONS = [
   "Other"
 ];
 
-const LISTED_PROFESSIONS = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor', 'Physiotherapist', 'Nurse', 'Caretaker', 'Lab Centre', 'BHS'];
+const LISTED_PROFESSIONS = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor', 'Physiotherapist', 'Nurse', 'Caretaker', 'Lab Centre', 'BHMS'];
 const OTHER = '__other__';
 
 // Aadhaar / ID photo: keep it readable but small (longest side 1400px, JPEG)
@@ -165,14 +165,14 @@ export default function ProfessionalOnboarding() {
   const isCaretaker = profession === 'Caretaker';
   const isNurse = profession === 'Nurse';
   const isPhysio = profession === 'Physiotherapist';
-  const isDoctor = ['MBBS Doctor', 'Homeopathy Doctor', 'Ayurveda Doctor'].includes(profession);
+  const isDoctor = ['MBBS Doctor', 'Homeopathy Doctor', 'BHMS', 'Ayurveda Doctor'].includes(profession);
   const skipClinic = isNurse || isCaretaker;
-  const offered = isLab ? ['clinic', 'home'] : skipClinic ? ['home'] : CONSULT_TYPES;
-  const activeTypes = isLab
-    ? { home: Boolean(types.home), clinic: Boolean(types.clinic), online: false }
-    : skipClinic
-      ? { home: true, clinic: false, online: false }
-      : types;
+  // visit types this profession may offer: nurses, care takers and lab centres – home only;
+  // homeopathy – clinic and online only (no home visits); everyone else – all three
+  const offered = visitTypesForProfession(profession);
+  const activeTypes = offered.length === 1
+    ? Object.fromEntries(CONSULT_TYPES.map((t) => [t, offered.includes(t)]))
+    : Object.fromEntries(CONSULT_TYPES.map((t) => [t, Boolean(types[t]) && offered.includes(t)]));
   const noClinicStep = skipClinic || !activeTypes.clinic;
 
   // Live services loaded dynamically from Carevaa Admin Panel
@@ -199,7 +199,7 @@ export default function ProfessionalOnboarding() {
       if (professionValue === 'Lab Centre' && s.key === 'lab-tests') return true;
       if (professionValue === 'Ayurveda Doctor' && s.key === 'ayurveda') return true;
       if (professionValue === 'Homeopathy Doctor' && (s.key === 'homeopathy' || s.name === 'Homeopathy')) return true;
-      if (professionValue === 'BHS' && s.key === 'bhs') return true;
+      if (professionValue === 'BHMS' && s.key === 'homeopathy') return true;
       return false;
     });
   }, [catalogServices, professionValue]);
@@ -224,7 +224,7 @@ export default function ProfessionalOnboarding() {
       if (newProfession === 'Lab Centre' && s.key === 'lab-tests') return true;
       if (newProfession === 'Ayurveda Doctor' && s.key === 'ayurveda') return true;
       if (newProfession === 'Homeopathy Doctor' && (s.key === 'homeopathy' || s.name === 'Homeopathy')) return true;
-      if (newProfession === 'BHS' && s.key === 'bhs') return true;
+      if (newProfession === 'BHMS' && s.key === 'homeopathy') return true;
       return false;
     }).map((s) => s.name);
 
@@ -264,13 +264,8 @@ export default function ProfessionalOnboarding() {
       return next;
     });
 
-    if (newProfession === 'Lab Centre') {
-      setTypes({ home: true, clinic: true, online: false });
-    } else if (newProfession === 'Nurse' || newProfession === 'Caretaker') {
-      setTypes({ home: true, clinic: false, online: false });
-    } else {
-      setTypes({ home: true, clinic: true, online: true });
-    }
+    const allowedNew = visitTypesForProfession(newProfession);
+    setTypes(Object.fromEntries(CONSULT_TYPES.map((t) => [t, allowedNew.includes(t)])));
   };
 
   // Toggle Services (All Professions)
@@ -500,7 +495,7 @@ export default function ProfessionalOnboarding() {
       if (!form.qualification.trim()) return 'Please enter your highest qualification (e.g. BPT, MPT).';
       if (form.experience === '' || Number(form.experience) < 0) return 'Please enter your years of experience.';
     } else {
-      // Other / BHS
+      // Other
       if (!form.qualification.trim()) return 'Please enter your highest qualification.';
       if (form.experience === '' || Number(form.experience) < 0) return 'Please enter your years of experience.';
     }
@@ -556,9 +551,9 @@ export default function ProfessionalOnboarding() {
         serviceKey: d.serviceKey || cat?.key,
         price: d.price ? Number(d.price) : (Number(form.homeFee) || Number(form.clinicFee) || Number(form.onlineFee) || undefined),
         description: d.description || cat?.short || cat?.desc || undefined,
-        homeAvailable: d.homeAvailable !== undefined ? Boolean(d.homeAvailable) : Boolean(activeTypes.home),
-        onlineAvailable: d.onlineAvailable !== undefined ? Boolean(d.onlineAvailable) : Boolean(activeTypes.online),
-        clinicAvailable: d.clinicAvailable !== undefined ? Boolean(d.clinicAvailable) : Boolean(activeTypes.clinic),
+        homeAvailable: offered.includes('home') && (d.homeAvailable !== undefined ? Boolean(d.homeAvailable) : Boolean(activeTypes.home)),
+        onlineAvailable: offered.includes('online') && (d.onlineAvailable !== undefined ? Boolean(d.onlineAvailable) : Boolean(activeTypes.online)),
+        clinicAvailable: offered.includes('clinic') && (d.clinicAvailable !== undefined ? Boolean(d.clinicAvailable) : Boolean(activeTypes.clinic)),
       };
     });
 
@@ -882,7 +877,7 @@ export default function ProfessionalOnboarding() {
                       <option>Nurse</option>
                       <option>Caretaker</option>
                       <option>Lab Centre</option>
-                      <option>BHS</option>
+                      <option>BHMS</option>
                       <option value="Other">Other</option>
                     </select>
                     {profession === 'Other' && (
@@ -1021,6 +1016,7 @@ export default function ProfessionalOnboarding() {
                                     />
                                   </div>
                                   <div className="flex flex-wrap gap-3 pt-1">
+                                    {offered.includes('home') && (
                                     <label className="flex items-center gap-1.5 cursor-pointer">
                                       <input
                                         type="checkbox"
@@ -1030,7 +1026,8 @@ export default function ProfessionalOnboarding() {
                                       />
                                       <span>Home Visit</span>
                                     </label>
-                                    {!skipClinic && (
+                                    )}
+                                    {offered.includes('online') && (
                                       <label className="flex items-center gap-1.5 cursor-pointer">
                                         <input
                                           type="checkbox"
@@ -1041,7 +1038,7 @@ export default function ProfessionalOnboarding() {
                                         <span>Online Consult</span>
                                       </label>
                                     )}
-                                    {!skipClinic && (
+                                    {offered.includes('clinic') && (
                                       <label className="flex items-center gap-1.5 cursor-pointer">
                                         <input
                                           type="checkbox"

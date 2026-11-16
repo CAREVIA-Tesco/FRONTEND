@@ -8,6 +8,7 @@ import { setPendingSignup } from '../services/pendingSignup';
 import { useFormDraft } from '../services/formDraft';
 import api, { saveSession, getSessionUser } from '../services/api';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
+import ConfirmPasswordField, { PASSWORD_MISMATCH } from '../components/ConfirmPasswordField';
 
 const PANEL = {
   photo: '/doctor-section.jpg',
@@ -23,14 +24,15 @@ const PANEL = {
   ],
 };
 
-export default function DoctorLogin() {
+export default function DoctorLogin({ initialView = 'login' }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [view, setView] = useState(searchParams.get('forgot') ? 'forgot' : 'login');
+  const [view, setView] = useState(searchParams.get('forgot') ? 'forgot' : initialView);
   const [forgotPhone, setForgotPhone] = useState(String(searchParams.get('phone') || ''));
   const [fullName, setFullName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +45,7 @@ export default function DoctorLogin() {
     }
   }, [navigate]);
 
-  const switchView = (next) => { setView(next); setError(''); };
+  const switchView = (next) => { setView(next); setError(''); setConfirmPassword(''); };
 
   // sign-up draft: name and email/phone are kept on this device (never the password), so a doctor who
   // left half-way can sign up again and continue the professional form where they stopped
@@ -87,6 +89,8 @@ export default function DoctorLogin() {
     setError('');
     if (!fullName.trim() || !identifier.trim() || !password) { setError('Please fill in all the fields.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (!confirmPassword) { setError('Please enter your password again in Confirm Password.'); return; }
+    if (password !== confirmPassword) { setError(PASSWORD_MISMATCH); return; }
     setLoading(true);
     try {
       await api.registerCheck(fullName.trim(), identifier.trim(), password, 'doctor');
@@ -227,7 +231,7 @@ export default function DoctorLogin() {
 
                     <div>
                       <div className="flex justify-between items-center mb-1.5">
-                        <label htmlFor="password" className="block text-[13px] font-semibold text-primary">Password</label>
+                        <label htmlFor="password" className="block text-[13px] font-semibold text-primary">{isRegister ? 'Create Password' : 'Password'}</label>
                         {!isRegister && (
                           <button
                             type="button"
@@ -262,6 +266,10 @@ export default function DoctorLogin() {
                       </div>
                       {isRegister && <p className="text-xs text-primary/50 mt-1.5">{signupDraft.restoredAt ? 'Welcome back – enter a password again to continue your registration where you stopped.' : 'At least 6 characters.'}</p>}
                     </div>
+
+                    {isRegister && (
+                      <ConfirmPasswordField value={confirmPassword} onChange={(v) => { setConfirmPassword(v); setError(''); }} password={password} show={showPassword} inputCls={inputCls} labelCls={labelCls} />
+                    )}
 
                     {error && (
                       <p role="alert" className="flex items-start gap-2 text-sm font-medium text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">

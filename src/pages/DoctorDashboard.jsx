@@ -473,7 +473,7 @@ export default function DoctorDashboard() {
             )}
 
             {activeTab === 'Care Requests' && (
-              <DoctorRequests appointments={allAppointments} isDoctor={profile?.isDoctor !== false} onChanged={loadAppointments} onCount={setRequestTotal} />
+              <DoctorRequests appointments={allAppointments} isDoctor={profile?.isDoctor !== false} profession={profile?.profession} onChanged={loadAppointments} onCount={setRequestTotal} />
             )}
 
             {activeTab === 'My Profile' && (

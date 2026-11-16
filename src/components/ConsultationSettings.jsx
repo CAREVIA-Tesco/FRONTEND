@@ -4,6 +4,7 @@ import api from '../services/api';
 import {
   CONSULT_TYPES, CONSULT_LABEL, WEEK, SLOT_LENGTHS, generateSlots, offersOf, hoursForEdit, checkConsultation, shortSlot,
 } from '../services/consultation';
+import { visitTypesForProfession } from '../data/serviceRules';
 
 export const TYPE_ICON = { home: House, clinic: Building2, online: Video };
 const TYPE_SUB = { home: 'You visit the patient at home', clinic: 'Patients come to your clinic', online: 'Video / phone consultation' };
@@ -97,8 +98,10 @@ export function HoursEditor({ value, onChange, idPrefix = 'hrs', title }) {
 
 // Doctor Dashboard → "Availability": consultation types, fees, clinic details and timings for each type
 export default function ConsultationSettings({ profile, onSaved }) {
-  const isCare = profile && profile.isDoctor === false && ['Nurse', 'Care Taker'].includes(profile.spec);
-  const allowed = isCare ? ['home'] : CONSULT_TYPES;
+  const isCare = profile && profile.isDoctor === false && ['Nurse', 'Care Taker', 'Lab Centre'].includes(profile.spec);
+  // nurses, care takers and lab centres: home visits only; homeopathy: clinic and online only
+  const byProfession = visitTypesForProfession(profile?.profession);
+  const allowed = isCare ? ['home'] : CONSULT_TYPES.filter((t) => byProfession.includes(t));
   const init = React.useCallback(() => {
     const offers = offersOf(profile);
     return {

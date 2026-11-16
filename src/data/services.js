@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance } from 'lucide-react';
 import { request } from '../services/api';
 import { readCache, writeCache } from '../services/persistentCache';
+import { isRemovedService } from './serviceRules';
 
 // icon names the admin can pick for a service
 export const SERVICE_ICONS = { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance };
@@ -12,11 +13,12 @@ export const SERVICES = [
   { key: 'physiotherapy', title: 'Physiotherapy', short: 'Pain relief & rehab', desc: 'Recover from pain, injury or surgery with certified physios at home.', link: '/physiotherapy', img: '/service-physio.png', icon: Activity },
   { key: 'nurse-care', title: 'Nurse Care', short: 'Skilled nursing at home', desc: 'Injections, IVs, wound care and post-hospital nursing by trained nurses.', link: '/nurse-care', img: '/nurse-hero.jpg', icon: Syringe },
   { key: 'home-doctor', title: 'Home Doctor', short: 'Doctor at your doorstep', desc: 'General physicians who visit, diagnose and treat you at home.', link: '/home-doctor', img: '/doctor-hero.png', icon: House },
-  { key: 'doctor-visit', title: 'Doctor Visit', short: 'Online & clinic consults', desc: 'Expert consultations online or at the clinic, with digital prescriptions.', link: '/doctor-visit', img: '/home-hero.jpg', icon: Stethoscope },
+  { key: 'doctor-visit', title: 'General Medicine', short: 'Consult a general physician', desc: 'Expert consultations online or at the clinic, with digital prescriptions.', link: '/doctor-visit', img: '/home-hero.jpg', icon: Stethoscope },
   { key: 'care-taker', title: 'Care Taker', short: 'Elder & post-op care', desc: 'Trained attendants for elderly, post-operative and bedridden patients.', link: '/care-taker', img: '/caretaker-section.png', icon: Users },
   { key: 'baby-care', title: 'Baby Care', short: 'Mother & baby support', desc: 'Paediatric care and daily support for newborns, babies and new mothers.', link: '/baby-care', img: '/service-homecare.png', icon: Baby },
   { key: 'ayurveda', title: 'Ayurveda', short: 'Natural healing', desc: 'Traditional Ayurvedic consultations and therapies at your doorstep.', link: '/ayurveda', img: '/hero.png', icon: Leaf },
-  { key: 'bhs', title: 'BHS', short: 'Basic health services', desc: 'Vitals monitoring, sample collection and essential health checks.', link: '/bhs', img: '/caretaker-hero.png', icon: HeartPulse },
+  { key: 'lab-tests', title: 'Lab Tests', short: 'Home sample collection', desc: 'Blood tests and diagnostics with home sample collection and quick, accurate reports from partner labs.', link: '/services/lab-tests', img: '/service-homecare.png', icon: FlaskConical },
+  { key: 'homeopathy', title: 'Homeopathy', short: 'Holistic healing & care', desc: 'Personalized homeopathic consultations at the clinic or online.', link: '/services/homeopathy', img: '/hero.png', icon: Leaf },
 ];
 
 // "doctor-visit" covers every doctor; the rest map to one provider speciality
@@ -30,7 +32,8 @@ const SERVICE_SPEC_MAP = {
   'care-taker': ['Care Taker'],
   'baby-care': ['Pediatrician'],
   ayurveda: ['Ayurveda Doctor'],
-  bhs: ['BHS'],
+  'lab-tests': ['Lab Centre'],
+  homeopathy: ['Homeopathy Doctor'],
 };
 
 // ---- live list managed in Admin → Services ------------------------------------------------
@@ -46,7 +49,7 @@ const fromApi = (sv) => {
     ...base,
     id: sv.id,
     key: sv.key,
-    title: sv.name,
+    title: sv.name === 'Doctor Visit' ? 'General Medicine' : sv.name,
     short: sv.short || base.short || '',
     desc: sv.desc || base.desc || '',
     price: sv.price || '',
@@ -60,13 +63,13 @@ const fromApi = (sv) => {
 // last list received from the API (see useServices)
 {
   const saved = readCache('services');
-  if (Array.isArray(saved) && saved.length) live = saved.map(fromApi);
+  if (Array.isArray(saved) && saved.length) live = saved.filter((sv) => !isRemovedService(sv)).map(fromApi);
 }
 export function loadServices(force = false) {
   if (loading && !force) return loading;
   loading = request('/services', { auth: false })
     .then((d) => {
-      const raw = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+      const raw = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key && !isRemovedService(sv)).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
       writeCache('services', raw);
       live = raw.map(fromApi);
       listeners.forEach((fn) => fn(live));

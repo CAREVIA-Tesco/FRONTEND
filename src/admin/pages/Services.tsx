@@ -10,10 +10,10 @@ import { inputCls, areaCls, labelCls, resizeImage } from "../lib/forms"
 import { SERVICE_ICONS, loadServices } from "../../data/services"
 
 // The provider types a service can list on its website page (plus any specialities already in use)
-const BASE_MATCHES = ["General Physician", "Pediatrician", "Cardiologist", "Dermatologist", "Orthopedic", "Gynecologist", "Neurologist", "Psychiatrist", "ENT Specialist", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Care Taker", "BHS", "Lab Centre"]
-export const LISTED_PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHS"]
-const BUILT_IN = ["physiotherapy", "nurse-care", "home-doctor", "doctor-visit", "care-taker", "baby-care", "ayurveda", "bhs", "homeopathy"]
-const PAGE_FOR: Record<string, string> = { physiotherapy: "/physiotherapy", "nurse-care": "/nurse-care", "home-doctor": "/home-doctor", "doctor-visit": "/doctor-visit", "care-taker": "/care-taker", "baby-care": "/baby-care", ayurveda: "/ayurveda", bhs: "/bhs", homeopathy: "/services/homeopathy" }
+const BASE_MATCHES = ["General Physician", "Pediatrician", "Cardiologist", "Dermatologist", "Orthopedic", "Gynecologist", "Neurologist", "Psychiatrist", "ENT Specialist", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Care Taker", "Lab Centre"]
+export const LISTED_PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHMS"]
+const BUILT_IN = ["physiotherapy", "nurse-care", "home-doctor", "doctor-visit", "care-taker", "baby-care", "ayurveda", "homeopathy"]
+const PAGE_FOR: Record<string, string> = { physiotherapy: "/physiotherapy", "nurse-care": "/nurse-care", "home-doctor": "/home-doctor", "doctor-visit": "/doctor-visit", "care-taker": "/care-taker", "baby-care": "/baby-care", ayurveda: "/ayurveda", homeopathy: "/services/homeopathy" }
 const pageFor = (key: string) => PAGE_FOR[key] || `/services/${key}`
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 const empty = { name: "", key: "", short: "", desc: "", price: "", icon: "Stethoscope", image: "", matches: [] as string[], professions: [] as string[], status: "Active" }

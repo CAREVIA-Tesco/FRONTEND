@@ -247,7 +247,7 @@ export default function ProfessionalProfile() {
       )}
 
       <SiteFooter />
-      <BookingModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} providerId={doc?.id} serviceType={service ? BOOKING_TYPE(service.key) : undefined} />
+      <BookingModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} providerId={doc?.id} serviceType={service && !doc?.isDoctor ? BOOKING_TYPE(service.key) : undefined /* a doctor's service is picked in the booking form */} />
       <EnquiryModal open={enquiry} onClose={() => setEnquiry(false)} service={service?.title} message={doc ? `I would like to book ${doc.name}.` : ''} />
     </div>
   );

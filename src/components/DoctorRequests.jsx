@@ -1,13 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Inbox, MapPin, CalendarClock, Stethoscope, CheckCircle2, XCircle, Phone, User, MessageSquare } from 'lucide-react';
 import api from '../services/api';
+import { serviceKeyOf, visitTypesForService, visitTypesForProfession } from '../data/serviceRules';
+import { useServices } from '../data/services';
+
+const VISIT_OPTIONS = [['home', 'Home visit'], ['clinic', 'Clinic visit'], ['online', 'Online consult']];
 
 const fmt = (d) => new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
 
 // Doctor dashboard tab: requests from the website that reach this professional
 //  - "Assigned to you": the care team scheduled a visit – confirm or decline
 //  - "Open requests near you": Book Now requests matching your service + city – first to accept gets the visit
-export default function DoctorRequests({ appointments, isDoctor, onChanged, onCount }) {
+export default function DoctorRequests({ appointments, isDoctor, profession, onChanged, onCount }) {
+  const services = useServices();
+  // visit types this request can be accepted as: allowed for its service and for my profession
+  const typesFor = (r) => VISIT_OPTIONS.filter(([t]) => visitTypesForService(serviceKeyOf(r.service, services)).includes(t) && visitTypesForProfession(profession).includes(t));
+  const defaultType = (r) => { const ok = typesFor(r).map(([t]) => t); return ok.includes(r.visitType) ? r.visitType : ok[0] || r.visitType || 'home'; };
   const [open, setOpen] = useState(null);
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState(null);
@@ -82,18 +90,19 @@ export default function DoctorRequests({ appointments, isDoctor, onChanged, onCo
                 <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
                   <li className="flex items-center gap-2"><CalendarClock className="w-4 h-4 text-accent" /> {r.preferredDateLabel || 'Date to be agreed'}{r.preferredTime ? ` · ${r.preferredTime}` : ''}</li>
                   <li className="flex items-center gap-2"><MapPin className="w-4 h-4 text-accent" /> {[r.locality, r.city].filter(Boolean).join(', ') || '—'}{r.pincode ? ` · ${r.pincode}` : ''}</li>
-                  <li className="flex items-center gap-2"><Stethoscope className="w-4 h-4 text-accent" /> {r.service}{r.plan ? ` · ${r.plan}` : ''}</li>
+                  <li className="flex items-center gap-2"><Stethoscope className="w-4 h-4 text-accent" /> {r.service}{r.plan ? ` · ${r.plan}` : ''}{r.dutyHours ? ` · ${r.dutyHours} duty` : ''}</li>
+                  {r.labTests?.length > 0 && <li className="flex items-start gap-2" data-testid="request-lab-tests"><Stethoscope className="w-4 h-4 text-accent mt-0.5" /> Tests: {r.labTests.join(', ')}</li>}
                   {r.message && <li className="flex items-start gap-2"><MessageSquare className="w-4 h-4 text-accent mt-0.5" /> {r.message}</li>}
                 </ul>
                 {isDoctor && (
                   <label className="block text-xs text-gray-500 mb-3">Visit type
-                    <select aria-label={`Visit type for ${r.code}`} value={visitType[r.id] || r.visitType || 'home'} onChange={(e) => setVisitType({ ...visitType, [r.id]: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-primary">
-                      <option value="home">Home visit</option><option value="clinic">Clinic visit</option><option value="online">Online consult</option>
+                    <select aria-label={`Visit type for ${r.code}`} value={visitType[r.id] || defaultType(r)} onChange={(e) => setVisitType({ ...visitType, [r.id]: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-primary">
+                      {typesFor(r).map(([t, l]) => <option key={t} value={t}>{l}</option>)}
                     </select>
                   </label>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" disabled={!!busy} onClick={() => act(`a${r.id}`, () => api.acceptRequest(r.id, { consultationType: visitType[r.id] || r.visitType || 'home' }), 'Accepted')} className="bg-secondary text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy === `a${r.id}` ? 'Accepting…' : 'Accept request'}</button>
+                  <button type="button" disabled={!!busy} onClick={() => act(`a${r.id}`, () => api.acceptRequest(r.id, { consultationType: visitType[r.id] || defaultType(r) }), 'Accepted')} className="bg-secondary text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy === `a${r.id}` ? 'Accepting…' : 'Accept request'}</button>
                   <button type="button" disabled={!!busy} onClick={() => act(`x${r.id}`, () => api.declineRequest(r.id), 'Hidden')} className="border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-bold hover:bg-gray-50 disabled:opacity-60">Not for me</button>
                 </div>
               </div>

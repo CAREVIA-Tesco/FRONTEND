@@ -15,12 +15,10 @@ import About from './pages/About.jsx';
 import Blog from './pages/Blog.jsx';
 import Login from './pages/Login.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
-import HireProfessional from './pages/HireProfessional.jsx';
 import FindJobs from './pages/FindJobs.jsx';
 import NurseCare from './pages/NurseCare.jsx';
 import HomeDoctor from './pages/HomeDoctor.jsx';
 import Ayurveda from './pages/Ayurveda.jsx';
-import BHS from './pages/BHS.jsx';
 import Doctors from './pages/Doctors.jsx';
 import Contact from './pages/Contact.jsx';
 import TrackRequest from './pages/TrackRequest.jsx';
@@ -49,6 +47,7 @@ export default function App() {
         <Route path="/baby-care" element={<BabyCare />} />
         <Route path="/care-taker" element={<CareTaker />} />
         <Route path="/doctor-visit" element={<DoctorVisit />} />
+        <Route path="/general-medicine" element={<Navigate to="/doctor-visit" replace />} />
         <Route path="/about" element={<About />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
@@ -60,12 +59,12 @@ export default function App() {
         <Route path="/track" element={<TrackRequest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/hire-professional" element={<HireProfessional />} />
+        <Route path="/hire-professional" element={<Navigate to="/" replace />} />
         <Route path="/jobs" element={<FindJobs />} />
         <Route path="/nurse-care" element={<NurseCare />} />
         <Route path="/home-doctor" element={<HomeDoctor />} />
         <Route path="/ayurveda" element={<Ayurveda />} />
-        <Route path="/bhs" element={<BHS />} />
+        <Route path="/bhs" element={<Navigate to="/services" replace />} />
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/doctors/:id" element={<ProfessionalProfile />} />
         <Route path="/cities/:city" element={<CityCare />} />
@@ -80,6 +79,7 @@ export default function App() {
         <Route path="/register-patient/:token" element={<PatientRegistration />} />
         <Route path="/patient-registration/:token" element={<PatientRegistration />} />
         <Route path="/doctor" element={<DoctorLogin />} />
+        <Route path="/doctor/register" element={<DoctorLogin initialView="register" />} />
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
         <Route path="/admin/*" element={<AdminApp />} />
         <Route path="/professional/onboarding" element={<ProfessionalOnboarding />} />

@@ -174,7 +174,7 @@ export function Enquiries() {
               <dl className="grid grid-cols-2 gap-3 text-sm bg-slate-50 rounded-xl p-4">
                 {[
                   ["Name", selected.name], ["Phone", selected.phone], ["Email", selected.email], ["Home visit address", selected.address], ["PIN code", selected.pincode], ["Area / post office", selected.locality], ["City", selected.city], ["District", selected.district], ["State", selected.state], ["Requested doctor", selected.requestedProvider ? `${selected.requestedProvider}${selected.requestedProviderSpec ? ` (${selected.requestedProviderSpec})` : ""}` : ""], ["Visit type", selected.visitTypeLabel],
-                  ["Service", selected.service], ["Care plan", selected.plan], ["Subject", selected.subject], ["Organisation", selected.organisation],
+                  ["Service", selected.service], ["Duty hours", selected.dutyHours], ["Lab tests", (selected.labTests || []).join(", ")], ["Care plan", selected.plan], ["Subject", selected.subject], ["Organisation", selected.organisation],
                   ["Preferred date", selected.preferredDateLabel], ["Best time", selected.preferredTime], ["Referred by", selected.referrerName ? `${selected.referrerName} (${selected.referrerPhone})` : ""], ["From page", selected.source],
                 ].filter(([, v]) => v).map(([k, v]) => (
                   <div key={k as string}><dt className="text-muted text-xs">{k}</dt><dd className="font-medium text-charcoal break-words">{v}</dd></div>

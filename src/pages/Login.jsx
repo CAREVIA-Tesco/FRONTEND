@@ -7,6 +7,7 @@ import { saveCurrentUser } from '../utils/storage';
 import PincodeFields from '../components/PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
+import ConfirmPasswordField, { PASSWORD_MISMATCH } from '../components/ConfirmPasswordField';
 import { useFormDraft } from '../services/formDraft';
 import DraftNotice from '../components/DraftNotice';
 
@@ -14,9 +15,9 @@ const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 // "What care do you need?" – each choice asks one follow-up question that fits it
 const CARE_NEEDS = [
   { value: 'Doctor consultation', ask: 'Main symptoms or reason', placeholder: 'e.g. Fever for 3 days, BP check' },
-  { value: 'Nursing care', ask: 'Nursing needed', options: ['Injection / IV / drip', 'Wound dressing', 'Post-surgery care', 'Catheter / tube care', 'Elderly nursing', '12 / 24-hour nurse'] },
+  { value: 'Nursing care', ask: 'Nursing needed', options: ['Injection / IV / drip', 'Wound dressing', 'Post-surgery care', 'Catheter / tube care', 'Elderly nursing', 'Nurse on duty (24 / 12 / 6 hours)'] },
   { value: 'Physiotherapy', ask: 'Problem area', options: ['Back / neck pain', 'Knee / joint pain', 'Post-surgery rehab', 'Stroke / paralysis', 'Sports injury', 'Other'] },
-  { value: 'Elder care / Care taker', ask: 'Hours of care needed', options: ['A few hours a day', '12 hours – day', '12 hours – night', '24 hours (live-in)'] },
+  { value: 'Elder care / Care taker', ask: 'Duty hours needed', options: ['24 Hours', '12 Hours', '6 Hours'] },
   { value: 'Baby & mother care', ask: "Baby's age", placeholder: 'e.g. 2 weeks, or due next month' },
   { value: 'Lab tests at home', ask: 'Tests needed', placeholder: 'e.g. Sugar, thyroid, full body checkup' },
   { value: 'Not sure yet', ask: null },
@@ -33,6 +34,7 @@ export default function Login() {
   const [fullName, setFullName] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +50,7 @@ export default function Login() {
     return '/patient/dashboard';
   };
 
-  const switchView = (next) => { setView(next); setError(''); };
+  const switchView = (next) => { setView(next); setError(''); setConfirmPassword(''); };
   useEffect(() => { setError(''); }, [role]);
   // a mobile number typed as the login ID is reused for visit updates
   useEffect(() => {
@@ -129,6 +131,8 @@ export default function Login() {
     if (role === 'admin') { setError('Admin accounts cannot be self-registered. Please login instead.'); return; }
     if (!fullName.trim() || !identifier.trim() || !password) { setError('Please fill in all the fields.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (!confirmPassword) { setError('Please enter your password again in Confirm Password.'); return; }
+    if (password !== confirmPassword) { setError(PASSWORD_MISMATCH); return; }
     if (role === 'patient') {
       const msg = detailsError();
       if (msg) { setError(msg); return; }
@@ -370,7 +374,7 @@ export default function Login() {
 
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <label htmlFor="password" className="block text-[13px] font-semibold text-primary">Password</label>
+                      <label htmlFor="password" className="block text-[13px] font-semibold text-primary">{isRegister ? 'Create Password' : 'Password'}</label>
                       {!isRegister && role !== 'admin' && <button type="button" onClick={() => { setForgotPhone(/^\D*\d[\d\s+-]{8,}$/.test(identifier) ? identifier.replace(/\D/g, '').slice(-10) : ''); switchView('forgot'); }} className="text-[13px] font-semibold text-secondary hover:underline">Forgot Password?</button>}
                     </div>
                     <div className="relative">
@@ -381,6 +385,9 @@ export default function Login() {
                     </div>
                     {isRegister && <p className="text-xs text-primary/50 mt-1.5">At least 6 characters.</p>}
                   </div>
+                  {isRegister && (
+                    <ConfirmPasswordField value={confirmPassword} onChange={(v) => { setConfirmPassword(v); setError(''); }} password={password} show={showPassword} inputCls={inputCls} labelCls={labelCls} />
+                  )}
                   {patientSignup && (
                     <div className="pt-4 lg:pt-3 border-t border-line-soft">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent mb-3">About the patient</p>

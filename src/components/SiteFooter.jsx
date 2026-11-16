@@ -22,7 +22,6 @@ export default function SiteFooter() {
     ['/doctors', 'Find Doctors'],
     ['/doctor', 'Doctor Portal'],
     ['/admin', 'Admin Portal'],
-    ['/hire-professional', 'Hire a Professional'],
     ['/login', 'Patient Login / Register'],
   ];
 

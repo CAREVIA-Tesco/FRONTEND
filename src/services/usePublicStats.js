@@ -37,7 +37,8 @@ export const SERVICE_SPECS = {
   'care-taker': ['Care Taker'],
   'baby-care': ['Pediatrician'],
   ayurveda: ['Ayurveda Doctor'],
-  bhs: ['BHS'],
+  'lab-tests': ['Lab Centre'],
+  homeopathy: ['Homeopathy Doctor'],
 };
 
 export function serviceStats(stats, serviceType, allDoctors = false) {

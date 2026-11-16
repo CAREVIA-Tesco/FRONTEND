@@ -11,8 +11,10 @@ import { usePincode, pincodeErrors } from "../../services/usePincode"
 import { HoursEditor } from "../../components/ConsultationSettings"
 // @ts-ignore
 import { CONSULT_TYPES, CONSULT_LABEL, offersOf, hoursForEdit, checkConsultation } from "../../services/consultation"
+// @ts-ignore – plain JS module
+import { visitTypesForProfession } from "../../data/serviceRules"
 
-const PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHS"]
+const PROFESSIONS = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor", "Physiotherapist", "Nurse", "Caretaker", "Lab Centre", "BHMS"]
 const SPECIALIZATIONS: Record<string, string[]> = {
   "MBBS Doctor": ["General Physician", "General Medicine", "Dermatology", "Pediatrics", "Gynecology", "Cardiology", "Orthopedics", "ENT", "Ophthalmology", "Psychiatry", "Pulmonology", "Gastroenterology", "Neurology", "Urology", "Emergency Medicine", "Family Medicine"],
   "Homeopathy Doctor": ["General Homeopathy", "Pediatrics", "Dermatology", "Women’s Health", "Chronic Disease Care", "Allergy & Asthma", "Skin & Allergy"],
@@ -21,7 +23,7 @@ const SPECIALIZATIONS: Record<string, string[]> = {
   Nurse: ["General Nursing", "ICU Nurse", "Pediatric Nurse", "Geriatric Nurse", "Baby Care Nurse"],
   Caretaker: ["Elderly Care", "Patient Care", "Post-Surgery Care", "Baby Care", "Dementia Care"],
   "Lab Centre": ["General Diagnostic Tests", "Blood Tests", "Imaging & Diagnostics", "Full Body Checkups"],
-  BHS: ["General Health Science", "Community Health", "Public Health"],
+  BHMS: ["General Homeopathy", "Pediatrics", "Dermatology", "Women’s Health", "Chronic Disease Care", "Allergy & Asthma", "Skin & Allergy"],
 }
 const PAGE_FOR: Record<string, [string, string]> = {
   Caretaker: ["Caretakers", "/admin/caretakers"],
@@ -63,8 +65,10 @@ export function EditProvider() {
 
   const isLab = form.profession === "Lab Centre"
   const isCare = form.profession === "Caretaker" || form.profession === "Nurse"
-  const isDoctor = ["MBBS Doctor", "Homeopathy Doctor", "Ayurveda Doctor"].includes(form.profession)
+  const isDoctor = ["MBBS Doctor", "Homeopathy Doctor", "BHMS", "Ayurveda Doctor"].includes(form.profession)
   const showTypes = !isLab && !isCare
+  // homeopathy: clinic and online only (home visits are not offered)
+  const allowedTypes: string[] = visitTypesForProfession(form.profession)
   const [crumbLabel, crumbTo] = PAGE_FOR[form.profession] || ["Doctors & Providers", "/admin/providers"]
   const back = params.get("back") || (isNew ? crumbTo : `/admin/providers/${id}`)
 
@@ -114,9 +118,9 @@ export function EditProvider() {
     const addrErr = pincodeErrors(form, pinLookup, { required: false })
     if (addrErr.pincode) return addrErr.pincode
     if (showTypes && useHours) {
-      const msg = checkConsultation({ types, hours, clinicName: form.clinicName, clinicAddress: form.address })
+      const msg = checkConsultation({ types: Object.fromEntries(CONSULT_TYPES.map((t: string) => [t, !!types[t] && allowedTypes.includes(t)])), hours, clinicName: form.clinicName, clinicAddress: form.address })
       if (msg) return msg
-    } else if (showTypes && typesSet && !CONSULT_TYPES.some((t: string) => types[t])) return "Choose at least one consultation type"
+    } else if (showTypes && typesSet && !CONSULT_TYPES.some((t: string) => types[t] && allowedTypes.includes(t))) return "Choose at least one consultation type"
     else if (!Object.values(schedule).some((d) => d.length)) return "Choose at least one day and time when patients can book"
     return ""
   }
@@ -138,13 +142,13 @@ export function EditProvider() {
       contactPerson: form.contactPerson, centreType: form.centreType, accreditation: form.accreditation, trainingCertificates: form.trainingCertificates,
     }
     if (showTypes && (typesSet || useHours)) {
-      body.consultTypes = types
+      body.consultTypes = Object.fromEntries(CONSULT_TYPES.map((t: string) => [t, !!types[t] && allowedTypes.includes(t)]))
       if (types.clinic && !useHours && (!form.clinicName.trim() || !form.address.trim())) {
         setSaving(false); setError("This doctor offers clinic visits – please enter the clinic name and address"); return
       }
     }
     if (showTypes && useHours) {
-      body.hours = Object.fromEntries(CONSULT_TYPES.filter((t: string) => types[t]).map((t: string) => [t, hours[t]]))
+      body.hours = Object.fromEntries(CONSULT_TYPES.filter((t: string) => types[t] && allowedTypes.includes(t)).map((t: string) => [t, hours[t]]))
       delete body.schedule
     }
     if (form.img) body.img = form.img
@@ -338,7 +342,7 @@ export function EditProvider() {
               <p className="text-sm text-muted">Patients only see the types ticked here when they book this professional.</p>
             </div>
             <div className="flex flex-wrap gap-4">
-              {CONSULT_TYPES.map((t: string) => (
+              {CONSULT_TYPES.filter((t: string) => allowedTypes.includes(t)).map((t: string) => (
                 <label key={t} className="flex items-center gap-2 text-sm font-medium text-charcoal">
                   <input type="checkbox" checked={!!types[t]} onChange={(e) => { setTypes((x) => ({ ...x, [t]: e.target.checked })); setTypesSet(true) }} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> {CONSULT_LABEL[t]}
                 </label>
@@ -349,7 +353,7 @@ export function EditProvider() {
             </label>
             {useHours && (
               <div className="grid gap-4 lg:grid-cols-2">
-                {CONSULT_TYPES.filter((t: string) => types[t]).map((t: string) => (
+                {CONSULT_TYPES.filter((t: string) => types[t] && allowedTypes.includes(t)).map((t: string) => (
                   <HoursEditor key={t} idPrefix={`pf-${t}`} title={`${CONSULT_LABEL[t]} timings`} value={hours[t]} onChange={(v: any) => setHours((h) => ({ ...h, [t]: v }))} />
                 ))}
               </div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Phone, PhoneCall, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus, Minus, MapPin,
   ShieldCheck, Clock, Wallet, RotateCcw, ClipboardCheck, House, Activity, MessageCircleMore, ArrowUpRight,
+  Handshake, UserCheck, CalendarCheck, TrendingUp,
 } from 'lucide-react';
 
 import SiteHeader from '../components/SiteHeader';
@@ -388,37 +389,10 @@ export default function Home() {
             </div>
             <Reveal className="flex flex-wrap gap-4">
               <Link to="/about" className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-lg font-bold transition-colors">Know more about us</Link>
-              <Link to="/hire-professional" className="border border-accent/40 text-accent px-7 py-3.5 rounded-lg font-bold hover:bg-accent hover:text-white transition-colors">Hire a professional</Link>
             </Reveal>
           </div>
         </div>
       </section>
-      </>)}
-
-      {/* 9. Stories & articles */}
-      {on('articles') && (<>
-      {blog.length > 0 && (
-        <section id="stories" className="py-14 lg:py-24 bg-cream">
-          <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
-            <Heading eyebrow="Health stories" title="Recovery Tips & Care Guides" />
-            <div className="grid md:grid-cols-3 gap-5 lg:gap-7">
-              {blog.slice(0, 3).map((b, i) => (
-                <Reveal key={b.title} delay={i * 100}>
-                  <Link to={`/blog/${postSlug(b)}`} className="group block h-full bg-white rounded-xl overflow-hidden border border-black/[0.06] hover:shadow-xl transition-shadow">
-                    <div className="h-44 lg:h-52 overflow-hidden bg-mint"><img src={b.img} alt={b.title} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /></div>
-                    <div className="p-5 lg:p-6">
-                      <p className="text-[12px] font-bold tracking-[0.12em] uppercase text-accent mb-3">{b.category || 'Health'} · {b.date}</p>
-                      <h3 className="text-lg lg:text-[19px] font-bold text-primary mb-2 group-hover:text-accent transition-colors">{b.title}</h3>
-                      <p className="text-[15px] text-gray-600 line-clamp-2 mb-5">{b.desc}</p>
-                      <span className="font-bold text-accent inline-flex items-center gap-1.5 group-hover:gap-3 transition-all">Read story <ArrowUpRight className="w-4 h-4" /></span>
-                    </div>
-                  </Link>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
       </>)}
 
       {/* 10. Presence */}
@@ -447,21 +421,27 @@ export default function Home() {
       )}
       </>)}
 
-      {/* 11. Partner / join */}
+      {/* 11. Register as a Partner – doctors and healthcare professionals (opens the doctor registration) */}
       {on('partner') && (<>
-      <section className="py-20 bg-tint">
+      <section id="register-partner" className="py-14 lg:py-20 bg-tint" data-testid="register-partner">
         <Reveal className="max-w-[1320px] mx-auto px-5 sm:px-8">
-          <div className="bg-white rounded-2xl overflow-hidden grid lg:grid-cols-2 items-center border border-black/[0.05]">
-            <div className="p-6 sm:p-10 lg:p-14">
-              <p className="eyebrow text-accent mb-4">Join Carevaa</p>
-              <h2 className="font-poppins font-semibold text-[26px] md:text-[34px] leading-tight text-primary mb-4">Are you a healthcare professional?</h2>
-              <p className="text-gray-600 text-[15px] md:text-lg mb-7 font-light">Doctors, physiotherapists, nurses and caregivers can join Carevaa, set their own fees and schedule, and start receiving bookings as soon as their profile is live.</p>
-              <div className="flex flex-wrap gap-4">
-                <Link to="/doctor" className="bg-secondary hover:bg-secondary-hover text-white px-7 py-3.5 rounded-lg font-bold transition-colors">Register as a professional</Link>
-                <Link to="/jobs" className="border border-accent/40 text-accent px-7 py-3.5 rounded-lg font-bold hover:bg-accent hover:text-white transition-colors">View openings</Link>
-              </div>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-deep via-deep-2 to-deep-3 text-white grid lg:grid-cols-[1.15fr_1fr] items-stretch shadow-[0_30px_70px_-30px_color-mix(in_srgb,var(--color-deep)_70%,transparent)]">
+            <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-secondary/25 blur-3xl pointer-events-none" aria-hidden="true" />
+            <div className="relative p-7 sm:p-10 lg:p-14">
+              <p className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/20 px-3.5 py-1.5 text-[12px] font-semibold tracking-[0.12em] uppercase text-on-deep"><Handshake className="w-4 h-4" /> For doctors & professionals</p>
+              <h2 className="mt-5 font-poppins font-semibold text-[28px] md:text-[36px] xl:text-[40px] leading-tight">Register as a Partner</h2>
+              <p className="mt-4 text-white/80 text-[15px] md:text-lg font-light max-w-xl">Are you a doctor or healthcare professional? Partner with Carevaa and grow your healthcare services with us.</p>
+              <ul className="mt-7 grid sm:grid-cols-3 gap-3 text-[14px]">
+                {[[UserCheck, 'Verified profile'], [CalendarCheck, 'Your own timings'], [TrendingUp, 'More patients']].map(([Icon, t]) => (
+                  <li key={t} className="flex items-center gap-2.5 rounded-xl bg-white/10 ring-1 ring-white/15 px-3.5 py-2.5"><Icon className="w-4 h-4 text-on-deep shrink-0" /> {t}</li>
+                ))}
+              </ul>
+              <Link to="/doctor/register" data-testid="register-partner-btn" className="mt-8 inline-flex items-center gap-2 bg-secondary hover:bg-secondary-hover text-white px-8 py-3.5 rounded-xl font-bold text-[16px] shadow-[0_14px_30px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition hover:-translate-y-0.5">Register Now <ArrowRight className="w-5 h-5" /></Link>
             </div>
-            <img src="/career-hero.jpg" alt="Carevaa healthcare professionals" className="w-full h-72 lg:h-full object-cover" />
+            <div className="relative min-h-[220px] lg:min-h-full">
+              <img src="/career-hero.jpg" alt="Carevaa healthcare professionals" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-deep-3/70 via-transparent to-transparent" aria-hidden="true" />
+            </div>
           </div>
         </Reveal>
       </section>
@@ -498,6 +478,33 @@ export default function Home() {
                 <button type="button" onClick={() => setEnquiry({})} className="font-bold text-accent underline underline-offset-4">Request a callback</button>
               </Reveal>
             )}
+          </div>
+        </section>
+      )}
+      </>)}
+
+      {/* 12b. Blogs – stories & articles (after the FAQ) */}
+      {on('articles') && (<>
+      {blog.length > 0 && (
+        <section id="blogs" className="py-14 lg:py-24 bg-cream">
+          <div className="max-w-[1440px] mx-auto px-5 sm:px-8 lg:px-12 xl:px-16">
+            <Heading eyebrow="Blogs" title="Recovery Tips & Care Guides" />
+            <div className="grid md:grid-cols-3 gap-5 lg:gap-7">
+              {blog.slice(0, 3).map((b, i) => (
+                <Reveal key={b.title} delay={i * 100}>
+                  <Link to={`/blog/${postSlug(b)}`} className="group block h-full bg-white rounded-xl overflow-hidden border border-black/[0.06] hover:shadow-xl transition-shadow">
+                    <div className="h-44 lg:h-52 overflow-hidden bg-mint"><img src={b.img} alt={b.title} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" /></div>
+                    <div className="p-5 lg:p-6">
+                      <p className="text-[12px] font-bold tracking-[0.12em] uppercase text-accent mb-3">{b.category || 'Health'} · {b.date}</p>
+                      <h3 className="text-lg lg:text-[19px] font-bold text-primary mb-2 group-hover:text-accent transition-colors">{b.title}</h3>
+                      <p className="text-[15px] text-gray-600 line-clamp-2 mb-5">{b.desc}</p>
+                      <span className="font-bold text-accent inline-flex items-center gap-1.5 group-hover:gap-3 transition-all">Read story <ArrowUpRight className="w-4 h-4" /></span>
+                    </div>
+                  </Link>
+                </Reveal>
+              ))}
+            </div>
+            <div className="mt-8 text-center"><Link to="/blog" className="inline-flex items-center gap-1.5 font-bold text-accent hover:gap-3 transition-all">View all blogs <ArrowRight className="w-4 h-4" /></Link></div>
           </div>
         </section>
       )}

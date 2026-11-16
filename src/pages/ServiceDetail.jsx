@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { CalendarCheck, PhoneCall, ShieldCheck, Clock, House, Loader2 } from 'lucide-react';
+import { CalendarCheck, PhoneCall, ShieldCheck, Clock, House, Loader2, Building2, Video, FlaskConical, Check } from 'lucide-react';
 import SiteHeader from '../components/SiteHeader';
 import SiteFooter from '../components/SiteFooter';
 import PageHero from '../components/PageHero';
@@ -8,6 +8,7 @@ import EnquiryModal from '../components/EnquiryModal';
 import ServiceProfessionals from '../components/ServiceProfessionals';
 import { useBookNow } from '../components/BookNow';
 import { useServices, loadServices } from '../data/services';
+import { visitTypesForService, LAB_TESTS } from '../data/serviceRules';
 
 // Page for a service the admin added in Admin → Services (built-in services keep their own pages).
 export default function ServiceDetail() {
@@ -19,7 +20,8 @@ export default function ServiceDetail() {
   const service = services.find((s) => s.key === key);
 
   useEffect(() => { window.scrollTo(0, 0); loadServices().finally(() => setChecked(true)); }, [key]);
-  useEffect(() => { if (service) document.title = `${service.title} at home – Carevaa`; return () => { document.title = 'Carevaa | Doctors, Nurses & Home Care Services'; }; }, [service]);
+  const homeOk = visitTypesForService(key).includes('home');
+  useEffect(() => { if (service) document.title = `${service.title}${homeOk ? ' at home' : ''} – Carevaa`; return () => { document.title = 'Carevaa | Doctors, Nurses & Home Care Services'; }; }, [service]);
 
   if (service && !service.custom && service.link !== `/services/${key}`) return <Navigate to={service.link} replace />;
 
@@ -47,7 +49,7 @@ export default function ServiceDetail() {
   return (
     <div className="theme-portea font-sans text-primary bg-cream min-h-screen overflow-x-clip" data-testid="service-detail">
       <SiteHeader />
-      <PageHero eyebrow={service.short || 'Care at home'} title={`${service.title} at home`} desc={service.desc} crumbs={[['Our Services', '/services'], [service.title]]}>
+      <PageHero eyebrow={service.short || 'Care at home'} title={homeOk ? `${service.title} at home` : `${service.title} – Clinic & Online`} desc={service.desc} crumbs={[['Our Services', '/services'], [service.title]]}>
         <div className="mt-7 flex flex-wrap gap-3">
           <button type="button" onClick={() => bookNow({ service: service.title })} className="bg-primary hover:bg-primary-hover text-white font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> Book Now</button>
           <button type="button" onClick={() => setEnquiry(true)} className="bg-white border border-primary/15 text-primary font-semibold px-6 py-3 rounded-full inline-flex items-center gap-2 hover:border-primary"><PhoneCall className="w-4 h-4" /> Request callback</button>
@@ -66,12 +68,35 @@ export default function ServiceDetail() {
             {service.price && <p className="mt-5 inline-flex bg-green-50 text-green-700 font-semibold text-sm rounded-full px-4 py-1.5">Starts at {service.price}</p>}
             <ul className="mt-6 space-y-3 text-[15px]">
               <li className="flex items-center gap-3"><ShieldCheck className="w-5 h-5 text-accent" /> Verified, trained professionals</li>
-              <li className="flex items-center gap-3"><House className="w-5 h-5 text-accent" /> Care delivered at your home</li>
+              {homeOk ? (
+                <li className="flex items-center gap-3"><House className="w-5 h-5 text-accent" /> {visitTypesForService(key).length === 1 ? 'Home visits – care delivered at your home' : 'Care delivered at your home'}</li>
+              ) : (
+                <li className="flex items-center gap-3"><Building2 className="w-5 h-5 text-accent" /> Clinic visit or <Video className="w-5 h-5 text-accent" /> online consultation</li>
+              )}
               <li className="flex items-center gap-3"><Clock className="w-5 h-5 text-accent" /> Our care advisor calls you back to plan the visit</li>
             </ul>
           </div>
         </div>
       </section>
+
+      {key === 'lab-tests' && (
+        <section className="pb-14 lg:pb-20 px-5 sm:px-8" data-testid="lab-test-list">
+          <div className="max-w-7xl mx-auto">
+            <p className="text-[12px] font-bold tracking-[0.14em] uppercase text-accent">Home sample collection</p>
+            <h2 className="mt-2 text-2xl md:text-3xl font-bold font-poppins">Basic Lab Tests</h2>
+            <p className="mt-2 text-gray-600 max-w-2xl">Pick a test and book – a trained phlebotomist collects the sample at your home and the report is shared with you.</p>
+            <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {LAB_TESTS.map((t) => (
+                <button key={t} type="button" onClick={() => bookNow({ service: service.title, labTests: [t] })} className="group flex items-center justify-between gap-3 text-left bg-white rounded-2xl border border-black/[0.07] px-5 py-4 hover:border-accent/50 hover:shadow-md transition">
+                  <span className="flex items-center gap-3 font-semibold text-primary"><span className="w-9 h-9 rounded-xl bg-tint flex items-center justify-center shrink-0"><FlaskConical className="w-4 h-4 text-accent" /></span>{t}</span>
+                  <span className="text-[13px] font-semibold text-secondary whitespace-nowrap group-hover:underline">Book</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-[13px] text-gray-500 flex items-center gap-1.5"><Check className="w-4 h-4 text-accent" /> Home visit only – samples are collected at your address.</p>
+          </div>
+        </section>
+      )}
 
       <ServiceProfessionals serviceKey={service.key} />
       <SiteFooter />

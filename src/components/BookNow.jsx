@@ -1,12 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Check, ChevronDown, Loader2, ShieldCheck, UserCheck, MapPin, CalendarDays, Clock, Phone, ArrowLeft, Sun, Sunset, Moon, Stethoscope, House, Video, Building2 } from 'lucide-react';
+import { X, Check, ChevronDown, Loader2, ShieldCheck, UserCheck, MapPin, CalendarDays, Clock, Phone, ArrowLeft, Sun, Sunset, Moon, Stethoscope, House, Video, Building2, FlaskConical, Timer } from 'lucide-react';
 import api, { getSessionUser } from '../services/api';
 import { useContact } from '../services/useSiteContent';
 import { useServices } from '../data/services';
 import PincodeFields from './PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { slotTo24, shortSlot } from '../services/consultation';
+import { serviceKeyOf, visitTypesForService, needsDutyHours, DUTY_HOURS, LAB_TESTS } from '../data/serviceRules';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
@@ -56,7 +57,7 @@ function BookNowModal({ open, onClose, preset }) {
   const contact = useContact();
   const user = getSessionUser();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', address: '', service: '', visitType: 'home', date: '', time: '' });
+  const [form, setForm] = useState({ name: '', phone: '', city: '', pincode: '', district: '', state: '', locality: '', address: '', service: '', visitType: 'home', dutyHours: '', labTests: [], date: '', time: '' });
   // the chosen doctor's consultation types and free slots ({ offers, modes, configured, days, clinic, hours })
   const [slotInfo, setSlotInfo] = useState(null);
   const [slotLoading, setSlotLoading] = useState(false);
@@ -79,6 +80,8 @@ function BookNowModal({ open, onClose, preset }) {
       service: preset?.service || '',
       address: user?.address || '',
       visitType: preset?.visitType || 'home',
+      dutyHours: '',
+      labTests: Array.isArray(preset?.labTests) ? preset.labTests : [],
       date: localDate(slot),
       time: `${pad(slot.getHours())}:${pad(slot.getMinutes())}`,
     });
@@ -136,6 +139,18 @@ function BookNowModal({ open, onClose, preset }) {
   const patchForm = (patch) => { setForm((f) => ({ ...f, ...patch })); setErrors((er) => ({ ...er, ...Object.fromEntries(Object.keys(patch).map((k) => [k, undefined])) })); };
   const pin = usePincode(form, patchForm);
 
+  // service rules: some services are home visits only (Nurse Care, Home Doctor, Care Taker, Baby Care, Lab Tests),
+  // Homeopathy is clinic or online only; the chosen visit type always stays one the service allows
+  const serviceKey = serviceKeyOf(form.service, SERVICES);
+  const serviceTypes = visitTypesForService(serviceKey);
+  const doctorOffers = preset?.doctor && slotInfo?.offers ? slotInfo.offers : null;
+  useEffect(() => {
+    if (!open) return;
+    const ok = serviceTypes.filter((t) => !doctorOffers || doctorOffers[t]);
+    setForm((f) => (!ok.length || ok.includes(f.visitType) ? f : { ...f, visitType: ok[0] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, serviceKey, doctorOffers]);
+
   if (!open) return null;
   const setVal = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((er) => ({ ...er, [k]: undefined })); };
   const set = (k) => (e) => setVal(k, e.target.value);
@@ -168,6 +183,9 @@ function BookNowModal({ open, onClose, preset }) {
     if (!form.date) er.date = doctorSlots ? 'No free slots – try another consultation type or call us' : 'Choose a date';
     if (!form.time) er.time = doctorSlots ? 'Choose one of the free slots' : 'Choose a time';
     if (doctor && form.visitType === 'home' && !form.address.trim()) er.address = 'Enter the house / flat number and street for the home visit';
+    if (!visitTypes.length) er.visitType = `${doctor ? doctor.name : 'This professional'} does not offer ${form.service} as ${serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1].toLowerCase()).join(' or ')}. Please choose another service.`;
+    else if (!serviceTypes.includes(form.visitType)) er.visitType = 'Choose how we should see the patient';
+    if (needsDutyHours(serviceKey) && !form.dutyHours) er.dutyHours = 'Choose the duty hours you need';
     if (when && when.getTime() < Date.now() - 5 * 60 * 1000) er.time = 'Choose a time later than now';
     setErrors(er);
     if (Object.keys(er).length) return;
@@ -175,6 +193,7 @@ function BookNowModal({ open, onClose, preset }) {
     try {
       const res = await api.createEnquiry({
         type: 'booking', providerId: doctor?.id || undefined, name: form.name, phone: form.phone, city: form.city.trim(), pincode: form.pincode, district: form.district.trim() || undefined, state: form.state.trim() || undefined, locality: form.locality.trim() || undefined, address: form.visitType === 'home' ? form.address.trim() || undefined : undefined, service: form.service || undefined, visitType: form.visitType,
+        dutyHours: needsDutyHours(serviceKey) ? form.dutyHours : undefined, labTests: serviceKey === 'lab-tests' && form.labTests.length ? form.labTests : undefined,
         preferredDate: form.date, preferredTime: form.time, source: location.pathname,
       });
       onClose();
@@ -188,9 +207,10 @@ function BookNowModal({ open, onClose, preset }) {
   };
 
   const Err = ({ k }) => (errors[k] ? <p role="alert" className="text-[13px] text-red-600 mt-1.5">{errors[k]}</p> : null);
-  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', doctor ? 'Only this doctor\'s options' : 'Home, online or clinic']];
+  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', doctor ? 'Only this doctor\'s options' : serviceTypes.length < 3 ? serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1]).join(' or ') : 'Home, online or clinic']];
   const offers = doctor && slotInfo?.offers ? slotInfo.offers : null;
-  const visitTypes = offers ? VISIT_TYPES.filter(([v]) => offers[v]) : VISIT_TYPES;
+  const visitTypes = (offers ? VISIT_TYPES.filter(([v]) => offers[v]) : VISIT_TYPES).filter(([v]) => serviceTypes.includes(v));
+  const toggleTest = (t) => setVal('labTests', form.labTests.includes(t) ? form.labTests.filter((x) => x !== t) : [...form.labTests, t]);
   const feeOf = (v) => slotInfo?.modes?.find((m) => m.type === v)?.fee;
   const slotDay = doctorSlots ? slotInfo.days.find((d) => d.date === form.date) : null;
 
@@ -318,8 +338,40 @@ function BookNowModal({ open, onClose, preset }) {
                     })}
                   </div>
                 )}
-                {doctor && offers && visitTypes.length < 3 && <p className="text-[12px] text-primary/50 mt-1.5">{doctor.name} offers {visitTypes.map(([, l]) => l.toLowerCase()).join(' and ')} only.</p>}
+                {visitTypes.length > 0 && (serviceTypes.length < 3 && form.service
+                  ? <p className="text-[12px] text-primary/50 mt-1.5" data-testid="service-visit-note">{form.service} is available as {visitTypes.map(([, l]) => l.toLowerCase()).join(' or ')} only.</p>
+                  : doctor && offers && visitTypes.length < 3 && <p className="text-[12px] text-primary/50 mt-1.5">{doctor.name} offers {visitTypes.map(([, l]) => l.toLowerCase()).join(' and ')} only.</p>)}
+                {!visitTypes.length && (!doctor || slotInfo) && <p role="alert" className="text-[13px] text-red-600 mt-1.5">{doctor ? doctor.name : 'This professional'} does not offer {form.service} as {serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1].toLowerCase()).join(' or ')}. Please go back and choose another service.</p>}
+                {visitTypes.length > 0 && <Err k="visitType" />}
               </div>
+
+              {needsDutyHours(serviceKey) && (
+                <div>
+                  <p className={`${labelCls} flex items-center gap-1.5`}><Timer className="w-4 h-4 text-accent" /> Duty hours <span className="text-secondary">*</span></p>
+                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Duty hours" data-testid="duty-hours">
+                    {DUTY_HOURS.map((h) => {
+                      const on = form.dutyHours === h;
+                      return (
+                        <button key={h} type="button" role="radio" aria-checked={on} data-hours={h} onClick={() => setVal('dutyHours', h)} className={`h-12 rounded-xl border text-[14px] font-semibold transition ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>{h}</button>
+                      );
+                    })}
+                  </div>
+                  <Err k="dutyHours" />
+                </div>
+              )}
+
+              {serviceKey === 'lab-tests' && (
+                <div>
+                  <p className={`${labelCls} flex items-center gap-1.5`}><FlaskConical className="w-4 h-4 text-accent" /> Tests needed <span className="font-normal text-primary/45">(choose one or more)</span></p>
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lab tests" data-testid="lab-tests">
+                    {LAB_TESTS.map((t) => {
+                      const on = form.labTests.includes(t);
+                      return <button key={t} type="button" aria-pressed={on} onClick={() => toggleTest(t)} className={`min-h-8 px-3 py-1.5 rounded-full border text-[12.5px] font-medium transition ${on ? 'border-secondary bg-secondary text-white' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>{on && <Check className="w-3.5 h-3.5 inline -mt-0.5 mr-1" strokeWidth={3} />}{t}</button>;
+                    })}
+                  </div>
+                  <p className="text-[12px] text-primary/50 mt-1.5">Samples are collected at your home. Not sure which test? Leave this empty and our care advisor will help.</p>
+                </div>
+              )}
 
               {form.visitType === 'home' && (
                 <div>
@@ -450,7 +502,7 @@ function BookNowModal({ open, onClose, preset }) {
               <div className="rounded-2xl bg-tint ring-1 ring-line-soft p-4 text-[14px]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary/50 mb-1.5">Visit summary</p>
                 {whenLabel && <p className="font-semibold text-primary" data-testid="booknow-when">{whenLabel}</p>}
-                <p className="text-primary/65 mt-0.5">{[doctor ? `${doctor.name}${doctor.spec ? ` (${doctor.spec})` : ''}` : form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], doctor && form.visitType === 'clinic' && slotInfo?.clinic?.name ? slotInfo.clinic.name : form.visitType === 'online' ? null : [form.visitType === 'home' ? form.address.trim() : '', form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
+                <p className="text-primary/65 mt-0.5">{[doctor ? `${doctor.name}${doctor.spec ? ` (${doctor.spec})` : ''}` : form.service || 'Care visit', VISIT_TYPES.find(([v]) => v === form.visitType)?.[1], needsDutyHours(serviceKey) && form.dutyHours ? `${form.dutyHours} duty` : null, serviceKey === 'lab-tests' && form.labTests.length ? `${form.labTests.length} test${form.labTests.length === 1 ? '' : 's'}` : null, doctor && form.visitType === 'clinic' && slotInfo?.clinic?.name ? slotInfo.clinic.name : form.visitType === 'online' ? null : [form.visitType === 'home' ? form.address.trim() : '', form.locality, form.city].filter(Boolean).join(', ') + (form.pincode ? ` ${form.pincode}` : ''), form.name || null, `+91 ${form.phone}`].filter(Boolean).join(' · ')}</p>
               </div>
               {serverError && <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{serverError}</p>}
               <div className="flex gap-3">
