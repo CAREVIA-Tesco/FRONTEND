@@ -7,7 +7,8 @@ import { useServices } from '../data/services';
 import PincodeFields from './PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { slotTo24, shortSlot } from '../services/consultation';
-import { serviceKeyOf, visitTypesForService, needsDutyHours, DUTY_HOURS, LAB_TESTS } from '../data/serviceRules';
+import { serviceKeyOf, visitTypesForService, needsDutyHours, dutyHoursFor, LAB_TESTS } from '../data/serviceRules';
+import { cleanMobile, isName, MSG } from '../utils/validate';
 
 // "Book Now": step 1 contact details -> step 2 date & time -> /thank-you.
 // Any page calls useBookNow()({ service, city }) to open it.
@@ -157,7 +158,8 @@ function BookNowModal({ open, onClose, preset }) {
 
   const nextFromContact = () => {
     const er = {};
-    if (String(form.phone).replace(/\D/g, '').length !== 10) er.phone = 'Enter a valid 10-digit mobile number';
+    if (!cleanMobile(form.phone)) er.phone = MSG.phone;
+    if (form.name.trim() && !isName(form.name)) er.name = MSG.name;
     Object.assign(er, pincodeErrors(form, pin, { requireLocality: true }));
     if (er.city) er.city = 'Enter the city where you need the service';
     setErrors(er);
@@ -272,7 +274,8 @@ function BookNowModal({ open, onClose, preset }) {
             <div key="s1" className="cv-slide-in mt-6 space-y-4">
               <div>
                 <label htmlFor="bn-name" className={labelCls}>Full name</label>
-                <input id="bn-name" className={fieldCls} value={form.name} onChange={set('name')} placeholder="Please provide your name" autoComplete="name" />
+                <input id="bn-name" className={fieldCls} value={form.name} onChange={set('name')} placeholder="Please provide your name" autoComplete="name" aria-invalid={!!errors.name} />
+                <Err k="name" />
               </div>
               <div>
                 <label htmlFor="bn-phone" className={labelCls}>Mobile number <span className="text-secondary">*</span></label>
@@ -350,8 +353,8 @@ function BookNowModal({ open, onClose, preset }) {
               {needsDutyHours(serviceKey) && (
                 <div>
                   <p className={`${labelCls} flex items-center gap-1.5`}><Timer className="w-4 h-4 text-accent" /> Duty hours <span className="text-secondary">*</span></p>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Duty hours" data-testid="duty-hours">
-                    {DUTY_HOURS.map((h) => {
+                  <div className={`grid gap-2 ${dutyHoursFor(serviceKey).length === 1 ? 'grid-cols-1' : dutyHoursFor(serviceKey).length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} role="radiogroup" aria-label="Duty hours" data-testid="duty-hours">
+                    {dutyHoursFor(serviceKey).map((h) => {
                       const on = form.dutyHours === h;
                       return (
                         <button key={h} type="button" role="radio" aria-checked={on} data-hours={h} onClick={() => setVal('dutyHours', h)} className={`h-12 rounded-xl border text-[14px] font-semibold transition ${on ? 'border-primary bg-primary text-white shadow-md' : 'border-line bg-white text-primary hover:border-secondary/60'}`}>{h}</button>

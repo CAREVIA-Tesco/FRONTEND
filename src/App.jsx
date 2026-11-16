@@ -26,6 +26,7 @@ import BlogPost from './pages/BlogPost.jsx';
 import ServicesPage from './pages/ServicesPage.jsx';
 import ServiceDetail from './pages/ServiceDetail';
 import ThemeLoader from './components/ThemeLoader.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
 import VisitSummary from './pages/VisitSummary.jsx';
 import ProfessionalProfile from './pages/ProfessionalProfile.jsx';
 import CityCare from './pages/CityCare.jsx';
@@ -40,6 +41,7 @@ export default function App() {
   return (
     <Router>
       <ThemeLoader />
+      <ScrollToTop />
       <BookNowProvider>
       <Routes>
         <Route path="/" element={<Home />} />

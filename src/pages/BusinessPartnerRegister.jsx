@@ -9,6 +9,7 @@ import DraftNotice from '../components/DraftNotice';
 import api from '../services/api';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { useFormDraft } from '../services/formDraft';
+import { cleanMobile, isEmail, isName, MSG } from '../utils/validate';
 
 // Business Partner registration – for clinics, labs, pharmacies, agencies and other healthcare businesses.
 // A separate workflow from doctor / professional registration: no login account is created here; the
@@ -54,9 +55,9 @@ export default function BusinessPartnerRegister() {
     if (!form.businessName.trim()) er.businessName = 'Enter your business name';
     if (!form.category) er.category = 'Choose your business category';
     if (form.category === 'Other' && !form.categoryOther.trim()) er.categoryOther = 'Type your business category';
-    if (!form.contactPerson.trim()) er.contactPerson = 'Enter the contact person’s name';
-    if (!/^[6-9]\d{9}$/.test(form.phone)) er.phone = 'Enter a valid 10-digit mobile number';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) er.email = 'Enter a valid email address';
+    if (!isName(form.contactPerson)) er.contactPerson = 'Enter the contact person’s full name (letters only)';
+    if (!cleanMobile(form.phone)) er.phone = MSG.phone;
+    if (!isEmail(form.email)) er.email = MSG.email;
     if (!form.address.trim()) er.address = 'Enter the business address';
     Object.assign(er, pincodeErrors(form, pin));
     if (!form.services.length && !form.servicesOther.trim()) er.services = 'Choose at least one service you offer';

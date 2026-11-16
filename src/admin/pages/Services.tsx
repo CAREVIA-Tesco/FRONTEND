@@ -16,7 +16,9 @@ const BUILT_IN = ["physiotherapy", "nurse-care", "home-doctor", "doctor-visit", 
 const PAGE_FOR: Record<string, string> = { physiotherapy: "/physiotherapy", "nurse-care": "/nurse-care", "home-doctor": "/home-doctor", "doctor-visit": "/doctor-visit", "care-taker": "/care-taker", "baby-care": "/baby-care", ayurveda: "/ayurveda", homeopathy: "/services/homeopathy" }
 const pageFor = (key: string) => PAGE_FOR[key] || `/services/${key}`
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-const empty = { name: "", key: "", short: "", desc: "", price: "", icon: "Stethoscope", image: "", matches: [] as string[], professions: [] as string[], status: "Active" }
+const VISIT_OPTIONS: [string, string][] = [["home", "Home visit"], ["clinic", "Clinic visit"], ["online", "Online consultation"]]
+const DUTY_OPTIONS = ["24 Hours", "12 Hours", "6 Hours"]
+const empty = { name: "", key: "", short: "", desc: "", price: "", icon: "Stethoscope", image: "", matches: [] as string[], professions: [] as string[], status: "Active", visitTypes: ["home", "clinic", "online"] as string[], dutyHours: [] as string[] }
 
 export function Services() {
   const { data, error, reload } = useApi(() => api.getServices())
@@ -39,11 +41,12 @@ export function Services() {
   const openAdd = () => { setEditing(null); setForm(empty); setKeyTouched(false); setFormError(""); setOpen(true) }
   const openEdit = (sv: any) => {
     setEditing(sv)
-    setForm({ name: sv.name || "", key: sv.key || "", short: sv.short || "", desc: sv.desc || "", price: sv.price || "", icon: sv.icon || "Stethoscope", image: sv.image || "", matches: sv.matches || [], professions: sv.professions || [], status: sv.status || "Active" })
+    setForm({ name: sv.name || "", key: sv.key || "", short: sv.short || "", desc: sv.desc || "", price: sv.price || "", icon: sv.icon || "Stethoscope", image: sv.image || "", matches: sv.matches || [], professions: sv.professions || [], status: sv.status || "Active", visitTypes: sv.visitTypes?.length ? sv.visitTypes : ["home", "clinic", "online"], dutyHours: sv.dutyHours || [] })
     setKeyTouched(true); setFormError(""); setOpen(true)
   }
   const setName = (name: string) => setForm((f) => ({ ...f, name, key: keyTouched ? f.key : slugify(name) }))
   const toggleMatch = (m: string) => setForm((f) => ({ ...f, matches: f.matches.includes(m) ? f.matches.filter((x) => x !== m) : [...f.matches, m] }))
+  const toggleIn = (k: "visitTypes" | "dutyHours", v: string) => setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }))
   const toggleProfession = (p: string) => setForm((f) => ({ ...f, professions: f.professions.includes(p) ? f.professions.filter((x) => x !== p) : [...f.professions, p] }))
   const pickImage = async (file?: File) => {
     if (!file) return
@@ -54,6 +57,7 @@ export function Services() {
     if (!form.name.trim()) { setFormError("Service name is required"); return }
     if (!form.desc.trim()) { setFormError("Add a short description – it is shown on the website"); return }
     if (!form.key.trim()) { setFormError("Web address is required"); return }
+    if (!form.visitTypes.length) { setFormError("Choose at least one way patients can book this service (home visit, clinic visit or online)"); return }
     setSaving(true); setFormError("")
     try {
       if (editing) await api.updateService(editing.id, form)
@@ -133,6 +137,10 @@ export function Services() {
                 </div>
                 {sv.short && <p className="text-xs font-semibold text-brand-600 mt-0.5">{sv.short}</p>}
                 <p className="text-muted text-sm mt-2 flex-1">{sv.desc}</p>
+                <div className="mt-2.5 flex flex-wrap gap-1" data-testid="service-card-booking">
+                  {(sv.visitTypes?.length ? sv.visitTypes : ["home", "clinic", "online"]).map((t: string) => <span key={t} className="text-[10.5px] font-semibold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-md border border-brand-100">{VISIT_OPTIONS.find(([v]) => v === t)?.[1]}</span>)}
+                  {(sv.dutyHours || []).length > 0 && <span className="text-[10.5px] font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-100">Duty: {sv.dutyHours.join(" / ").replace(/ Hours/g, "")} hrs</span>}
+                </div>
                 {sv.professions && sv.professions.length > 0 && (
                   <div className="mt-2.5 flex flex-wrap gap-1">
                     {sv.professions.map((prof: string) => (
@@ -207,6 +215,30 @@ export function Services() {
                     <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" data-testid="service-image-input" onChange={(e) => pickImage(e.target.files?.[0])} /> Upload picture
                   </label>
                   {form.image && <Button variant="ghost" size="sm" className="text-error" onClick={() => setForm({ ...form, image: "" })}><Trash2 className="h-4 w-4 mr-1" /> Remove</Button>}
+                </div>
+              </div>
+            </div>
+            <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4" data-testid="service-booking-options">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                <span className={`${labelCls} text-charcoal font-bold`}>How patients can book *</span>
+                <p className="text-xs text-muted mb-2">Only the ticked options are offered in Book Now for this service.</p>
+                <div className="space-y-1.5">
+                  {VISIT_OPTIONS.map(([v, l]) => (
+                    <label key={v} className="flex items-center gap-2 text-sm text-charcoal cursor-pointer">
+                      <input type="checkbox" checked={form.visitTypes.includes(v)} onChange={() => toggleIn("visitTypes", v)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> {l}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                <span className={`${labelCls} text-charcoal font-bold`}>Duty hours</span>
+                <p className="text-xs text-muted mb-2">Tick the options patients choose from (e.g. nursing or care taker shifts). Leave all unticked if this service is not booked by duty hours.</p>
+                <div className="space-y-1.5">
+                  {DUTY_OPTIONS.map((h) => (
+                    <label key={h} className="flex items-center gap-2 text-sm text-charcoal cursor-pointer">
+                      <input type="checkbox" checked={form.dutyHours.includes(h)} onChange={() => toggleIn("dutyHours", h)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> {h}
+                    </label>
+                  ))}
                 </div>
               </div>
             </div>

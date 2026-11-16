@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance } from 'lucide-react';
 import { request } from '../services/api';
 import { readCache, writeCache } from '../services/persistentCache';
-import { isRemovedService } from './serviceRules';
+import { isRemovedService, registerServiceSettings } from './serviceRules';
 
 // icon names the admin can pick for a service
 export const SERVICE_ICONS = { Activity, Syringe, Stethoscope, House, Users, Baby, Leaf, HeartPulse, FlaskConical, Pill, HeartHandshake, Brain, Eye, Bone, Smile, Ambulance };
@@ -63,7 +63,7 @@ const fromApi = (sv) => {
 // last list received from the API (see useServices)
 {
   const saved = readCache('services');
-  if (Array.isArray(saved) && saved.length) live = saved.filter((sv) => !isRemovedService(sv)).map(fromApi);
+  if (Array.isArray(saved) && saved.length) { registerServiceSettings(saved); live = saved.filter((sv) => !isRemovedService(sv)).map(fromApi); }
 }
 export function loadServices(force = false) {
   if (loading && !force) return loading;
@@ -71,6 +71,7 @@ export function loadServices(force = false) {
     .then((d) => {
       const raw = (d.services || []).filter((sv) => sv.status === 'Active' && sv.key && !isRemovedService(sv)).sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
       writeCache('services', raw);
+      registerServiceSettings(d.services || []);
       live = raw.map(fromApi);
       listeners.forEach((fn) => fn(live));
       return live;

@@ -36,7 +36,6 @@ export default function Contact() {
   ].filter(Boolean);
 
   const byState = cities.reduce((m, c) => ({ ...m, [c.desc || 'Other']: [...(m[c.desc || 'Other'] || []), c.name] }), {});
-  const mapSrc = contact.address ? `https://www.google.com/maps?q=${encodeURIComponent(contact.address)}&output=embed` : '';
 
   return (
     <div className="theme-portea font-sans text-primary bg-cream min-h-screen overflow-x-clip" data-testid="contact-page">
@@ -103,15 +102,6 @@ export default function Contact() {
           </Reveal>
 
           <div className="space-y-5 lg:sticky lg:top-28">
-            {mapSrc && (
-              <div className="bg-white rounded-3xl border border-black/[0.06] overflow-hidden">
-                <iframe title="Carevaa head office on the map" src={mapSrc} loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="w-full h-56 border-0 bg-tint" />
-                <div className="p-5 flex items-start gap-3">
-                  <span className="w-10 h-10 rounded-xl bg-secondary text-white flex items-center justify-center shrink-0"><MapPin className="w-5 h-5" /></span>
-                  <span><span className="block font-semibold">Head office</span><span className="block text-[14px] text-gray-600">{contact.address}</span></span>
-                </div>
-              </div>
-            )}
             {[
               { icon: SearchCheck, title: 'Track a request', desc: 'Check the status of your care request with its request ID.', to: '/track', cta: 'Track request' },
               { icon: Briefcase, title: 'Join our team', desc: 'Doctors, nurses, physios and caregivers – see current openings.', to: '/jobs', cta: 'View openings' },

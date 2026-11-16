@@ -44,7 +44,8 @@ export default function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useEffect(() => { setMenuOpen(false); setMobileOpen(false); setPartnersOpen(false); }, [location.pathname]);
+  // close every menu after any link click – also a link to the page already open (e.g. "View all services" on /services)
+  useEffect(() => { setMenuOpen(false); setMobileOpen(false); setPartnersOpen(false); }, [location.pathname, location.key]);
 
   useEffect(() => {
     const close = (e) => {

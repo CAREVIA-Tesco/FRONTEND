@@ -60,7 +60,7 @@ export default function TrackRequest() {
 
       <section className="py-12 lg:py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto space-y-8">
-          <form onSubmit={(e) => { e.preventDefault(); lookup(); }} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-6 grid sm:grid-cols-[1fr_1fr_auto] gap-3 -mt-20 relative z-10">
+          <form onSubmit={(e) => { e.preventDefault(); lookup(); }} className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 -mt-20 relative z-10">
             <input aria-label="Request ID" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Request ID e.g. ENQ-50101" className="rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
             <input aria-label="Mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile number" inputMode="tel" className="rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
             <button type="submit" disabled={loading} className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 disabled:opacity-70">

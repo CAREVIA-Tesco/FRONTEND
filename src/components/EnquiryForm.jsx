@@ -6,6 +6,7 @@ import { useContact } from '../services/useSiteContent';
 import PincodeFields from './PincodeFields';
 import { usePincode, pincodeErrors } from '../services/usePincode';
 import { useServices } from '../data/services';
+import { cleanMobile, isEmail, isName, MSG } from '../utils/validate';
 
 export const TIME_SLOTS = ['Morning (8am – 12pm)', 'Afternoon (12pm – 4pm)', 'Evening (4pm – 8pm)', 'Anytime'];
 export const CONTACT_SUBJECTS = ['Booking help', 'Feedback', 'Complaint', 'Billing & refunds', 'Other'];
@@ -75,8 +76,10 @@ export default function EnquiryForm({ type = 'callback', service = '', plan = ''
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Please enter your name';
-    if (form.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter a valid 10-digit mobile number';
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email';
+    else if (!isName(form.name)) e.name = MSG.name;
+    if (!cleanMobile(form.phone)) e.phone = MSG.phone;
+    if (form.email && !isEmail(form.email)) e.email = MSG.email;
+    if (type === 'contact' && form.message.trim() && form.message.trim().length < 10) e.message = 'Please write a little more (at least 10 characters)';
     if (isLead && !form.service) e.service = 'Choose a service';
     if (type === 'contact' && !form.message.trim()) e.message = 'Please type your message';
     if (type === 'partner' && !form.organisation.trim()) e.organisation = 'Enter your organisation name';

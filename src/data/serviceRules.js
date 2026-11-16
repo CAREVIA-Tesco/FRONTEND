@@ -10,12 +10,25 @@ export const SERVICE_VISIT_TYPES = {
   homeopathy: ['clinic', 'online'],
 };
 export const ALL_VISIT_TYPES = ['home', 'clinic', 'online'];
-export const visitTypesForService = (key) => SERVICE_VISIT_TYPES[key] || ALL_VISIT_TYPES;
+
+// settings saved per service in Admin → Services (visit types and duty hours) override the defaults
+const saved = {};
+export function registerServiceSettings(list = []) {
+  list.forEach((s) => { if (s?.key) saved[s.key] = { visitTypes: s.visitTypes, dutyHours: s.dutyHours }; });
+}
+export const visitTypesForService = (key) => {
+  const v = saved[key]?.visitTypes;
+  return Array.isArray(v) && v.length ? ALL_VISIT_TYPES.filter((t) => v.includes(t)) : SERVICE_VISIT_TYPES[key] || ALL_VISIT_TYPES;
+};
 
 // duty hours asked when booking these services
 export const DUTY_HOURS = ['24 Hours', '12 Hours', '6 Hours'];
 export const DUTY_HOUR_SERVICES = ['nurse-care', 'care-taker', 'baby-care'];
-export const needsDutyHours = (key) => DUTY_HOUR_SERVICES.includes(key);
+export const dutyHoursFor = (key) => {
+  const d = saved[key]?.dutyHours;
+  return Array.isArray(d) ? DUTY_HOURS.filter((h) => d.includes(h)) : DUTY_HOUR_SERVICES.includes(key) ? DUTY_HOURS : [];
+};
+export const needsDutyHours = (key) => dutyHoursFor(key).length > 0;
 
 // basic tests that can be picked for Lab Tests (home sample collection)
 export const LAB_TESTS = [

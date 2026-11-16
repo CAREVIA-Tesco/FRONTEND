@@ -10,6 +10,7 @@ import ForgotPasswordForm from '../components/ForgotPasswordForm';
 import ConfirmPasswordField, { PASSWORD_MISMATCH } from '../components/ConfirmPasswordField';
 import { useFormDraft } from '../services/formDraft';
 import DraftNotice from '../components/DraftNotice';
+import { cleanMobile, isEmail, isName, MSG } from '../utils/validate';
 
 const CARE_FOR = ['Myself', 'Parent', 'Spouse', 'Child', 'Other'];
 // "What care do you need?" – each choice asks one follow-up question that fits it
@@ -79,7 +80,8 @@ export default function Login() {
     if (!details.careNeed) return 'Please choose the care you need.';
     if (details.age === '' || !Number.isInteger(age) || age < 0 || age > 120) return `Please enter ${details.careFor === 'Myself' ? 'your' : "the patient's"} age in years.`;
     if (!details.gender) return `Please select ${details.careFor === 'Myself' ? 'your' : "the patient's"} gender.`;
-    if (details.phone.replace(/\D/g, '').length !== 10) return 'Please enter a valid 10-digit mobile number.';
+    if (!cleanMobile(details.phone)) return MSG.phone + '.';
+    if (details.careFor !== 'Myself' && !isName(details.patientName)) return "Please enter the patient's name (letters only).";
     const addrErr = pincodeErrors(details, pin);
     if (addrErr.pincode) return addrErr.pincode;
     if (addrErr.city) return 'Please enter your city.';
@@ -130,6 +132,8 @@ export default function Login() {
     setError('');
     if (role === 'admin') { setError('Admin accounts cannot be self-registered. Please login instead.'); return; }
     if (!fullName.trim() || !identifier.trim() || !password) { setError('Please fill in all the fields.'); return; }
+    if (!isName(fullName)) { setError(MSG.name + '.'); return; }
+    if (identifier.includes('@') ? !isEmail(identifier) : !cleanMobile(identifier)) { setError('Enter a valid email address or a 10-digit mobile number.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     if (!confirmPassword) { setError('Please enter your password again in Confirm Password.'); return; }
     if (password !== confirmPassword) { setError(PASSWORD_MISMATCH); return; }

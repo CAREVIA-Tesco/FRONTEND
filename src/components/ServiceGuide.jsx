@@ -1,7 +1,7 @@
 import React from 'react';
 import { House, Building2, Video, Timer, Users, ClipboardCheck, ListChecks, ShieldCheck, CheckCircle2, CalendarCheck, ArrowRight } from 'lucide-react';
 import { SERVICE_GUIDES } from '../data/serviceGuides';
-import { visitTypesForService, needsDutyHours, DUTY_HOURS } from '../data/serviceRules';
+import { visitTypesForService, needsDutyHours, dutyHoursFor } from '../data/serviceRules';
 
 const VISIT = { home: ['Home visit', House], clinic: ['Clinic visit', Building2], online: ['Online consultation', Video] };
 // cards on the service pages lift and turn pink on hover (the website's secondary colour)
@@ -40,11 +40,11 @@ export default function ServiceGuide({ serviceKey, serviceName, onBook, bg = 'bg
             <ul className="mt-2 space-y-2">
               {types.map((t) => { const [label, Icon] = VISIT[t]; return <li key={t} className="flex items-center gap-2.5 rounded-xl bg-white/10 ring-1 ring-white/15 px-3.5 py-2.5 text-[14px] font-medium"><Icon className="w-4 h-4 text-on-deep" /> {label}</li>; })}
             </ul>
-            {types.length < 3 && <p className="mt-2 text-[12.5px] text-white/60">{types.length === 1 ? `${serviceName} is available as a home visit only.` : `${serviceName} is available at the clinic or online – no home visits.`}</p>}
+            {types.length < 3 && <p className="mt-2 text-[12.5px] text-white/60">{serviceName} is available as {types.map((t) => VISIT[t][0].toLowerCase()).join(' or ')} only.</p>}
             {duty && (
               <>
                 <p className="mt-5 text-[13px] text-white/60">Duty hours</p>
-                <div className="mt-2 grid grid-cols-3 gap-2">{DUTY_HOURS.map((h) => <span key={h} className="flex items-center justify-center gap-1 rounded-xl bg-white/10 ring-1 ring-white/15 py-2.5 text-[13px] font-semibold"><Timer className="w-3.5 h-3.5 text-on-deep" />{h.replace(' Hours', ' hrs')}</span>)}</div>
+                <div className="mt-2 grid grid-cols-3 gap-2">{dutyHoursFor(serviceKey).map((h) => <span key={h} className="flex items-center justify-center gap-1 rounded-xl bg-white/10 ring-1 ring-white/15 py-2.5 text-[13px] font-semibold"><Timer className="w-3.5 h-3.5 text-on-deep" />{h.replace(' Hours', ' hrs')}</span>)}</div>
               </>
             )}
             {onBook && <button type="button" onClick={onBook} className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-secondary hover:bg-secondary-hover text-white py-3.5 rounded-xl font-bold transition"><CalendarCheck className="w-5 h-5" /> Book Now</button>}

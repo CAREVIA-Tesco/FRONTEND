@@ -9,6 +9,7 @@ import { useFormDraft } from '../services/formDraft';
 import api, { saveSession, getSessionUser } from '../services/api';
 import ForgotPasswordForm from '../components/ForgotPasswordForm';
 import ConfirmPasswordField, { PASSWORD_MISMATCH } from '../components/ConfirmPasswordField';
+import { cleanMobile, isEmail, isName, MSG } from '../utils/validate';
 
 const PANEL = {
   photo: '/doctor-section.jpg',
@@ -88,6 +89,8 @@ export default function DoctorLogin({ initialView = 'login' }) {
     e.preventDefault();
     setError('');
     if (!fullName.trim() || !identifier.trim() || !password) { setError('Please fill in all the fields.'); return; }
+    if (!isName(fullName)) { setError(MSG.name + '.'); return; }
+    if (identifier.includes('@') ? !isEmail(identifier) : !cleanMobile(identifier)) { setError('Enter a valid email address or a 10-digit mobile number.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     if (!confirmPassword) { setError('Please enter your password again in Confirm Password.'); return; }
     if (password !== confirmPassword) { setError(PASSWORD_MISMATCH); return; }

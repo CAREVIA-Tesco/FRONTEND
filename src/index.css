@@ -266,3 +266,8 @@ html[data-palette="blue"] {
 @media (prefers-reduced-motion: reduce) {
   .cv-rise, .cv-slide-in, .cv-pop, .cv-draw, .cv-ring, .cv-confetti, .cv-grow { animation: none !important; }
 }
+
+/* Mobile safety: grid items and form fields may shrink below their content width, so long names,
+   numbers or placeholders never push a card or form past the screen edge. */
+.grid > * { min-width: 0; }
+input, select, textarea { min-width: 0; max-width: 100%; }

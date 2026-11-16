@@ -168,7 +168,7 @@ export default function Doctors() {
             </div>
           )}
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="doctor-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="doctor-grid">
             {visible.map((doc) => {
               const fee = lowest(doc);
               const modes = (doc.modes?.length ? doc.modes : Object.entries(offersOf(doc)).filter(([, on]) => on).map(([type]) => ({ type }))).filter((m) => MODE[m.type]);

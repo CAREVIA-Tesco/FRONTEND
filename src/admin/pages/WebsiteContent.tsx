@@ -80,8 +80,22 @@ const SECTIONS: Section[] = [
   { key: "cities", title: "Cities served", desc: "Cities listed on the homepage, footer and Contact page.", preview: "/#cities", itemLabel: (i) => i.name, blank: { name: "", desc: "", icon: "MapPin", accent: "blue" }, fields: [
     { name: "name", label: "City" }, { name: "desc", label: "State" },
   ] },
-  { key: "jobs", title: "Job openings", desc: "Openings shown on the Careers page.", preview: "/jobs", itemLabel: (i) => i.title, blank: { title: "", category: "", loc: "", time: "Full-Time", desc: "", icon: "Stethoscope", accent: "indigo" }, fields: [
-    { name: "title", label: "Job title" }, { name: "category", label: "Category" }, { name: "loc", label: "Location" }, { name: "time", label: "Type", placeholder: "Full-Time / Part-Time" }, { name: "desc", label: "Description", type: "textarea" },
+  { key: "careers-page", title: "Careers page text", desc: "Headings and text on the Careers page. Leave a field empty to use the default text.", single: true, preview: "/jobs", fields: [
+    { name: "heroTitle", label: "Main heading", placeholder: "Build Your Career With Carevaa" },
+    { name: "heroText", label: "Intro text", type: "textarea" },
+    { name: "hiringTitle", label: "Openings heading", placeholder: "Now Hiring" },
+    { name: "hiringText", label: "Openings sub-text", type: "textarea" },
+    { name: "applyTitle", label: "Application form heading", placeholder: "Apply for Your Dream Role" },
+    { name: "applyText", label: "Application form text", type: "textarea" },
+    { name: "perks", label: "Why work with us (one point per line)", type: "textarea" },
+  ] },
+  { key: "jobs", title: "Job openings", desc: "Openings shown on the Careers page and in the role list of its application form. Hidden openings are not shown.", preview: "/jobs", itemLabel: (i) => `${i.title}${i.show === "hide" ? " (hidden)" : ""}`, blank: { title: "", category: "", loc: "", time: "Full-Time", experience: "", salary: "", desc: "", requirements: "", icon: "Stethoscope", accent: "indigo", show: "show" }, fields: [
+    { name: "title", label: "Job title" }, { name: "category", label: "Category" }, { name: "loc", label: "Location" }, { name: "time", label: "Type", placeholder: "Full-Time / Part-Time" },
+    { name: "experience", label: "Experience needed", placeholder: "e.g. 2+ years" }, { name: "salary", label: "Salary (optional)", placeholder: "e.g. ₹25,000 – ₹35,000 / month" },
+    { name: "desc", label: "Description", type: "textarea" }, { name: "requirements", label: "Requirements (one per line)", type: "textarea" },
+    { name: "icon", label: "Icon", type: "select", options: [["Stethoscope", "Stethoscope"], ["Activity", "Physio / activity"], ["Heart", "Heart"], ["HeartPulse", "Heart pulse"], ["User", "Person"], ["Leaf", "Leaf"]] },
+    { name: "accent", label: "Colour", type: "select", options: [["indigo", "Purple"], ["rose", "Pink"], ["blue", "Blue"], ["emerald", "Green"], ["amber", "Amber"], ["teal", "Teal"]] },
+    { name: "show", label: "Show on website", type: "select", options: SHOW },
   ] },
   ...([["legal-privacy", "Privacy Policy", "/privacy-policy"], ["legal-terms", "Terms & Conditions", "/terms"], ["legal-patient-rights", "Patient Rights", "/patient-rights"]] as const).map(([key, title, preview]) => ({
     key, title, preview, single: true, desc: `Text of the ${title} page. Start a line with "## " to make it a heading. Have it reviewed by your legal adviser.`, fields: [
