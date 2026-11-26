@@ -160,8 +160,6 @@ function BookNowModal({ open, onClose, preset }) {
     const er = {};
     if (!cleanMobile(form.phone)) er.phone = MSG.phone;
     if (form.name.trim() && !isName(form.name)) er.name = MSG.name;
-    Object.assign(er, pincodeErrors(form, pin, { requireLocality: true }));
-    if (er.city) er.city = 'Enter the city where you need the service';
     setErrors(er);
     if (!Object.keys(er).length) setStep(2);
   };
@@ -182,6 +180,9 @@ function BookNowModal({ open, onClose, preset }) {
 
   const submit = async () => {
     const er = {};
+    // address is asked on this step (PIN code, city and area)
+    Object.assign(er, pincodeErrors(form, pin, { requireLocality: true }));
+    if (er.city) er.city = 'Enter the city where you need the service';
     if (!form.date) er.date = doctorSlots ? 'No free slots – try another consultation type or call us' : 'Choose a date';
     if (!form.time) er.time = doctorSlots ? 'Choose one of the free slots' : 'Choose a time';
     if (doctor && form.visitType === 'home' && !form.address.trim()) er.address = 'Enter the house / flat number and street for the home visit';
@@ -209,7 +210,7 @@ function BookNowModal({ open, onClose, preset }) {
   };
 
   const Err = ({ k }) => (errors[k] ? <p role="alert" className="text-[13px] text-red-600 mt-1.5">{errors[k]}</p> : null);
-  const STEPS = [['Contact details', 'Who should we call?'], ['Visit & time', doctor ? 'Only this doctor\'s options' : serviceTypes.length < 3 ? serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1]).join(' or ') : 'Home, online or clinic']];
+  const STEPS = [['Contact details', 'Who should we call?'], ['Visit, address & time', doctor ? 'Only this doctor\'s options' : serviceTypes.length < 3 ? serviceTypes.map((t) => VISIT_TYPES.find(([v]) => v === t)?.[1]).join(' or ') : 'Home, online or clinic']];
   const offers = doctor && slotInfo?.offers ? slotInfo.offers : null;
   const visitTypes = (offers ? VISIT_TYPES.filter(([v]) => offers[v]) : VISIT_TYPES).filter(([v]) => serviceTypes.includes(v));
   // the time picked is when the visit starts (duty hours are chosen separately above)
@@ -267,7 +268,7 @@ function BookNowModal({ open, onClose, preset }) {
         <div className="relative px-5 py-6 sm:px-9 sm:py-8 sm:max-h-[94vh] sm:overflow-y-auto">
           <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center text-primary/60 hover:text-primary hover:bg-tint rounded-full transition"><X className="w-5 h-5" /></button>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Step {step} of 2</p>
-          <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Visit type, date and time'}</h2>
+          <h2 className="font-serif text-[24px] sm:text-[28px] font-semibold text-primary leading-tight mt-1 pr-10">{step === 1 ? 'Your contact details' : 'Visit, address and time'}</h2>
           <p className="text-[14px] text-primary/60 mt-1.5">{step === 1 ? 'A care advisor will call you on this number to confirm the visit.' : doctorSlots ? `Only ${doctor.name}'s free slots are shown. The doctor confirms your booking.` : `Pick a slot that suits you. We will confirm it with ${doctor ? doctor.name : 'the professional'}.`}</p>
 
           {step === 1 ? (
@@ -285,7 +286,10 @@ function BookNowModal({ open, onClose, preset }) {
                 </div>
                 <Err k="phone" />
               </div>
-              <PincodeFields idPrefix="bn" value={form} onChange={patchForm} lookup={pin} errors={errors} fieldCls={fieldCls} labelCls={labelCls} errCls="text-[13px] text-red-600 mt-1" hintCls="text-[13px] mt-1" />
+              <button type="button" onClick={nextFromContact} className="w-full h-12 mt-2 bg-secondary hover:brightness-95 text-white font-semibold text-[16px] rounded-xl shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition hover:-translate-y-0.5">Next</button>
+            </div>
+          ) : (
+            <div key="s2" className="cv-slide-in mt-6 space-y-5">
               {!preset?.service && !doctor && (
                 <div>
                   <label htmlFor="bn-service" className={labelCls}>Service <span className="font-normal text-primary/45">(optional)</span></label>
@@ -320,10 +324,6 @@ function BookNowModal({ open, onClose, preset }) {
                   </span>
                 </div>
               )}
-              <button type="button" onClick={nextFromContact} className="w-full h-12 mt-2 bg-secondary hover:brightness-95 text-white font-semibold text-[16px] rounded-xl shadow-[0_12px_26px_-12px_color-mix(in_srgb,var(--color-secondary)_80%,transparent)] transition hover:-translate-y-0.5">Next</button>
-            </div>
-          ) : (
-            <div key="s2" className="cv-slide-in mt-6 space-y-5">
               <div>
                 <p className={`${labelCls} flex items-center gap-1.5`}><Stethoscope className="w-4 h-4 text-accent" /> How should we see the patient?</p>
                 {doctor && !slotInfo ? (
@@ -378,11 +378,11 @@ function BookNowModal({ open, onClose, preset }) {
                 </div>
               )}
 
+              <PincodeFields idPrefix="bn" value={form} onChange={patchForm} lookup={pin} errors={errors} fieldCls={fieldCls} labelCls={labelCls} errCls="text-[13px] text-red-600 mt-1" hintCls="text-[13px] mt-1" />
               {form.visitType === 'home' && (
                 <div>
                   <label htmlFor="bn-address" className={labelCls}>House / flat no. and street{doctor ? <span className="text-secondary"> *</span> : <span className="font-normal text-primary/45"> (optional)</span>}</label>
                   <input id="bn-address" className={fieldCls} value={form.address} onChange={set('address')} placeholder="e.g. 12B, 3rd Cross Street, near the temple" autoComplete="street-address" aria-invalid={!!errors.address} />
-                  <p className="text-[12px] text-primary/50 mt-1">{[form.locality, form.city].filter(Boolean).join(', ')}{form.pincode ? ` – ${form.pincode}` : ''}</p>
                   <Err k="address" />
                 </div>
               )}
